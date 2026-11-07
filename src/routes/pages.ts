@@ -54,6 +54,11 @@ export const ServiceManagePage = lazy(
 export const MyReservationsPage = lazy(
   () => import('@/pages/reservations/MyReservationsPage'),
 )
+
+export const RecommendationsPage = lazy(
+  () => import('@/pages/recommendations/RecommendationsPage'),
+)
+
 export const ReservationDetailPage = lazy(
   () => import('@/pages/reservations/ReservationDetailPage'),
 )

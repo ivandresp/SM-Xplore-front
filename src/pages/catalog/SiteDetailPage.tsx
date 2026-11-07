@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { activitiesApi } from '@/services/activitiesApi'
 import { eventsApi } from '@/services/eventsApi'
 import { sitesApi } from '@/services/sitesApi'
+import { useTrackView } from '@/hooks/useTrackView'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
@@ -22,6 +23,7 @@ function formatTime(value: string): string {
 /** Ficha pública de un atractivo con sus actividades y eventos. Sin mockup: patrón de actividad. */
 export default function SiteDetailPage() {
   const { siteId } = useParams<{ siteId: string }>()
+  useTrackView('SITE', siteId)
 
   const [site, setSite] = useState<Site | null>(null)
   const [zone, setZone] = useState<Zone | null>(null)

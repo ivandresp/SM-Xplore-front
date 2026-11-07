@@ -28,6 +28,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['TOURIST'],
   },
   {
+    to: '/recomendaciones',
+    label: 'Para ti',
+    description:
+      'Recomendaciones personalizadas según los intereses del turista y lo que ha visitado.',
+    roles: ['TOURIST'],
+  },
+  {
     to: '/mis-reservas',
     label: 'Mis reservas',
     description:

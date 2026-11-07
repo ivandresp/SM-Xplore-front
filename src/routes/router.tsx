@@ -39,6 +39,7 @@ import {
   ServiceFormPage,
   ServiceManagePage,
   MyReservationsPage,
+  RecommendationsPage,
   ReservationDetailPage,
   ManageReportsPage,
   MyReportsPage,
@@ -120,6 +121,14 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
+      {
+        path: 'recomendaciones',
+        element: (
+          <RequireRole roles={['TOURIST']}>
+            <RecommendationsPage />
+          </RequireRole>
+        ),
+      },
       {
         path: 'mis-reservas',
         element: (

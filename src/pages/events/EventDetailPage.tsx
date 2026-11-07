@@ -8,6 +8,7 @@ import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { EVENT_STATUS_LABELS, EVENT_STATUS_TONES, PAYMENT_METHOD_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { useItinerary } from '@/hooks/useItinerary'
+import { useTrackView } from '@/hooks/useTrackView'
 import { eventsApi } from '@/services/eventsApi'
 import { reservationsApi } from '@/services/reservationsApi'
 import { sitesApi } from '@/services/sitesApi'
@@ -36,6 +37,7 @@ const PAYMENT_OPTIONS = Object.entries(PAYMENT_METHOD_LABELS).map(
 
 export default function EventDetailPage() {
   const { eventId } = useParams<{ eventId: string }>()
+  useTrackView('EVENT', eventId)
   const { user, isAuthenticated } = useAuth()
   const { itinerary, addEntry, removeEntry } = useItinerary()
   const navigate = useNavigate()

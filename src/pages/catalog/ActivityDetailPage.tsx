@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { ACTIVITY_STATUS_LABELS, PAYMENT_METHOD_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { useItinerary } from '@/hooks/useItinerary'
+import { useTrackView } from '@/hooks/useTrackView'
 import { activitiesApi } from '@/services/activitiesApi'
 import { describeApiError } from '@/utils/errors'
 import { reservationsApi } from '@/services/reservationsApi'
@@ -39,6 +40,7 @@ const PAYMENT_OPTIONS = Object.entries(PAYMENT_METHOD_LABELS).map(
 
 export default function ActivityDetailPage() {
   const { activityId } = useParams<{ activityId: string }>()
+  useTrackView('ACTIVITY', activityId)
   const { user, isAuthenticated } = useAuth()
   const { itinerary, addEntry, removeEntry } = useItinerary()
   const navigate = useNavigate()

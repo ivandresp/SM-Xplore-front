@@ -9,6 +9,7 @@ import {
   serviceTypeLabel,
 } from '@/config/roles'
 import { servicesApi } from '@/services/servicesApi'
+import { useTrackView } from '@/hooks/useTrackView'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
 import type { ServiceResponse } from '@/types'
@@ -16,6 +17,7 @@ import styles from './catalog.module.css'
 
 export default function ServiceDetailPage() {
   const { serviceId } = useParams<{ serviceId: string }>()
+  useTrackView('SERVICE', serviceId)
 
   const [service, setService] = useState<ServiceResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)

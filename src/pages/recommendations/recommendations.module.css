@@ -1,0 +1,125 @@
+/* Recomendaciones del turista (ms-05). */
+.page {
+  padding: 2rem 1.5rem 3rem;
+}
+
+.note {
+  margin: 0 0 1.5rem;
+  padding: 0.9rem 1.1rem;
+  border-radius: var(--radius-md);
+  background-color: var(--color-info-bg);
+  color: var(--color-info-text);
+  font-size: 0.95rem;
+}
+
+.cards {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg);
+  box-shadow: var(--shadow-card);
+}
+
+.cardTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  line-height: 1.3;
+}
+
+.reason {
+  margin: 0;
+  color: var(--color-muted-strong);
+  font-size: 0.95rem;
+}
+
+.cardLink {
+  margin-top: auto;
+  align-self: flex-start;
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cardLink:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+}
+
+.cardLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.skeleton {
+  min-height: 11rem;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface-alt);
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.state {
+  display: grid;
+  gap: 0.75rem;
+  justify-items: center;
+  padding: 3rem 1.5rem;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.state p {
+  margin: 0;
+  max-width: 34rem;
+}
+
+.stateTitle {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.stateLink {
+  color: var(--color-primary);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.stateLink:hover {
+  text-decoration: underline;
+}
+
+.stateLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
+}
