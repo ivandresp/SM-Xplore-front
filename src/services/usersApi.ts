@@ -1,15 +1,81 @@
+import { z } from 'zod'
 import { httpClient } from './httpClient'
 import { parseResponse } from './validate'
 import { toAuthUser, userViewSchema } from './userSchema'
 import type {
-  UpdateMyProfileRequest,
+  AdminUserListParams,
+  ChangeUserRoleRequest,
   ChangeUserStatusRequest,
-  GuideProfileResponse,
-  AdminResetPasswordRequest,
-  ServiceProviderProfileResponse,
-  UserResponse,
-  UserSearchFilters,
+  CreateUserRequest,
+  ProviderReviewRequest,
+  UpdateMyProfileRequest,
 } from '@/types'
+
+const roleSchema = z.enum([
+  'ADMIN',
+  'GUIDE',
+  'SERVICE_PROVIDER',
+  'DESTINATION_MANAGER',
+  'TOURIST',
+])
+
+const providerStatusSchema = z
+  .enum(['PENDIENTE', 'APROBADO', 'RECHAZADO'])
+  .nullish()
+  .transform((value) => value ?? null)
+
+/** `UserSummaryView` de `GET /admin/users`. */
+const summarySchema = z.object({
+  id: z.string(),
+  fullName: z.string(),
+  email: z.string(),
+  role: roleSchema,
+  status: z.enum(['ACTIVO', 'BLOQUEADO', 'SUSPENDIDO', 'ELIMINADO']),
+  providerStatus: providerStatusSchema,
+  signedUpAt: z.string(),
+})
+
+const adminPageSchema = z.object({
+  content: z.array(summarySchema),
+  page: z.number(),
+  size: z.number(),
+  totalElements: z.number(),
+  totalPages: z.number(),
+})
+
+/** `PublicProfileView` de `GET /public/users/{id}`. */
+const publicGuideDetailsSchema = z.object({
+  license: z.string().nullish().transform((value) => value ?? null),
+  startOperationDate: z.string().nullish().transform((value) => value ?? null),
+})
+
+const publicProviderDetailsSchema = z.object({
+  nit: z.string().nullish().transform((value) => value ?? null),
+  businessType: z.string().nullish().transform((value) => value ?? null),
+  websiteUrl: z.string().nullish().transform((value) => value ?? null),
+  latitude: z.number().nullish().transform((value) => value ?? null),
+  longitude: z.number().nullish().transform((value) => value ?? null),
+  startOperationDate: z.string().nullish().transform((value) => value ?? null),
+})
+
+const publicProfileSchema = z.discriminatedUnion('role', [
+  z.object({
+    id: z.string(),
+    fullName: z.string(),
+    role: z.literal('GUIDE'),
+    profile: publicGuideDetailsSchema
+      .nullish()
+      .transform((value) => value ?? null),
+  }),
+  z.object({
+    id: z.string(),
+    fullName: z.string(),
+    role: z.literal('SERVICE_PROVIDER'),
+    profile: publicProviderDetailsSchema
+      .nullish()
+      .transform((value) => value ?? null),
+  }),
+])
 
 export const usersApi = {
   /** `GET /api/v1/users/me` — usuario de la sesión. */
@@ -31,63 +97,68 @@ export const usersApi = {
   /** `POST /api/v1/users/me/logout` — 204; invalida las sesiones del usuario. */
   logout: () => httpClient.post<void>('/users/me/logout'),
 
-  /** `GET /api/v1/users` — lista completa de usuarios. */
-  list: () => httpClient.get<UserResponse[]>('/users'),
+  /** `GET /api/v1/admin/users` — listado paginado con filtros en servidor. */
+  list: (params: AdminUserListParams = {}) =>
+    httpClient
+      .get<unknown>('/admin/users', { query: { ...params } })
+      .then((response) =>
+        parseResponse(adminPageSchema, response, 'GET /admin/users'),
+      ),
 
-  /** `GET /api/v1/users/{userId}` */
-  getById: (userId: string) => httpClient.get<UserResponse>(`/users/${userId}`),
+  /** `GET /api/v1/admin/users/{id}` — mismo `UserView` que la sesión. */
+  getById: (userId: string) =>
+    httpClient
+      .get<unknown>(`/admin/users/${userId}`)
+      .then((response) =>
+        toAuthUser(
+          parseResponse(userViewSchema, response, 'GET /admin/users/{id}'),
+        ),
+      ),
 
-  /** `GET /api/v1/users/search` — todos los filtros son opcionales. */
-  search: (filters: UserSearchFilters) =>
-    httpClient.get<UserResponse[]>('/users/search', { query: { ...filters } }),
+  /** `POST /api/v1/admin/users` — 201; envía invitación por correo. */
+  create: (payload: CreateUserRequest) =>
+    httpClient
+      .post<unknown>('/admin/users', payload)
+      .then((response) =>
+        toAuthUser(
+          parseResponse(userViewSchema, response, 'POST /admin/users'),
+        ),
+      ),
 
-  /** `DELETE /api/v1/users/{userId}` — el usuario elimina su cuenta (204). */
-  deleteAccount: (userId: string) =>
-    httpClient.delete<void>(`/users/${userId}`),
-
-  /**
-   * `PATCH /api/v1/users/{userId}/status` — admin: reactivar (`ACTIVE`),
-   * bloquear (`BLOCKED`) o suspender (`SUSPENDED`). Cambiar el rol no está
-   * soportado por el backend: cada rol tiene su propio perfil.
-   */
+  /** `PATCH /api/v1/admin/users/{id}/status` — 204. */
   changeStatus: (userId: string, payload: ChangeUserStatusRequest) =>
-    httpClient.patch<UserResponse>(`/users/${userId}/status`, payload),
+    httpClient.patch<void>(`/admin/users/${userId}/status`, payload),
 
-  /** `DELETE /api/v1/users/{userId}/admin` — degrada a un administrador (204). */
-  removeAdmin: (userId: string) =>
-    httpClient.delete<void>(`/users/${userId}/admin`),
+  /** `PATCH /api/v1/admin/users/{id}/role` — devuelve el `UserView` nuevo. */
+  changeRole: (userId: string, payload: ChangeUserRoleRequest) =>
+    httpClient
+      .patch<unknown>(`/admin/users/${userId}/role`, payload)
+      .then((response) =>
+        toAuthUser(
+          parseResponse(
+            userViewSchema,
+            response,
+            'PATCH /admin/users/{id}/role',
+          ),
+        ),
+      ),
 
-  /** `POST /api/v1/users/{userId}/reset-password` — 204. */
-  resetPassword: (userId: string, payload: AdminResetPasswordRequest) =>
-    httpClient.post<void>(`/users/${userId}/reset-password`, payload),
+  /** `DELETE /api/v1/admin/users/{id}` — 204; anonimiza la cuenta. */
+  remove: (userId: string) => httpClient.delete<void>(`/admin/users/${userId}`),
 
-  /** `GET /api/v1/users/guides/{guideId}` */
-  getGuideProfile: (guideId: string) =>
-    httpClient.get<GuideProfileResponse>(`/users/guides/${guideId}`),
+  /** `POST /api/v1/admin/users/{id}/provider-review` — 204. */
+  reviewProvider: (userId: string, payload: ProviderReviewRequest) =>
+    httpClient.post<void>(`/admin/users/${userId}/provider-review`, payload),
 
-  /** `GET /api/v1/users/providers/{providerId}` */
-  getProviderProfile: (providerId: string) =>
-    httpClient.get<ServiceProviderProfileResponse>(
-      `/users/providers/${providerId}`,
-    ),
+  /** `POST /api/v1/admin/users/{id}/password-reset` — 202; envía el enlace. */
+  requestPasswordReset: (userId: string) =>
+    httpClient.post<void>(`/admin/users/${userId}/password-reset`),
 
-  /** `POST /api/v1/users/{userId}/approve-provider` — admin. */
-  approveProvider: (userId: string) =>
-    httpClient.post<ServiceProviderProfileResponse>(
-      `/users/${userId}/approve-provider`,
-    ),
-
-  /** `POST /api/v1/users/{userId}/reject-provider` — admin. */
-  rejectProvider: (userId: string) =>
-    httpClient.post<ServiceProviderProfileResponse>(
-      `/users/${userId}/reject-provider`,
-    ),
-
-  /** `POST /api/v1/users/{userId}/approve-guide` — admin. */
-  approveGuide: (userId: string) =>
-    httpClient.post<GuideProfileResponse>(`/users/${userId}/approve-guide`),
-
-  /** `POST /api/v1/users/{userId}/approve-manager` — admin. */
-  approveManager: (userId: string) =>
-    httpClient.post<UserResponse>(`/users/${userId}/approve-manager`),
+  /** `GET /api/v1/public/users/{id}` — solo guías y prestadoras. */
+  getPublicProfile: (userId: string) =>
+    httpClient
+      .get<unknown>(`/public/users/${userId}`)
+      .then((response) =>
+        parseResponse(publicProfileSchema, response, 'GET /public/users/{id}'),
+      ),
 }

@@ -5,6 +5,7 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { PublicLayout } from '@/layouts/PublicLayout'
 import DashboardPage from '@/pages/DashboardPage'
 import NotFoundPage from '@/pages/NotFoundPage'
+import CreateUserPage from '@/pages/admin/CreateUserPage'
 import ProviderApprovalPage from '@/pages/admin/ProviderApprovalPage'
 import UserDetailPage from '@/pages/admin/UserDetailPage'
 import UsersPage from '@/pages/admin/UsersPage'
@@ -185,6 +186,14 @@ export const router = createBrowserRouter([
         element: (
           <RequireRole roles={['ADMIN']}>
             <UsersPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: 'usuarios/nuevo',
+        element: (
+          <RequireRole roles={['ADMIN']}>
+            <CreateUserPage />
           </RequireRole>
         ),
       },

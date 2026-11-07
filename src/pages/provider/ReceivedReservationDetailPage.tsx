@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
@@ -14,14 +13,9 @@ import {
 import { itemLabel, loadCatalogLookup } from '@/services/catalogLookup'
 import type { CatalogEntry } from '@/services/catalogLookup'
 import { itemOf, reservationsApi } from '@/services/reservationsApi'
-import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
-import type {
-  ReservationItemResponse,
-  ReservationResponse,
-  UserResponse,
-} from '@/types'
+import type { ReservationItemResponse, ReservationResponse } from '@/types'
 import styles from '@/pages/reservations/reservations.module.css'
 
 function formatTime(value: string): string {
@@ -39,7 +33,6 @@ export default function ReceivedReservationDetailPage() {
   )
   const [items, setItems] = useState<ReservationItemResponse[]>([])
   const [lookup, setLookup] = useState<Map<string, CatalogEntry>>(new Map())
-  const [tourist, setTourist] = useState<UserResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -65,13 +58,6 @@ export default function ReceivedReservationDetailPage() {
         setItems([itemOf(found)])
         setLookup(catalog)
         setError(null)
-
-        try {
-          const owner = await usersApi.getById(found.touristId)
-          if (!cancelled) setTourist(owner)
-        } catch {
-          // Sin datos del turista la tarjeta no se muestra.
-        }
       } catch (cause) {
         if (!cancelled) setError(describeApiError(cause))
       } finally {
@@ -202,20 +188,13 @@ export default function ReceivedReservationDetailPage() {
             <DefList items={infoItems} />
           </article>
 
-          {tourist !== null && (
-            <article className={styles.card}>
-              <h2 className={styles.cardTitle}>Turista</h2>
-              <div className={styles.contact}>
-                <Avatar name={tourist.fullName} />
-                <div>
-                  <p className={styles.contactName}>{tourist.fullName}</p>
-                  <p className={styles.contactMeta}>
-                    {tourist.email} · {tourist.phone}
-                  </p>
-                </div>
-              </div>
-            </article>
-          )}
+          <article className={styles.card}>
+            <h2 className={styles.cardTitle}>Turista</h2>
+            <p className={styles.contactMeta}>
+              El backend solo entrega el identificador del turista, sin nombre ni
+              contacto: {current.touristId}
+            </p>
+          </article>
         </div>
 
         <div className={styles.column}>

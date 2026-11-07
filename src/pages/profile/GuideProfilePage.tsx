@@ -1,25 +1,22 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
-import { useAuth } from '@/hooks/useAuth'
 import { activitiesApi } from '@/services/activitiesApi'
 import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDuration, formatMonthYear } from '@/utils/format'
-import type { ActivityResponse, GuideProfileResponse } from '@/types'
+import type { ActivityResponse, PublicProfile } from '@/types'
 import styles from './profile.module.css'
 
 export default function GuideProfilePage() {
   const { guideId } = useParams<{ guideId: string }>()
-  const { isAuthenticated } = useAuth()
-  const { pathname } = useLocation()
 
-  const [guide, setGuide] = useState<GuideProfileResponse | null>(null)
+  const [guide, setGuide] = useState<PublicProfile | null>(null)
   const [activities, setActivities] = useState<ActivityResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -36,8 +33,12 @@ export default function GuideProfilePage() {
       setError(null)
 
       try {
-        const found = await usersApi.getGuideProfile(guideId as string)
+        const found = await usersApi.getPublicProfile(guideId as string)
         if (cancelled) return
+        if (found.role !== 'GUIDE') {
+          setError('Esa cuenta no es un guía turístico.')
+          return
+        }
         setGuide(found)
 
         // Las actividades del guía se filtran del listado completo:
@@ -81,12 +82,19 @@ export default function GuideProfilePage() {
     )
   }
 
-  // El backend oculta el contacto a las peticiones anónimas.
-  const contactReserved = guide.email === null && guide.phone === null
-
-  const contactItems: DefItem[] = [
-    { label: 'Teléfono', value: guide.phone ?? '—' },
-    { label: 'Correo', value: guide.email ?? '—' },
+  const profile = guide.role === 'GUIDE' ? guide.profile : null
+  const details: DefItem[] = [
+    {
+      label: 'Licencia',
+      value: profile?.license != null ? `RNT ${profile.license}` : '—',
+    },
+    {
+      label: 'Guía desde',
+      value:
+        profile?.startOperationDate != null
+          ? formatMonthYear(profile.startOperationDate)
+          : '—',
+    },
   ]
 
   return (
@@ -108,9 +116,9 @@ export default function GuideProfilePage() {
               <div className={styles.identity}>
                 <h2 className={styles.name}>{guide.fullName}</h2>
                 <p className={styles.meta}>Guía turístico</p>
-                {guide.startOperationDate !== null && (
+                {profile?.startOperationDate != null && (
                   <p className={styles.meta}>
-                    Guía desde {formatMonthYear(guide.startOperationDate)}
+                    Guía desde {formatMonthYear(profile.startOperationDate)}
                   </p>
                 )}
               </div>
@@ -120,19 +128,17 @@ export default function GuideProfilePage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Sobre mí</h2>
             <p className={styles.notice}>
-              El backend todavía no almacena la descripción, los idiomas ni las
+              El backend no publica la descripción, los idiomas ni las
               certificaciones adicionales del guía.
             </p>
           </article>
 
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Certificaciones</h2>
-            {guide.license !== null ? (
+            {profile?.license != null ? (
               <div className={styles.listRow}>
                 <span>
-                  <span className={styles.listName}>
-                    RNT {guide.license}
-                  </span>
+                  <span className={styles.listName}>RNT {profile.license}</span>
                   <span className={styles.listMeta}>tarjeta profesional</span>
                 </span>
                 <StatusBadge tone="success">Registrada</StatusBadge>
@@ -172,17 +178,12 @@ export default function GuideProfilePage() {
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Información de contacto</h2>
-            <DefList items={contactItems} columns={1} />
-            {contactReserved && !isAuthenticated && (
-              <p className={styles.notice}>
-                El teléfono y el correo solo se entregan con sesión iniciada.{' '}
-                <Link to="/login" state={{ from: { pathname } }}>
-                  Inicia sesión
-                </Link>{' '}
-                para verlos.
-              </p>
-            )}
+            <h2 className={styles.cardTitle}>Ficha del guía</h2>
+            <DefList items={details} columns={1} />
+            <p className={styles.notice}>
+              El backend no expone el teléfono ni el correo del guía: el contacto
+              se coordina al confirmar una reserva.
+            </p>
           </article>
 
           <article className={styles.card}>

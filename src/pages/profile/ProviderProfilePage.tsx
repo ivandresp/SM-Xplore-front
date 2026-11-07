@@ -1,27 +1,21 @@
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
-import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
-import { serviceTypeLabel } from '@/config/roles'
-import { useAuth } from '@/hooks/useAuth'
 import { servicesApi } from '@/services/servicesApi'
 import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatMonthYear } from '@/utils/format'
-import type { ServiceProviderProfileResponse, ServiceResponse } from '@/types'
+import type { PublicProfile, ServiceResponse } from '@/types'
 import styles from './profile.module.css'
 
 export default function ProviderProfilePage() {
   const { providerId } = useParams<{ providerId: string }>()
-  const { isAuthenticated } = useAuth()
-  const { pathname } = useLocation()
 
-  const [provider, setProvider] =
-    useState<ServiceProviderProfileResponse | null>(null)
+  const [provider, setProvider] = useState<PublicProfile | null>(null)
   const [services, setServices] = useState<ServiceResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -38,8 +32,12 @@ export default function ProviderProfilePage() {
       setError(null)
 
       try {
-        const found = await usersApi.getProviderProfile(providerId as string)
+        const found = await usersApi.getPublicProfile(providerId as string)
         if (cancelled) return
+        if (found.role !== 'SERVICE_PROVIDER') {
+          setError('Esa cuenta no es una prestadora de servicios.')
+          return
+        }
         setProvider(found)
 
         try {
@@ -79,20 +77,27 @@ export default function ProviderProfilePage() {
     )
   }
 
-  const location =
-    provider.latitude !== null && provider.longitude !== null
-      ? `${provider.latitude}, ${provider.longitude}`
-      : '—'
-
-  const contactItems: DefItem[] = [
-    { label: 'Teléfono', value: provider.phone ?? '—' },
-    { label: 'Correo', value: provider.email ?? '—' },
-    { label: 'Horario', value: '—' },
-    { label: 'Ubicación', value: location },
+  const profile =
+    provider.role === 'SERVICE_PROVIDER' ? provider.profile : null
+  const details: DefItem[] = [
+    { label: 'NIT', value: profile?.nit ?? '—' },
+    { label: 'Tipo de negocio', value: profile?.businessType ?? '—' },
+    { label: 'Sitio web', value: profile?.websiteUrl ?? '—' },
+    {
+      label: 'Ubicación',
+      value:
+        profile?.latitude != null && profile?.longitude != null
+          ? `${profile.latitude}, ${profile.longitude}`
+          : '—',
+    },
+    {
+      label: 'Opera desde',
+      value:
+        profile?.startOperationDate != null
+          ? formatMonthYear(profile.startOperationDate)
+          : '—',
+    },
   ]
-
-  // El backend oculta el contacto a las peticiones anónimas.
-  const contactReserved = provider.phone === null && provider.email === null
 
   return (
     <section className={styles.page}>
@@ -112,30 +117,14 @@ export default function ProviderProfilePage() {
               <Avatar name={provider.fullName} size="lg" shape="square" />
               <div className={styles.identity}>
                 <h2 className={styles.name}>{provider.fullName}</h2>
-                {provider.serviceType !== null && (
+                {profile?.businessType != null && (
+                  <p className={styles.meta}>{profile.businessType}</p>
+                )}
+                {profile?.startOperationDate != null && (
                   <p className={styles.meta}>
-                    {serviceTypeLabel(provider.serviceType)}
+                    Opera desde {formatMonthYear(profile.startOperationDate)}
                   </p>
                 )}
-                {provider.startOperationDate !== null && (
-                  <p className={styles.meta}>
-                    Opera desde {formatMonthYear(provider.startOperationDate)}
-                  </p>
-                )}
-                <div className={styles.chips}>
-                  {provider.nit !== null && (
-                    <StatusBadge tone="neutral">NIT {provider.nit}</StatusBadge>
-                  )}
-                  {provider.registrationStatus === 'APPROVED' ? (
-                    <StatusBadge tone="success">
-                      Prestadora verificada
-                    </StatusBadge>
-                  ) : (
-                    <StatusBadge tone="warning">
-                      Registro pendiente de aprobación
-                    </StatusBadge>
-                  )}
-                </div>
               </div>
             </div>
           </article>
@@ -143,7 +132,7 @@ export default function ProviderProfilePage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Sobre la empresa</h2>
             <p className={styles.notice}>
-              El backend todavía no almacena la descripción de la empresa ni sus
+              El backend no publica la descripción de la empresa ni sus
               especialidades.
             </p>
           </article>
@@ -161,7 +150,6 @@ export default function ProviderProfilePage() {
                   <span>
                     <span className={styles.listName}>{service.name}</span>
                     <span className={styles.listMeta}>
-                      {serviceTypeLabel(service.type)} ·{' '}
                       {formatCurrency(service.price)}
                     </span>
                   </span>
@@ -178,17 +166,12 @@ export default function ProviderProfilePage() {
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Información de contacto</h2>
-            <DefList items={contactItems} columns={1} />
-            {contactReserved && !isAuthenticated && (
-              <p className={styles.notice}>
-                El teléfono y el correo solo se entregan con sesión iniciada.{' '}
-                <Link to="/login" state={{ from: { pathname } }}>
-                  Inicia sesión
-                </Link>{' '}
-                para verlos.
-              </p>
-            )}
+            <h2 className={styles.cardTitle}>Ficha de la prestadora</h2>
+            <DefList items={details} columns={1} />
+            <p className={styles.notice}>
+              El backend no expone el teléfono ni el correo de la prestadora: el
+              contacto se coordina al confirmar una reserva.
+            </p>
           </article>
 
           <article className={styles.card}>

@@ -5,11 +5,10 @@ import type {
   ContentStatus,
   EventStatus,
   PaymentMethod,
-  RegistrationStatus,
+  ProviderRegistrationStatus,
   ReservationStatus,
   SecurityReportStatus,
   UserRole,
-  UserStatus,
 } from '@/types'
 
 /** Nombre legible de cada rol (los cinco actores del SRS). */
@@ -22,32 +21,38 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 }
 
 /** Nombre legible del estado de una cuenta. */
-export const STATUS_LABELS: Record<UserStatus, string> = {
-  ACTIVE: 'Activo',
-  BLOCKED: 'Bloqueado',
-  SUSPENDED: 'Suspendido',
-  INACTIVE: 'Inactivo',
+export const ACCOUNT_STATUS_LABELS: Record<AccountStatus, string> = {
+  ACTIVO: 'Activo',
+  BLOQUEADO: 'Bloqueado',
+  SUSPENDIDO: 'Suspendido',
+  ELIMINADO: 'Eliminado',
 }
 
-/** Color de la etiqueta según el estado de la cuenta. */
-export const STATUS_TONES: Record<UserStatus, BadgeTone> = {
-  ACTIVE: 'success',
-  BLOCKED: 'danger',
-  SUSPENDED: 'warning',
-  INACTIVE: 'neutral',
+/** Color de la etiqueta según el estado de una cuenta. */
+export const ACCOUNT_STATUS_TONES: Record<AccountStatus, BadgeTone> = {
+  ACTIVO: 'success',
+  BLOQUEADO: 'danger',
+  SUSPENDIDO: 'warning',
+  ELIMINADO: 'neutral',
 }
 
 /** Estado del registro de una prestadora de servicios. */
-export const REGISTRATION_LABELS: Record<RegistrationStatus, string> = {
-  PENDING: 'Pendiente',
-  APPROVED: 'Aprobado',
-  REJECTED: 'Rechazado',
+export const PROVIDER_STATUS_LABELS: Record<
+  ProviderRegistrationStatus,
+  string
+> = {
+  PENDIENTE: 'Pendiente',
+  APROBADO: 'Aprobada',
+  RECHAZADO: 'Rechazada',
 }
 
-export const REGISTRATION_TONES: Record<RegistrationStatus, BadgeTone> = {
-  PENDING: 'warning',
-  APPROVED: 'success',
-  REJECTED: 'danger',
+export const PROVIDER_STATUS_TONES: Record<
+  ProviderRegistrationStatus,
+  BadgeTone
+> = {
+  PENDIENTE: 'warning',
+  APROBADO: 'success',
+  RECHAZADO: 'danger',
 }
 
 /** Tipos de servicio que ofrece el formulario; el backend acepta cualquier texto. */
@@ -141,12 +146,4 @@ export const RESERVATION_STATUS_TONES: Record<ReservationStatus, BadgeTone> = {
   CONFIRMED: 'success',
   CANCELLED: 'danger',
   NO_SHOW: 'neutral',
-}
-
-/** Nombre legible del estado de la cuenta autenticada (`AccountStatus`). */
-export const ACCOUNT_STATUS_LABELS: Record<AccountStatus, string> = {
-  ACTIVO: 'Activo',
-  BLOQUEADO: 'Bloqueado',
-  SUSPENDIDO: 'Suspendido',
-  ELIMINADO: 'Eliminado',
 }

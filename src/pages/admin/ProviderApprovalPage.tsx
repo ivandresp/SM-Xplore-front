@@ -1,31 +1,33 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
+import { DefList } from '@/components/DefList/DefList'
+import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
-  REGISTRATION_LABELS,
-  REGISTRATION_TONES,
-  STATUS_LABELS,
+  ACCOUNT_STATUS_LABELS,
+  ACCOUNT_STATUS_TONES,
+  PROVIDER_STATUS_LABELS,
+  PROVIDER_STATUS_TONES,
 } from '@/config/roles'
 import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
-import type { ServiceProviderProfileResponse } from '@/types'
+import type { AdminUserDetail, ProviderRegistrationStatus } from '@/types'
 import styles from './admin.module.css'
 
-/** Documentos que el diseño pide validar; el backend aún no los almacena. */
-const REQUIRED_DOCUMENTS = [
-  'Cámara de comercio',
-  'RUT',
-  'Certificado de seguridad',
-]
+function statusKey(value: string | null): ProviderRegistrationStatus | null {
+  return value !== null && value in PROVIDER_STATUS_LABELS
+    ? (value as ProviderRegistrationStatus)
+    : null
+}
 
 export default function ProviderApprovalPage() {
   const { providerId } = useParams<{ providerId: string }>()
 
-  const [provider, setProvider] =
-    useState<ServiceProviderProfileResponse | null>(null)
+  const [provider, setProvider] = useState<AdminUserDetail | null>(null)
+  const [reason, setReason] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -43,7 +45,7 @@ export default function ProviderApprovalPage() {
       setError(null)
 
       try {
-        const found = await usersApi.getProviderProfile(providerId as string)
+        const found = await usersApi.getById(providerId as string)
         if (!cancelled) {
           setProvider(found)
         }
@@ -65,6 +67,35 @@ export default function ProviderApprovalPage() {
     }
   }, [providerId])
 
+  async function review(decision: 'APROBADO' | 'RECHAZADO') {
+    if (provider === null) {
+      return
+    }
+
+    setIsWorking(true)
+    setError(null)
+    setFeedback(null)
+
+    try {
+      await usersApi.reviewProvider(provider.id, {
+        decision,
+        reason: reason.trim() || undefined,
+      })
+      const updated = await usersApi.getById(provider.id)
+      setProvider(updated)
+      setReason('')
+      setFeedback(
+        decision === 'APROBADO'
+          ? 'Prestadora aprobada: se notificó por correo.'
+          : 'Registro rechazado: se notificó por correo.',
+      )
+    } catch (cause) {
+      setError(describeApiError(cause))
+    } finally {
+      setIsWorking(false)
+    }
+  }
+
   if (isLoading) {
     return <p className={styles.description}>Cargando solicitud…</p>
   }
@@ -82,30 +113,23 @@ export default function ProviderApprovalPage() {
     )
   }
 
-  const isPending = provider.registrationStatus === 'PENDING'
-
-  async function run(
-    action: () => Promise<ServiceProviderProfileResponse>,
-    message: string,
-  ) {
-    if (provider === null) {
-      return
-    }
-
-    setIsWorking(true)
-    setError(null)
-    setFeedback(null)
-
-    try {
-      const updated = await action()
-      setProvider(updated)
-      setFeedback(message)
-    } catch (cause) {
-      setError(describeApiError(cause))
-    } finally {
-      setIsWorking(false)
-    }
+  if (provider.role !== 'SERVICE_PROVIDER') {
+    return (
+      <section>
+        <Link to={`/app/usuarios/${provider.id}`} className={styles.back}>
+          ← Volver al detalle
+        </Link>
+        <p className={`${styles.feedback} ${styles.warning}`} role="alert">
+          La cuenta no es una prestadora de servicios. Solo las prestadoras
+          tienen registro que aprobar o rechazar.
+        </p>
+      </section>
+    )
   }
+
+  const profile = provider.profile
+  const currentStatus = statusKey(profile?.registrationStatus ?? null)
+  const isPending = profile?.registrationStatus === 'PENDIENTE'
 
   return (
     <section>
@@ -116,15 +140,24 @@ export default function ProviderApprovalPage() {
       <PageHeader
         breadcrumb={[
           { label: 'Usuarios', to: '/app/usuarios' },
-          { label: 'Solicitudes' },
-          { label: 'Aprobar registro' },
+          { label: 'Prestadoras' },
+          { label: 'Revisión' },
         ]}
-        title="Aprobar registro de prestador"
-        description="Valida los datos y documentos antes de aprobar la cuenta."
+        title={provider.fullName}
+        description="Revisa los datos de la prestadora y registra la decisión."
         actions={
-          <StatusBadge tone={REGISTRATION_TONES[provider.registrationStatus]}>
-            {REGISTRATION_LABELS[provider.registrationStatus]}
-          </StatusBadge>
+          <>
+            <StatusBadge tone={ACCOUNT_STATUS_TONES[provider.status]}>
+              {ACCOUNT_STATUS_LABELS[provider.status]}
+            </StatusBadge>
+            {currentStatus !== null ? (
+              <StatusBadge tone={PROVIDER_STATUS_TONES[currentStatus]}>
+                {PROVIDER_STATUS_LABELS[currentStatus]}
+              </StatusBadge>
+            ) : (
+              <StatusBadge tone="neutral">Sin registro</StatusBadge>
+            )}
+          </>
         }
       />
 
@@ -141,107 +174,73 @@ export default function ProviderApprovalPage() {
 
       <article className={styles.card}>
         <h2 className={styles.cardTitle}>Datos de la solicitud</h2>
-        <div className={styles.defList}>
-          <div className={styles.defRow}>
-            <span className={styles.defLabel}>Razón social</span>
-            <span className={styles.defValue}>{provider.fullName}</span>
-          </div>
-          <div className={styles.defRow}>
-            <span className={styles.defLabel}>NIT</span>
-            <span className={styles.defValue}>{provider.nit ?? '—'}</span>
-          </div>
-          <div className={styles.defRow}>
-            <span className={styles.defLabel}>Correo</span>
-            <span className={styles.defValue}>{provider.email ?? '—'}</span>
-          </div>
-          <div className={styles.defRow}>
-            <span className={styles.defLabel}>Teléfono</span>
-            <span className={styles.defValue}>{provider.phone ?? '—'}</span>
-          </div>
-          <div className={styles.defRow}>
-            <span className={styles.defLabel}>Tipo de servicio</span>
-            <span className={styles.defValue}>
-              {provider.serviceType ?? '—'}
-            </span>
-          </div>
-          <div className={styles.defRow}>
-            <span className={styles.defLabel}>Ubicación</span>
-            <span className={styles.defValue}>
-              {provider.latitude !== null && provider.longitude !== null
-                ? `${provider.latitude}, ${provider.longitude}`
-                : '—'}
-            </span>
-          </div>
-          <div className={styles.defRow}>
-            <span className={styles.defLabel}>Inicio de operación</span>
-            <span className={styles.defValue}>
-              {provider.startOperationDate !== null
-                ? formatDate(provider.startOperationDate)
-                : '—'}
-            </span>
-          </div>
-          <div className={styles.defRow}>
-            <span className={styles.defLabel}>Estado de la cuenta</span>
-            <span className={styles.defValue}>
-              {STATUS_LABELS[provider.status]}
-            </span>
-          </div>
-        </div>
+        <DefList
+          items={[
+            { label: 'Razón social', value: provider.fullName },
+            { label: 'NIT', value: profile?.nit ?? '—' },
+            { label: 'Correo', value: provider.email },
+            { label: 'Teléfono', value: provider.phone || '—' },
+            { label: 'Tipo de negocio', value: profile?.businessType ?? '—' },
+            { label: 'Sitio web', value: profile?.websiteUrl ?? '—' },
+            {
+              label: 'Ubicación',
+              value:
+                profile?.latitude != null && profile?.longitude != null
+                  ? `${profile.latitude}, ${profile.longitude}`
+                  : '—',
+            },
+            {
+              label: 'Inicio de operación',
+              value: profile?.startOperationDate
+                ? formatDate(profile.startOperationDate)
+                : '—',
+            },
+            {
+              label: 'Cuenta creada',
+              value: formatDate(provider.signedUpAt),
+            },
+          ]}
+        />
       </article>
 
       <article className={styles.card}>
-        <h2 className={styles.cardTitle}>Validación de documentos</h2>
-        <p className={`${styles.feedback} ${styles.warning}`}>
-          El backend todavía no almacena los documentos de la solicitud. Cuando
-          existan, se listan aquí con su estado de validación.
+        <h2 className={styles.cardTitle}>Decisión</h2>
+        <p className={styles.description}>
+          El motivo queda en la notificación que recibe la prestadora. Aprobar o
+          rechazar no cambia el estado de la cuenta.
         </p>
-
-        {REQUIRED_DOCUMENTS.map((document) => (
-          <div key={document} className={styles.docRow}>
-            <span>
-              <span className={styles.docName}>{document}</span>
-              <span className={styles.docMeta}>sin cargar</span>
-            </span>
-            <StatusBadge tone="neutral">No disponible</StatusBadge>
-          </div>
-        ))}
+        <div className={styles.form}>
+          <Field
+            label="Motivo (opcional)"
+            maxLength={500}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
+        </div>
+        <div className={styles.actions}>
+          <Button
+            variant="primary"
+            disabled={isWorking || !isPending}
+            onClick={() => void review('APROBADO')}
+          >
+            Aprobar
+          </Button>
+          <Button
+            variant="outline"
+            disabled={isWorking || !isPending}
+            onClick={() => void review('RECHAZADO')}
+          >
+            Rechazar
+          </Button>
+          {!isPending && (
+            <p className={styles.actionsNote}>
+              {currentStatus === null
+                ? 'La prestadora no tiene un registro que revisar.'
+                : `El registro ya está en estado ${PROVIDER_STATUS_LABELS[currentStatus].toLowerCase()}.`}
+            </p>
+          )}
+        </div>
       </article>
-
-      <div className={styles.actions}>
-        <Button
-          variant="primary"
-          disabled={isWorking || !isPending}
-          onClick={() =>
-            void run(
-              () => usersApi.approveProvider(provider.id),
-              'Prestadora aprobada: la cuenta quedó activa.',
-            )
-          }
-        >
-          {isWorking ? 'Procesando…' : 'Aprobar'}
-        </Button>
-        <Button
-          variant="outline"
-          disabled={isWorking || !isPending}
-          onClick={() =>
-            void run(
-              () => usersApi.rejectProvider(provider.id),
-              'Registro rechazado.',
-            )
-          }
-        >
-          Rechazar
-        </Button>
-        {!isPending && (
-          <p className={styles.actionsNote}>
-            La solicitud ya fue{' '}
-            {provider.registrationStatus === 'APPROVED'
-              ? 'aprobada'
-              : 'rechazada'}
-            .
-          </p>
-        )}
-      </div>
     </section>
   )
 }

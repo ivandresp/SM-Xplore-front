@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
@@ -9,11 +9,22 @@ import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
-import { ROLE_LABELS, STATUS_LABELS, STATUS_TONES } from '@/config/roles'
+import {
+  ACCOUNT_STATUS_LABELS,
+  ACCOUNT_STATUS_TONES,
+  PROVIDER_STATUS_LABELS,
+  PROVIDER_STATUS_TONES,
+  ROLE_LABELS,
+} from '@/config/roles'
 import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
-import type { UserResponse, UserRole } from '@/types'
+import type {
+  AdminUserSummary,
+  ProviderRegistrationStatus,
+  UserRole,
+  UserStatus,
+} from '@/types'
 import styles from './admin.module.css'
 
 const PAGE_SIZE = 10
@@ -27,10 +38,26 @@ const ROLE_FILTERS: Array<{ label: string; role?: UserRole }> = [
   { label: 'Admin', role: 'ADMIN' },
 ]
 
-type SortOrder = 'recent' | 'oldest'
+const STATUS_FILTERS: Array<{ value: '' | UserStatus; label: string }> = [
+  { value: '', label: 'Todos los estados' },
+  { value: 'ACTIVO', label: 'Activos' },
+  { value: 'BLOQUEADO', label: 'Bloqueados' },
+  { value: 'SUSPENDIDO', label: 'Suspendidos' },
+  { value: 'ELIMINADO', label: 'Eliminados' },
+]
+
+const PROVIDER_FILTERS: Array<{
+  value: '' | ProviderRegistrationStatus
+  label: string
+}> = [
+  { value: '', label: 'Prestadoras: todas' },
+  { value: 'PENDIENTE', label: 'Prestadoras pendientes' },
+  { value: 'APROBADO', label: 'Prestadoras aprobadas' },
+  { value: 'RECHAZADO', label: 'Prestadoras rechazadas' },
+]
 
 /** Las prestadoras se revisan en su pantalla de solicitud. */
-function detailPathFor(user: UserResponse): string {
+function detailPathFor(user: AdminUserSummary): string {
   return user.role === 'SERVICE_PROVIDER'
     ? `/app/usuarios/prestadoras/${user.id}`
     : `/app/usuarios/${user.id}`
@@ -42,14 +69,23 @@ export default function UsersPage() {
   const [term, setTerm] = useState('')
   const [debouncedTerm, setDebouncedTerm] = useState('')
   const [role, setRole] = useState<UserRole | undefined>(undefined)
-  const [sort, setSort] = useState<SortOrder>('recent')
-  const [users, setUsers] = useState<UserResponse[]>([])
+  const [status, setStatus] = useState<'' | UserStatus>('')
+  const [providerStatus, setProviderStatus] = useState<
+    '' | ProviderRegistrationStatus
+  >('')
+  const [sort, setSort] = useState<'recent' | 'oldest'>('recent')
+  const [users, setUsers] = useState<AdminUserSummary[]>([])
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
 
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedTerm(term), 350)
+    const timer = setTimeout(() => {
+      setDebouncedTerm(term)
+      setPage(1)
+    }, 350)
     return () => clearTimeout(timer)
   }, [term])
 
@@ -61,18 +97,26 @@ export default function UsersPage() {
       setError(null)
 
       try {
-        const result = await usersApi.search({
+        const result = await usersApi.list({
+          q: debouncedTerm.trim() === '' ? undefined : debouncedTerm.trim(),
           role,
-          term: debouncedTerm.trim() === '' ? undefined : debouncedTerm.trim(),
+          status: status === '' ? undefined : status,
+          providerStatus: providerStatus === '' ? undefined : providerStatus,
+          sortBy: 'signedUpAt',
+          sortOrder: sort === 'recent' ? 'DESC' : 'ASC',
+          page: page - 1,
+          size: PAGE_SIZE,
         })
 
         if (!cancelled) {
-          setUsers(result)
-          setPage(1)
+          setUsers(result.content)
+          setTotal(result.totalElements)
+          setTotalPages(Math.max(1, result.totalPages))
         }
       } catch (cause) {
         if (!cancelled) {
           setUsers([])
+          setTotal(0)
           setError(describeApiError(cause))
         }
       } finally {
@@ -87,22 +131,9 @@ export default function UsersPage() {
     return () => {
       cancelled = true
     }
-  }, [role, debouncedTerm])
+  }, [role, status, providerStatus, sort, debouncedTerm, page])
 
-  const sorted = useMemo(
-    () =>
-      [...users].sort((a, b) => {
-        const diff =
-          new Date(a.signedUpAt).getTime() - new Date(b.signedUpAt).getTime()
-        return sort === 'recent' ? -diff : diff
-      }),
-    [users, sort],
-  )
-
-  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
-  const visible = sorted.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
-  const columns: Column<UserResponse>[] = [
+  const columns: Column<AdminUserSummary>[] = [
     {
       header: 'Usuario',
       render: (user) => (
@@ -121,19 +152,18 @@ export default function UsersPage() {
     },
     {
       header: 'Estado',
-      render: (user) => {
-        if (user.registrationStatus === 'REJECTED') {
-          return <StatusBadge tone="danger">Registro rechazado</StatusBadge>
-        }
-        if (user.status === 'INACTIVE') {
-          return <StatusBadge tone="warning">Registro pendiente</StatusBadge>
-        }
-        return (
-          <StatusBadge tone={STATUS_TONES[user.status]}>
-            {STATUS_LABELS[user.status]}
+      render: (user) => (
+        <div>
+          <StatusBadge tone={ACCOUNT_STATUS_TONES[user.status]}>
+            {ACCOUNT_STATUS_LABELS[user.status]}
           </StatusBadge>
-        )
-      },
+          {user.providerStatus !== null && (
+            <StatusBadge tone={PROVIDER_STATUS_TONES[user.providerStatus]}>
+              {PROVIDER_STATUS_LABELS[user.providerStatus]}
+            </StatusBadge>
+          )}
+        </div>
+      ),
     },
     {
       header: 'Registro',
@@ -159,7 +189,12 @@ export default function UsersPage() {
       <PageHeader
         breadcrumb={[{ label: 'Usuarios' }, { label: 'Listado' }]}
         title="Usuarios registrados"
-        meta={`${sorted.length} ${sorted.length === 1 ? 'usuario' : 'usuarios'}`}
+        meta={`${total} ${total === 1 ? 'usuario' : 'usuarios'}`}
+        actions={
+          <Button onClick={() => navigate('/app/usuarios/nuevo')}>
+            Crear usuario
+          </Button>
+        }
       />
 
       <div className={styles.toolbar}>
@@ -177,7 +212,10 @@ export default function UsersPage() {
             <Chip
               key={filter.label}
               selected={role === filter.role}
-              onClick={() => setRole(filter.role)}
+              onClick={() => {
+                setRole(filter.role)
+                setPage(1)
+              }}
             >
               {filter.label}
             </Chip>
@@ -186,8 +224,45 @@ export default function UsersPage() {
 
         <select
           className={styles.sort}
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value as '' | UserStatus)
+            setPage(1)
+          }}
+          aria-label="Filtrar por estado de la cuenta"
+        >
+          {STATUS_FILTERS.map((option) => (
+            <option key={option.label} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className={styles.sort}
+          value={providerStatus}
+          onChange={(event) => {
+            setProviderStatus(
+              event.target.value as '' | ProviderRegistrationStatus,
+            )
+            setPage(1)
+          }}
+          aria-label="Filtrar por estado de la prestadora"
+        >
+          {PROVIDER_FILTERS.map((option) => (
+            <option key={option.label} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className={styles.sort}
           value={sort}
-          onChange={(event) => setSort(event.target.value as SortOrder)}
+          onChange={(event) => {
+            setSort(event.target.value as 'recent' | 'oldest')
+            setPage(1)
+          }}
           aria-label="Ordenar"
         >
           <option value="recent">Ordenar: más recientes</option>
@@ -203,7 +278,7 @@ export default function UsersPage() {
 
       <DataTable
         columns={columns}
-        rows={visible}
+        rows={users}
         rowKey={(user) => user.id}
         isLoading={isLoading}
         loadingMessage="Cargando usuarios…"

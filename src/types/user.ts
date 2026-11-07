@@ -1,3 +1,5 @@
+import type { AccountStatus, AuthUser } from './auth'
+
 export type UserRole =
   | 'ADMIN'
   | 'GUIDE'
@@ -5,76 +7,124 @@ export type UserRole =
   | 'DESTINATION_MANAGER'
   | 'TOURIST'
 
-export type UserStatus = 'ACTIVE' | 'BLOCKED' | 'SUSPENDED' | 'INACTIVE'
+/** ms-01 no traduce el enum de cuenta: los valores viajan en español. */
+export type UserStatus = AccountStatus
 
-export type DniType =
-  | 'CITIZENSHIP_CARD'
-  | 'FOREIGNER_ID'
-  | 'PASSPORT'
-  | 'TAX_ID'
+/** `ProviderRegistrationStatus` de ms-01. */
+export type ProviderRegistrationStatus = 'PENDIENTE' | 'APROBADO' | 'RECHAZADO'
 
-export type RegistrationStatus = 'PENDING' | 'APPROVED' | 'REJECTED'
+export type AdminSortBy =
+  | 'fullName'
+  | 'email'
+  | 'signedUpAt'
+  | 'updatedAt'
+  | 'role'
+  | 'status'
 
-export interface UserResponse {
+export type SortOrder = 'ASC' | 'DESC'
+
+/** `UserSummaryView` — fila de `GET /api/v1/admin/users`. */
+export interface AdminUserSummary {
   id: string
   fullName: string
   email: string
-  phone: string
   role: UserRole
   status: UserStatus
-  /**
-   * Estado del registro de la prestadora (`null` en los demás roles). En guías y
-   * gestoras el registro pendiente se refleja en `status === 'INACTIVE'`.
-   */
-  registrationStatus: RegistrationStatus | null
+  /** Solo tiene valor en las prestadoras. */
+  providerStatus: ProviderRegistrationStatus | null
   signedUpAt: string
 }
 
-/** El backend solo acepta `ACTIVE` (reactivar), `BLOCKED` o `SUSPENDED`. */
-export interface ChangeUserStatusRequest {
-  status: Extract<UserStatus, 'ACTIVE' | 'BLOCKED' | 'SUSPENDED'>
-}
+/** El detalle `GET /admin/users/{id}` es el mismo `UserView` de la sesión. */
+export type AdminUserDetail = AuthUser
 
-export interface AdminResetPasswordRequest {
-  password: string
-}
-
-export interface UserSearchFilters {
+export interface AdminUserListParams {
+  q?: string
   role?: UserRole
   status?: UserStatus
-  term?: string
+  providerStatus?: ProviderRegistrationStatus
+  sortBy?: AdminSortBy
+  sortOrder?: SortOrder
+  page?: number
+  size?: number
+}
+
+/** `PageResult` de ms-01: no usa el mismo paginador que ms-03 y ms-04. */
+export interface AdminUserPage {
+  content: AdminUserSummary[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+/** Solo se pueden crear cuentas de guía, gestora o administrador. */
+export interface CreateUserRequest {
+  role: Extract<UserRole, 'GUIDE' | 'DESTINATION_MANAGER' | 'ADMIN'>
+  fullName: string
+  email: string
+  phone?: string
+  dniType?: string
+  dniNumber?: string
+  license?: string
+  nit?: string
+  startOperationDate?: string
+}
+
+export interface ChangeUserStatusRequest {
+  status: Exclude<UserStatus, 'ELIMINADO'>
+  reason?: string
+}
+
+export interface ChangeUserRoleRequest {
+  role: UserRole
+  dniType?: string
+  dniNumber?: string
+  preferredLanguage?: string
+  birthDate?: string
+  nationality?: string
+  license?: string
+  nit?: string
+  businessType?: string
+  latitude?: number
+  longitude?: number
+  websiteUrl?: string
+  startOperationDate?: string
+}
+
+export interface ProviderReviewRequest {
+  decision: Exclude<ProviderRegistrationStatus, 'PENDIENTE'>
+  reason?: string
 }
 
 /**
- * Los campos que el usuario no registró llegan como `null`.
- * `email` y `phone` llegan `null` cuando la petición es anónima: el backend
- * solo entrega los datos de contacto a quienes tienen sesión.
+ * `PublicProfileView` — `GET /api/v1/public/users/{id}`. Solo existe para
+ * guías y prestadoras, y no incluye correo ni teléfono.
  */
-export interface GuideProfileResponse {
-  id: string
-  fullName: string
-  email: string | null
-  phone: string | null
-  status: UserStatus
+export interface PublicGuideDetails {
   license: string | null
   startOperationDate: string | null
 }
 
-/**
- * Los campos que el usuario no registró llegan como `null`.
- * `email` y `phone` llegan `null` cuando la petición es anónima: el backend
- * solo entrega los datos de contacto a quienes tienen sesión.
- */
-export interface ServiceProviderProfileResponse {
-  id: string
-  fullName: string
-  email: string | null
-  phone: string | null
-  status: UserStatus
+export interface PublicProviderDetails {
   nit: string | null
-  serviceType: string | null
-  registrationStatus: RegistrationStatus
+  businessType: string | null
+  websiteUrl: string | null
   latitude: number | null
   longitude: number | null
   startOperationDate: string | null
 }
+
+export type PublicProfile =
+  | {
+      id: string
+      fullName: string
+      role: 'GUIDE'
+      profile: PublicGuideDetails | null
+    }
+  | {
+      id: string
+      fullName: string
+      role: 'SERVICE_PROVIDER'
+      profile: PublicProviderDetails | null
+    }
