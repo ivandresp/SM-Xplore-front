@@ -7,7 +7,7 @@ import type { DefItem } from '@/components/DefList/DefList'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
-import { ROLE_LABELS, STATUS_LABELS } from '@/config/roles'
+import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
@@ -16,7 +16,6 @@ import styles from './profile.module.css'
 
 interface ProfileDraft {
   fullName: string
-  email: string
   phone: string
 }
 
@@ -45,7 +44,7 @@ export default function MyProfilePage() {
   const accountItems: DefItem[] = [
     { label: 'Tipo de cuenta', value: ROLE_LABELS[currentUser.role] },
     { label: 'Última sesión', value: '—' },
-    { label: 'Estado', value: STATUS_LABELS[currentUser.status] },
+    { label: 'Estado', value: ACCOUNT_STATUS_LABELS[currentUser.status] },
   ]
 
   const preferenceItems: DefItem[] = [
@@ -56,7 +55,6 @@ export default function MyProfilePage() {
   function startEdit() {
     setDraft({
       fullName: currentUser.fullName,
-      email: currentUser.email,
       phone: currentUser.phone,
     })
     setFeedback(null)
@@ -80,9 +78,8 @@ export default function MyProfilePage() {
     setFeedback(null)
 
     try {
-      const updated = await usersApi.updateProfile(currentUser.id, {
+      const updated = await usersApi.updateMe({
         fullName: draft.fullName.trim(),
-        email: draft.email.trim(),
         phone: draft.phone.trim(),
       })
       updateSessionUser(updated)
@@ -164,11 +161,9 @@ export default function MyProfilePage() {
                   label="Correo electrónico"
                   type="email"
                   name="email"
-                  required
-                  value={draft.email}
-                  onChange={(event) =>
-                    setDraft({ ...draft, email: event.target.value })
-                  }
+                  value={currentUser.email}
+                  disabled
+                  hint="El correo no se puede cambiar desde el perfil."
                 />
                 <Field
                   label="Teléfono"

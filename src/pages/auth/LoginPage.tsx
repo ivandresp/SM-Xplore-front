@@ -6,6 +6,7 @@ import { Field } from '@/components/FormField'
 import { useAuth } from '@/hooks/useAuth'
 import { authApi } from '@/services/authApi'
 import { isApiError } from '@/services/httpClient'
+import type { AuthUser } from '@/types'
 import { AuthShell } from './AuthShell'
 import styles from './auth.module.css'
 
@@ -13,40 +14,61 @@ interface FromState {
   from?: { pathname?: string }
 }
 
+/** Mensajes por `code` del `ProblemDetail`; el status queda de respaldo. */
 function describeAuthError(error: unknown): string {
-  if (isApiError(error)) {
-    switch (error.status) {
-      case 401:
-        return 'Correo o contraseña incorrectos. Intenta de nuevo.'
-      case 403:
-        return 'La cuenta no está activa: guías, prestadoras y gestoras deben esperar la aprobación de un administrador.'
-      case 400:
-        return `Datos inválidos: ${error.message}`
-      default:
-        return error.status >= 500
-          ? 'El backend respondió con un error interno.'
-          : error.message
-    }
+  if (!isApiError(error)) {
+    return 'No se pudo conectar con el backend. Verifica que el gateway esté corriendo en http://127.0.0.1:8088.'
   }
 
-  return 'No se pudo conectar con el backend. Verifica que esté corriendo en http://localhost:8080.'
+  switch (error.code) {
+    case 'INVALID_CREDENTIALS':
+      return 'Correo o contraseña incorrectos. Intenta de nuevo.'
+    case 'ACCOUNT_NOT_ACTIVE':
+      return 'La cuenta no está activa: las prestadoras deben esperar la aprobación de un administrador.'
+    case 'TOO_MANY_ATTEMPTS':
+      return `Demasiados intentos. Espera ${error.payload?.retryAfterSeconds ?? 60} segundos antes de volver a intentar.`
+    case 'INVALID_MFA_CODE':
+      return 'El código no es válido. Revisa la app de autenticación e intenta otra vez.'
+    case 'INVALID_MFA_CHALLENGE':
+      return 'La verificación expiró. Vuelve a iniciar sesión.'
+    case 'MFA_ENROLLMENT_REQUIRED':
+      return 'Tu cuenta necesita activar la verificación en dos pasos antes de continuar.'
+    case 'VALIDATION_ERROR': {
+      const fields = Object.values(error.fieldErrors ?? {})
+      return fields.length > 0
+        ? `Revisa los datos: ${fields.join(' ')}`
+        : 'Revisa los datos enviados.'
+    }
+    default:
+      return error.status >= 500
+        ? 'El backend respondió con un error interno.'
+        : error.message
+  }
 }
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, completeMfa, cancelMfa, mfaChallenge } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [remember, setRemember] = useState(false)
   const [isRecovering, setIsRecovering] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const state = location.state as FromState | null
+
+  function enter(user: AuthUser) {
+    // El turista vive en el catálogo público; los demás roles, en el panel.
+    navigate(
+      state?.from?.pathname ?? (user.role === 'TOURIST' ? '/explorar' : '/app'),
+      { replace: true },
+    )
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -56,12 +78,24 @@ export default function LoginPage() {
 
     try {
       const authenticated = await login({ email: email.trim(), password })
-      // El turista vive en el catálogo público; los demás roles, en el panel.
-      navigate(
-        state?.from?.pathname ??
-          (authenticated.role === 'TOURIST' ? '/explorar' : '/app'),
-        { replace: true },
-      )
+      if (authenticated !== null) {
+        enter(authenticated)
+      }
+      // Si devuelve `null`, la cuenta pide MFA: se muestra el paso del código.
+    } catch (cause) {
+      setError(describeAuthError(cause))
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  async function handleVerify(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setError(null)
+    setIsSubmitting(true)
+
+    try {
+      enter(await completeMfa(code.trim()))
     } catch (cause) {
       setError(describeAuthError(cause))
     } finally {
@@ -77,16 +111,60 @@ export default function LoginPage() {
 
     try {
       // El backend responde 202 incluso si el correo no existe.
-      await authApi.recoverPassword({ email: email.trim() })
+      await authApi.forgotPassword({ email: email.trim() })
       setIsRecovering(false)
       setNotice(
-        'Si el correo está registrado, recibirás las instrucciones para restablecer tu contraseña.',
+        'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
       )
     } catch (cause) {
       setError(describeAuthError(cause))
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  if (mfaChallenge !== null) {
+    return (
+      <AuthShell
+        title="Verificación en dos pasos"
+        subtitle="Escribe el código de seis dígitos de tu app de autenticación."
+        footer={
+          <p>
+            <button type="button" className={styles.link} onClick={cancelMfa}>
+              Volver a iniciar sesión
+            </button>
+          </p>
+        }
+      >
+        <form className={styles.form} onSubmit={handleVerify} noValidate>
+          {error !== null && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
+
+          <Field
+            label="Código de verificación"
+            name="code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            required
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+          />
+
+          <Button
+            className={styles.submit}
+            variant="primary"
+            size="lg"
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'Verificando…' : 'Verificar'}
+          </Button>
+        </form>
+      </AuthShell>
+    )
   }
 
   if (isRecovering) {
@@ -188,15 +266,6 @@ export default function LoginPage() {
         />
 
         <div className={styles.row}>
-          <label className={styles.checkbox}>
-            <input
-              type="checkbox"
-              checked={remember}
-              onChange={(event) => setRemember(event.target.checked)}
-            />
-            Recordarme
-          </label>
-
           <button
             type="button"
             className={styles.link}

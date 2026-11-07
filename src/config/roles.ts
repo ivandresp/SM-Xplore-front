@@ -1,4 +1,5 @@
 import type {
+  AccountStatus,
   ActivityStatus,
   BadgeTone,
   EventStatus,
@@ -144,10 +145,10 @@ export const RESERVATION_STATUS_TONES: Record<ReservationStatus, BadgeTone> = {
   COMPLETED: 'success',
 }
 
-/** Roles que el backend permite auto-registrar. */
-export const REGISTERABLE_ROLES: UserRole[] = [
-  'TOURIST',
-  'GUIDE',
-  'SERVICE_PROVIDER',
-  'DESTINATION_MANAGER',
-]
+/** Nombre legible del estado de la cuenta autenticada (`AccountStatus`). */
+export const ACCOUNT_STATUS_LABELS: Record<AccountStatus, string> = {
+  ACTIVO: 'Activo',
+  BLOQUEADO: 'Bloqueado',
+  SUSPENDIDO: 'Suspendido',
+  ELIMINADO: 'Eliminado',
+}

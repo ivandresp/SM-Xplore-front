@@ -1,15 +1,36 @@
 import { httpClient } from './httpClient'
+import { parseResponse } from './validate'
+import { toAuthUser, userViewSchema } from './userSchema'
 import type {
+  UpdateMyProfileRequest,
   ChangeUserStatusRequest,
   GuideProfileResponse,
-  ResetPasswordRequest,
+  AdminResetPasswordRequest,
   ServiceProviderProfileResponse,
-  UpdateUserProfileRequest,
   UserResponse,
   UserSearchFilters,
 } from '@/types'
 
 export const usersApi = {
+  /** `GET /api/v1/users/me` — usuario de la sesión. */
+  me: () =>
+    httpClient
+      .get<unknown>('/users/me')
+      .then((response) =>
+        toAuthUser(parseResponse(userViewSchema, response, 'GET /users/me')),
+      ),
+
+  /** `PATCH /api/v1/users/me` — el correo no se puede editar. */
+  updateMe: (payload: UpdateMyProfileRequest) =>
+    httpClient
+      .patch<unknown>('/users/me', payload)
+      .then((response) =>
+        toAuthUser(parseResponse(userViewSchema, response, 'PATCH /users/me')),
+      ),
+
+  /** `POST /api/v1/users/me/logout` — 204; invalida las sesiones del usuario. */
+  logout: () => httpClient.post<void>('/users/me/logout'),
+
   /** `GET /api/v1/users` — lista completa de usuarios. */
   list: () => httpClient.get<UserResponse[]>('/users'),
 
@@ -19,10 +40,6 @@ export const usersApi = {
   /** `GET /api/v1/users/search` — todos los filtros son opcionales. */
   search: (filters: UserSearchFilters) =>
     httpClient.get<UserResponse[]>('/users/search', { query: { ...filters } }),
-
-  /** `PUT /api/v1/users/{userId}` — el usuario edita su propio perfil. */
-  updateProfile: (userId: string, payload: UpdateUserProfileRequest) =>
-    httpClient.put<UserResponse>(`/users/${userId}`, payload),
 
   /** `DELETE /api/v1/users/{userId}` — el usuario elimina su cuenta (204). */
   deleteAccount: (userId: string) =>
@@ -41,7 +58,7 @@ export const usersApi = {
     httpClient.delete<void>(`/users/${userId}/admin`),
 
   /** `POST /api/v1/users/{userId}/reset-password` — 204. */
-  resetPassword: (userId: string, payload: ResetPasswordRequest) =>
+  resetPassword: (userId: string, payload: AdminResetPasswordRequest) =>
     httpClient.post<void>(`/users/${userId}/reset-password`, payload),
 
   /** `GET /api/v1/users/guides/{guideId}` */

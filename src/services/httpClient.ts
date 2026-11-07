@@ -1,4 +1,4 @@
-import type { ApiErrorResponse } from '@/types'
+import type { ProblemDetail } from '@/types'
 import { loadToken, notifyUnauthorized } from './authToken'
 
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? '/api/v1'
@@ -14,16 +14,26 @@ export interface RequestOptions extends Omit<RequestInit, 'body'> {
   query?: QueryParams
 }
 
-/** Error de la API con el código HTTP y el cuerpo de error del backend. */
+/** Error de la API con el código HTTP y el `ProblemDetail` del backend. */
 export class ApiError extends Error {
   readonly status: number
-  readonly payload: ApiErrorResponse | undefined
+  readonly payload: ProblemDetail | undefined
 
-  constructor(message: string, status: number, payload?: ApiErrorResponse) {
+  constructor(message: string, status: number, payload?: ProblemDetail) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.payload = payload
+  }
+
+  /** Identificador estable del backend (`INVALID_CREDENTIALS`, ...). */
+  get code(): string | undefined {
+    return this.payload?.code
+  }
+
+  /** Errores por campo de las validaciones de Bean Validation. */
+  get fieldErrors(): Record<string, string> | undefined {
+    return this.payload?.errors
   }
 }
 
@@ -48,16 +58,17 @@ function buildQuery(params?: QueryParams): string {
 }
 
 async function toApiError(response: Response): Promise<ApiError> {
-  let payload: ApiErrorResponse | undefined
+  let payload: ProblemDetail | undefined
 
   try {
     const text = await response.text()
-    payload = text === '' ? undefined : (JSON.parse(text) as ApiErrorResponse)
+    payload = text === '' ? undefined : (JSON.parse(text) as ProblemDetail)
   } catch {
     // Respuesta de error sin cuerpo JSON.
   }
 
-  const message = payload?.message ?? `${response.status} ${response.statusText}`
+  const message =
+    payload?.detail ?? payload?.title ?? `${response.status} ${response.statusText}`
   return new ApiError(message, response.status, payload)
 }
 
@@ -85,14 +96,13 @@ async function request<T>(
   const token = loadToken()
   let response = await send(token)
 
-  if (response.status === 401) {
+  if (response.status === 401 && token !== null) {
+    // La sesión ya no sirve (expirada o revocada).
     notifyUnauthorized()
 
-    // La sesión ya no sirve (expirada o revocada). El catálogo público no
-    // exige token, así que se reintenta sin él antes de dar el 401 por perdido.
-    if (token !== null) {
-      response = await send(null)
-    }
+    // Varios endpoints responden también sin token: se reintenta anónimo
+    // antes de dar el 401 por perdido.
+    response = await send(null)
   }
 
   if (!response.ok) {

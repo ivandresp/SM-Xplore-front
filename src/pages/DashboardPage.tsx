@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { navItemsFor } from '@/config/navigation'
-import { ROLE_LABELS, STATUS_LABELS } from '@/config/roles'
+import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDateTime } from '@/utils/format'
 import styles from './DashboardPage.module.css'
@@ -65,7 +65,9 @@ export default function DashboardPage() {
         </span>
         <span>
           <span className={styles.label}>Estado: </span>
-          <span className={styles.value}>{STATUS_LABELS[user.status]}</span>
+          <span className={styles.value}>
+            {ACCOUNT_STATUS_LABELS[user.status]}
+          </span>
         </span>
         <span>
           <span className={styles.label}>Registro: </span>

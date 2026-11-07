@@ -10,6 +10,7 @@ import UserDetailPage from '@/pages/admin/UserDetailPage'
 import UsersPage from '@/pages/admin/UsersPage'
 import LoginPage from '@/pages/auth/LoginPage'
 import RegisterPage from '@/pages/auth/RegisterPage'
+import ResetPasswordPage from '@/pages/auth/ResetPasswordPage'
 import ActivityDetailPage from '@/pages/catalog/ActivityDetailPage'
 import ExplorePage from '@/pages/catalog/ExplorePage'
 import ServiceDetailPage from '@/pages/catalog/ServiceDetailPage'
@@ -78,6 +79,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/explorar" replace /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'registro', element: <RegisterPage /> },
+      { path: 'reset-password', element: <ResetPasswordPage /> },
       /* Catálogo de actividades (mockups 06-UC2/UC7/UC8 y 06-UC9) */
       { path: 'explorar', element: <ExplorePage /> },
       { path: 'actividades', element: <Navigate to="/explorar" replace /> },

@@ -5,8 +5,14 @@ import type { UserRole } from '@/types'
 
 /** Redirige a `/login` si no hay sesión, recordando la ruta pedida. */
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isRestoring } = useAuth()
   const location = useLocation()
+
+  // Con token guardado, la sesión se valida contra `/users/me`: redirigir
+  // antes de saberlo expulsaría al usuario en cada recarga.
+  if (isRestoring) {
+    return null
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location }} />

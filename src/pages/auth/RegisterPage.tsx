@@ -3,32 +3,35 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field, SelectField } from '@/components/FormField'
-import { REGISTERABLE_ROLES, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { isApiError } from '@/services/httpClient'
 import type {
-  DniType,
-  RegisterUserRequest,
-  ServiceType,
-  UserResponse,
+  RegisterProviderRequest,
+  RegisterTouristRequest,
   UserRole,
 } from '@/types'
 import { AuthShell } from './AuthShell'
 import styles from './auth.module.css'
+
+type AccountKind = Extract<UserRole, 'TOURIST' | 'SERVICE_PROVIDER'>
 
 interface FormState {
   fullName: string
   email: string
   phone: string
   password: string
-  role: UserRole
-  dniType: DniType | ''
+  // Turista
+  dniType: string
   dniNumber: string
-  license: string
+  nationality: string
+  preferredLanguage: string
+  birthDate: string
+  // Prestadora
   nit: string
-  serviceType: ServiceType | ''
+  businessType: string
   latitude: string
   longitude: string
+  websiteUrl: string
   startOperationDate: string
 }
 
@@ -37,122 +40,117 @@ const INITIAL_FORM: FormState = {
   email: '',
   phone: '',
   password: '',
-  role: 'TOURIST',
-  dniType: '',
+  dniType: 'CITIZENSHIP_CARD',
   dniNumber: '',
-  license: '',
+  nationality: '',
+  preferredLanguage: '',
+  birthDate: '',
   nit: '',
-  serviceType: '',
+  businessType: '',
   latitude: '',
   longitude: '',
+  websiteUrl: '',
   startOperationDate: '',
 }
 
-const ROLE_OPTIONS = REGISTERABLE_ROLES.map((role) => ({
-  value: role,
-  label: ROLE_LABELS[role],
-}))
+const ACCOUNT_OPTIONS = [
+  { value: 'TOURIST', label: 'Turista' },
+  { value: 'SERVICE_PROVIDER', label: 'Prestadora de servicios' },
+]
 
 const DNI_TYPE_OPTIONS = [
-  { value: '', label: 'Sin especificar' },
   { value: 'CITIZENSHIP_CARD', label: 'Cédula de ciudadanía' },
   { value: 'FOREIGNER_ID', label: 'Cédula de extranjería' },
   { value: 'PASSPORT', label: 'Pasaporte' },
   { value: 'TAX_ID', label: 'NIT' },
 ]
 
-const SERVICE_TYPE_OPTIONS = [
-  { value: '', label: 'Sin especificar' },
-  { value: 'LODGING', label: 'Alojamiento' },
-  { value: 'TRANSPORT', label: 'Transporte' },
-  { value: 'FEEDING', label: 'Alimentación' },
+const LANGUAGE_OPTIONS = [
+  { value: 'es', label: 'Español' },
+  { value: 'en', label: 'Inglés' },
+  { value: 'fr', label: 'Francés' },
 ]
 
-/** Envía solo los campos diligenciados: el backend valida según el rol. */
-function buildPayload(form: FormState): RegisterUserRequest {
-  const payload: RegisterUserRequest = {
+function buildTouristPayload(form: FormState): RegisterTouristRequest {
+  return {
     fullName: form.fullName.trim(),
     email: form.email.trim(),
     phone: form.phone.trim(),
     password: form.password,
-    role: form.role,
+    dniType: form.dniType,
+    dniNumber: form.dniNumber.trim(),
+    ...(form.nationality !== '' && { nationality: form.nationality.trim() }),
+    ...(form.preferredLanguage !== '' && {
+      preferredLanguage: form.preferredLanguage,
+    }),
+    ...(form.birthDate !== '' && { birthDate: form.birthDate }),
   }
-
-  if (form.dniNumber !== '') payload.dniNumber = form.dniNumber.trim()
-  if (form.dniType !== '') payload.dniType = form.dniType
-  if (form.license !== '') payload.license = form.license.trim()
-  if (form.nit !== '') payload.nit = form.nit.trim()
-  if (form.serviceType !== '') payload.serviceType = form.serviceType
-  if (form.latitude !== '') payload.latitude = Number(form.latitude)
-  if (form.longitude !== '') payload.longitude = Number(form.longitude)
-  if (form.startOperationDate !== '') {
-    payload.startOperationDate = form.startOperationDate
-  }
-
-  return payload
 }
 
-/** Campos que el backend exige según el rol (los demás quedan opcionales). */
-function validate(form: FormState): string | null {
-  if (form.fullName.trim() === '') {
-    return 'Escribe tu nombre completo.'
+function buildProviderPayload(form: FormState): RegisterProviderRequest {
+  return {
+    fullName: form.fullName.trim(),
+    email: form.email.trim(),
+    phone: form.phone.trim(),
+    password: form.password,
+    nit: form.nit.trim(),
+    ...(form.businessType !== '' && { businessType: form.businessType.trim() }),
+    ...(form.latitude !== '' && { latitude: Number(form.latitude) }),
+    ...(form.longitude !== '' && { longitude: Number(form.longitude) }),
+    ...(form.websiteUrl !== '' && { websiteUrl: form.websiteUrl.trim() }),
+    ...(form.startOperationDate !== '' && {
+      startOperationDate: form.startOperationDate,
+    }),
   }
-  if (form.email.trim() === '') {
-    return 'Escribe tu correo electrónico.'
-  }
-  if (form.phone.trim() === '') {
-    return 'Escribe tu teléfono.'
-  }
-  if (form.password === '') {
-    return 'Escribe una contraseña.'
+}
+
+function validate(kind: AccountKind, form: FormState): string | null {
+  if (form.fullName.trim() === '') return 'Escribe tu nombre completo.'
+  if (form.email.trim() === '') return 'Escribe tu correo electrónico.'
+  if (form.phone.trim() === '') return 'Escribe tu teléfono.'
+  if (form.password.length < 12) {
+    return 'La contraseña debe tener entre 12 y 72 caracteres.'
   }
 
-  if (form.role === 'TOURIST' || form.role === 'GUIDE') {
-    if (form.dniType === '') {
-      return 'Selecciona el tipo de documento.'
-    }
-    if (form.dniNumber.trim() === '') {
-      return 'Escribe el número de documento.'
-    }
+  if (kind === 'TOURIST' && form.dniNumber.trim() === '') {
+    return 'Escribe el número de documento.'
   }
 
-  if (form.role === 'GUIDE' && form.license.trim() === '') {
-    return 'Escribe la tarjeta profesional de guía.'
-  }
-
-  if (
-    (form.role === 'SERVICE_PROVIDER' ||
-      form.role === 'DESTINATION_MANAGER') &&
-    form.nit.trim() === ''
-  ) {
-    return 'Escribe el NIT.'
+  if (kind === 'SERVICE_PROVIDER' && form.nit.trim() === '') {
+    return 'Escribe el NIT de la empresa.'
   }
 
   return null
 }
 
 function describeRegisterError(error: unknown): string {
-  if (isApiError(error)) {
-    if (error.status === 409) {
-      return `Ya existe una cuenta con esos datos: ${error.message}`
-    }
-    if (error.status === 400) {
-      return `Revisa los datos: ${error.message}`
-    }
-    return error.message
+  if (!isApiError(error)) {
+    return 'No se pudo conectar con el backend. Verifica que el gateway esté corriendo en http://127.0.0.1:8088.'
   }
 
-  return 'No se pudo conectar con el backend. Verifica que esté corriendo en http://localhost:8080.'
+  if (error.code === 'EMAIL_ALREADY_EXISTS') {
+    return 'Ya existe una cuenta con ese correo electrónico.'
+  }
+
+  if (error.code === 'VALIDATION_ERROR') {
+    const fields = Object.values(error.fieldErrors ?? {})
+    return fields.length > 0
+      ? `Revisa los datos: ${fields.join(' ')}`
+      : 'Revisa los datos enviados.'
+  }
+
+  return error.message
 }
 
 export default function RegisterPage() {
-  const { register } = useAuth()
+  const { registerTourist, registerProvider } = useAuth()
   const navigate = useNavigate()
 
+  const [kind, setKind] = useState<AccountKind>('TOURIST')
   const [form, setForm] = useState<FormState>(INITIAL_FORM)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [created, setCreated] = useState<UserResponse | null>(null)
+  const [createdEmail, setCreatedEmail] = useState<string | null>(null)
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -162,7 +160,7 @@ export default function RegisterPage() {
     event.preventDefault()
     setError(null)
 
-    const validationError = validate(form)
+    const validationError = validate(kind, form)
     if (validationError !== null) {
       setError(validationError)
       return
@@ -171,11 +169,13 @@ export default function RegisterPage() {
     setIsSubmitting(true)
 
     try {
-      const user = await register(buildPayload(form))
-      if (user.status === 'ACTIVE') {
-        navigate('/app', { replace: true })
+      if (kind === 'TOURIST') {
+        // El turista nace activo: se inicia sesión y entra al catálogo.
+        const session = await registerTourist(buildTouristPayload(form))
+        navigate(session === null ? '/login' : '/explorar', { replace: true })
       } else {
-        setCreated(user)
+        await registerProvider(buildProviderPayload(form))
+        setCreatedEmail(form.email.trim())
       }
     } catch (cause) {
       setError(describeRegisterError(cause))
@@ -184,18 +184,11 @@ export default function RegisterPage() {
     }
   }
 
-  const isTourist = form.role === 'TOURIST'
-  const isGuide = form.role === 'GUIDE'
-  const isProvider = form.role === 'SERVICE_PROVIDER'
-  const isDestinationManager = form.role === 'DESTINATION_MANAGER'
-  const needsNit = isProvider || isDestinationManager
-  const needsOperationDate = isGuide || isProvider || isDestinationManager
-
-  if (created !== null) {
+  if (createdEmail !== null) {
     return (
       <AuthShell
-        title="Cuenta creada"
-        subtitle={`${ROLE_LABELS[created.role]}: ${created.status === 'INACTIVE' ? 'pendiente de aprobación' : 'activa'}`}
+        title="Solicitud enviada"
+        subtitle="Tu prestadora quedó registrada y está pendiente de revisión."
         footer={
           <p>
             <Link to="/login">Ir a iniciar sesión</Link>
@@ -203,18 +196,19 @@ export default function RegisterPage() {
         }
       >
         <p className={styles.notice}>
-          {created.status === 'INACTIVE'
-            ? `Tu cuenta quedó registrada con el correo ${created.email}. Un administrador debe aprobar el registro antes de que puedas iniciar sesión.`
-            : `Tu cuenta quedó registrada con el correo ${created.email}. Ya puedes iniciar sesión.`}
+          Un administrador debe aprobar el registro de {createdEmail} antes de
+          que puedas iniciar sesión.
         </p>
       </AuthShell>
     )
   }
 
+  const isTourist = kind === 'TOURIST'
+
   return (
     <AuthShell
       title="Crear cuenta"
-      subtitle="Regístrate según tu rol en la plataforma."
+      subtitle="Regístrate como turista o como prestadora de servicios."
       footer={
         <p>
           ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
@@ -222,14 +216,21 @@ export default function RegisterPage() {
       }
     >
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
-        {error !== null && <p className={styles.error}>{error}</p>}
+        {error !== null && (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        )}
 
         <SelectField
-          label="Rol"
-          name="role"
-          options={ROLE_OPTIONS}
-          value={form.role}
-          onChange={(event) => update('role', event.target.value as UserRole)}
+          label="Tipo de cuenta"
+          name="kind"
+          options={ACCOUNT_OPTIONS}
+          value={kind}
+          onChange={(event) => {
+            setKind(event.target.value as AccountKind)
+            setError(null)
+          }}
         />
 
         <Field
@@ -268,11 +269,12 @@ export default function RegisterPage() {
           name="password"
           autoComplete="new-password"
           required
+          hint="Entre 12 y 72 caracteres."
           value={form.password}
           onChange={(event) => update('password', event.target.value)}
         />
 
-        {(isTourist || isGuide) && (
+        {isTourist ? (
           <>
             <p className={styles.groupTitle}>Documento</p>
             <div className={styles.grid}>
@@ -282,9 +284,7 @@ export default function RegisterPage() {
                 required
                 options={DNI_TYPE_OPTIONS}
                 value={form.dniType}
-                onChange={(event) =>
-                  update('dniType', event.target.value as DniType | '')
-                }
+                onChange={(event) => update('dniType', event.target.value)}
               />
               <Field
                 label="Número de documento"
@@ -294,44 +294,55 @@ export default function RegisterPage() {
                 onChange={(event) => update('dniNumber', event.target.value)}
               />
             </div>
-          </>
-        )}
 
-        {isGuide && (
-          <Field
-            label="Tarjeta profesional de guía"
-            name="license"
-            required
-            hint="Número de RNT del guía."
-            value={form.license}
-            onChange={(event) => update('license', event.target.value)}
-          />
-        )}
-
-        {needsNit && (
-          <Field
-            label="NIT"
-            name="nit"
-            required
-            hint="Requerido para prestadoras de servicios y gestoras de destinos."
-            value={form.nit}
-            onChange={(event) => update('nit', event.target.value)}
-          />
-        )}
-
-        {isProvider && (
-          <>
-            <p className={styles.groupTitle}>Servicio que ofrece</p>
             <div className={styles.grid}>
+              <Field
+                label="Nacionalidad"
+                name="nationality"
+                value={form.nationality}
+                onChange={(event) => update('nationality', event.target.value)}
+              />
               <SelectField
-                label="Tipo de servicio"
-                name="serviceType"
-                options={SERVICE_TYPE_OPTIONS}
-                value={form.serviceType}
+                label="Idioma preferido"
+                name="preferredLanguage"
+                options={[
+                  { value: '', label: 'Sin especificar' },
+                  ...LANGUAGE_OPTIONS,
+                ]}
+                value={form.preferredLanguage}
                 onChange={(event) =>
-                  update('serviceType', event.target.value as ServiceType | '')
+                  update('preferredLanguage', event.target.value)
                 }
               />
+            </div>
+
+            <Field
+              label="Fecha de nacimiento"
+              type="date"
+              name="birthDate"
+              value={form.birthDate}
+              onChange={(event) => update('birthDate', event.target.value)}
+            />
+          </>
+        ) : (
+          <>
+            <p className={styles.groupTitle}>Empresa</p>
+            <Field
+              label="NIT"
+              name="nit"
+              required
+              hint="Solo números y guiones, entre 6 y 30 caracteres."
+              value={form.nit}
+              onChange={(event) => update('nit', event.target.value)}
+            />
+            <Field
+              label="Tipo de negocio"
+              name="businessType"
+              hint="Alojamiento, transporte, alimentación..."
+              value={form.businessType}
+              onChange={(event) => update('businessType', event.target.value)}
+            />
+            <div className={styles.grid}>
               <Field
                 label="Latitud"
                 name="latitude"
@@ -347,22 +358,30 @@ export default function RegisterPage() {
                 onChange={(event) => update('longitude', event.target.value)}
               />
             </div>
+            <Field
+              label="Sitio web"
+              type="url"
+              name="websiteUrl"
+              value={form.websiteUrl}
+              onChange={(event) => update('websiteUrl', event.target.value)}
+            />
+            <Field
+              label="Fecha de inicio de operación"
+              type="date"
+              name="startOperationDate"
+              value={form.startOperationDate}
+              onChange={(event) =>
+                update('startOperationDate', event.target.value)
+              }
+            />
           </>
         )}
 
-        {needsOperationDate && (
-          <Field
-            label="Fecha de inicio de operación"
-            type="date"
-            name="startOperationDate"
-            value={form.startOperationDate}
-            onChange={(event) =>
-              update('startOperationDate', event.target.value)
-            }
-          />
-        )}
-
-        <Button className={styles.submit} type="submit" disabled={isSubmitting}>
+        <Button
+          className={styles.submit}
+          type="submit"
+          disabled={isSubmitting}
+        >
           {isSubmitting ? 'Creando cuenta…' : 'Crear cuenta'}
         </Button>
       </form>

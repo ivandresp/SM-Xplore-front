@@ -1,30 +1,63 @@
-const TOKEN_KEY = 'sm-xplore:token'
-const USER_KEY = 'sm-xplore:user'
+const SESSION_KEY = 'sm-xplore:session'
 
-let token: string | null = null
-let unauthorizedHandler: (() => void) | null = null
-
-/** Token JWT actual (cacheado en memoria y en localStorage). */
-export function loadToken(): string | null {
-  if (token === null) {
-    token = window.localStorage.getItem(TOKEN_KEY)
-  }
-
-  return token
+interface StoredSession {
+  token: string
+  /** ISO-8601 del vencimiento que informa el backend (`expiresAt`). */
+  expiresAt: string
 }
 
-export function saveToken(value: string) {
-  token = value
-  window.localStorage.setItem(TOKEN_KEY, value)
+let cached: StoredSession | null | undefined
+let unauthorizedHandler: (() => void) | null = null
+
+/**
+ * Sesión en `sessionStorage` y no en `localStorage`: mismo riesgo de XSS en
+ * ambos, pero la pestaña cerrada no deja el token guardado en el equipo.
+ */
+function readSession(): StoredSession | null {
+  if (cached !== undefined) {
+    return cached
+  }
+
+  cached = null
+  try {
+    const raw = window.sessionStorage.getItem(SESSION_KEY)
+    if (raw !== null) {
+      const parsed = JSON.parse(raw) as Partial<StoredSession>
+      if (typeof parsed.token === 'string' && typeof parsed.expiresAt === 'string') {
+        cached = { token: parsed.token, expiresAt: parsed.expiresAt }
+      }
+    }
+  } catch {
+    // Sesión ilegible: se trata como si no hubiera.
+  }
+
+  return cached
+}
+
+/** Token vigente, o `null` si no hay sesión o ya venció. */
+export function loadToken(): string | null {
+  const session = readSession()
+  if (session === null) {
+    return null
+  }
+
+  const expiresAt = Date.parse(session.expiresAt)
+  if (!Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+    clearToken()
+    return null
+  }
+
+  return session.token
+}
+
+export function saveToken(token: string, expiresAt: string) {
+  cached = { token, expiresAt }
+  window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(cached))
 }
 
 export function clearToken() {
-  token = null
-  window.localStorage.removeItem(TOKEN_KEY)
-}
-
-export function clearStoredUser() {
-  window.localStorage.removeItem(USER_KEY)
+  cached = null
+  window.sessionStorage.removeItem(SESSION_KEY)
 }
 
 /** Lo registra AuthProvider para cerrar sesión cuando la API responde 401. */

@@ -30,18 +30,12 @@ export interface UserResponse {
   signedUpAt: string
 }
 
-export interface UpdateUserProfileRequest {
-  fullName: string
-  email: string
-  phone: string
-}
-
 /** El backend solo acepta `ACTIVE` (reactivar), `BLOCKED` o `SUSPENDED`. */
 export interface ChangeUserStatusRequest {
   status: Extract<UserStatus, 'ACTIVE' | 'BLOCKED' | 'SUSPENDED'>
 }
 
-export interface ResetPasswordRequest {
+export interface AdminResetPasswordRequest {
   password: string
 }
 

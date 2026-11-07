@@ -1,25 +1,36 @@
 import { createContext } from 'react'
 import type {
+  AuthUser,
   LoginRequest,
-  RegisterUserRequest,
-  UserResponse,
+  RegisterProviderRequest,
+  RegisterTouristRequest,
 } from '@/types'
 
 export interface AuthContextValue {
   /** Usuario autenticado, o `null` si no hay sesión. */
-  user: UserResponse | null
+  user: AuthUser | null
   isAuthenticated: boolean
-  /** Inicia sesión contra `/api/v1/auth/login`. */
-  login: (credentials: LoginRequest) => Promise<UserResponse>
+  /** `true` mientras se revalida con `/users/me` la sesión guardada. */
+  isRestoring: boolean
+  /** Challenge pendiente cuando el login pidió el segundo factor. */
+  mfaChallenge: string | null
   /**
-   * Registra un usuario. Los turistas quedan con la sesión iniciada; guías,
-   * prestadoras y gestoras quedan pendientes de aprobación y sin sesión.
+   * Inicia sesión. Devuelve `null` si la cuenta tiene MFA: hay que llamar a
+   * `completeMfa` con el código de la app de autenticación.
    */
-  register: (payload: RegisterUserRequest) => Promise<UserResponse>
-  /** Cierra la sesión local y borra el token guardado. */
-  logout: () => void
-  /** Refresca el usuario guardado tras editar el perfil. */
-  updateSessionUser: (user: UserResponse) => void
+  login: (credentials: LoginRequest) => Promise<AuthUser | null>
+  /** Segundo paso del login con MFA. */
+  completeMfa: (code: string) => Promise<AuthUser>
+  /** Descarta el challenge pendiente y vuelve al formulario de credenciales. */
+  cancelMfa: () => void
+  /** Registro público de turista; deja la sesión iniciada. */
+  registerTourist: (payload: RegisterTouristRequest) => Promise<AuthUser | null>
+  /** Registro de prestadora; queda pendiente de aprobación y sin sesión. */
+  registerProvider: (payload: RegisterProviderRequest) => Promise<AuthUser>
+  /** Invalida la sesión en el backend (si se puede) y la borra en el navegador. */
+  logout: () => Promise<void>
+  /** Refresca el usuario de la sesión tras editar el perfil. */
+  updateSessionUser: (user: AuthUser) => void
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

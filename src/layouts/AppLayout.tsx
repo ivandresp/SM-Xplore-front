@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { TopBar } from '@/components/TopBar'
 import { navItemsFor } from '@/config/navigation'
-import { ROLE_LABELS, STATUS_LABELS } from '@/config/roles'
+import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import styles from './AppLayout.module.css'
 
@@ -52,7 +52,9 @@ export function AppLayout() {
 
           <div className={styles.userBox}>
             <p className={styles.userName}>{user.fullName}</p>
-            <p className={styles.userMeta}>{STATUS_LABELS[user.status]}</p>
+            <p className={styles.userMeta}>
+              {ACCOUNT_STATUS_LABELS[user.status]}
+            </p>
           </div>
         </aside>
 
