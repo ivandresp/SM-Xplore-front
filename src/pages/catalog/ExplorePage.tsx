@@ -222,7 +222,11 @@ export default function ExplorePage() {
       <PageHeader
         serif
         title="Actividades turísticas en Santa Marta"
-        meta={`${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`}
+        meta={
+          error !== null
+            ? undefined
+            : `${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`
+        }
         actions={
           <select
             className={styles.sort}

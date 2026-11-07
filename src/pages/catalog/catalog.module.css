@@ -373,3 +373,23 @@
   color: var(--color-text-soft);
   font-size: 0.92rem;
 }
+
+.retryLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.65rem 1.25rem;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.retryLink:hover {
+  background: var(--color-primary-hover);
+}
+
+.retryLink:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

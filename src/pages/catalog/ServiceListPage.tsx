@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { ServiceCard } from '@/components/ServiceCard/ServiceCard'
 import { serviceTypeLabel } from '@/config/roles'
+import { isApiError } from '@/services/httpClient'
 import { servicesApi } from '@/services/servicesApi'
 import { describeApiError } from '@/utils/errors'
 import type { ServiceResponse } from '@/types'
@@ -23,6 +25,7 @@ export default function ServiceListPage() {
   const [services, setServices] = useState<ServiceResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [needsLogin, setNeedsLogin] = useState(false)
 
   // Filtros aplicados
   const [types, setTypes] = useState<string[]>([])
@@ -48,11 +51,13 @@ export default function ServiceListPage() {
         if (!cancelled) {
           setServices(found)
           setError(null)
+          setNeedsLogin(false)
         }
       } catch (cause) {
         if (!cancelled) {
           setServices([])
           setError(describeApiError(cause))
+          setNeedsLogin(isApiError(cause) && cause.status === 401)
         }
       } finally {
         if (!cancelled) {
@@ -135,7 +140,11 @@ export default function ServiceListPage() {
       <PageHeader
         serif
         title="Servicios turísticos en Santa Marta"
-        meta={`${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`}
+        meta={
+          error !== null
+            ? undefined
+            : `${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`
+        }
         actions={
           <select
             className={styles.sort}
@@ -234,9 +243,15 @@ export default function ServiceListPage() {
 
           {!isLoading && error !== null && (
             <div className={styles.stateActions}>
-              <Button variant="accent" onClick={retry}>
-                Reintentar
-              </Button>
+              {needsLogin ? (
+                <Link to="/login" className={styles.retryLink}>
+                  Iniciar sesión
+                </Link>
+              ) : (
+                <Button variant="accent" onClick={retry}>
+                  Reintentar
+                </Button>
+              )}
             </div>
           )}
 

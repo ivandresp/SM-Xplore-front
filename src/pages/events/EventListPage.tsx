@@ -164,7 +164,11 @@ export default function EventListPage() {
       <PageHeader
         serif
         title="Eventos en Santa Marta"
-        meta={`${filtered.length} ${filtered.length === 1 ? 'evento' : 'eventos'}`}
+        meta={
+          error !== null
+            ? undefined
+            : `${filtered.length} ${filtered.length === 1 ? 'evento' : 'eventos'}`
+        }
         actions={
           isAuthenticated && user?.role === 'TOURIST' ? (
             <Link to="/eventos/planificados">
@@ -274,7 +278,7 @@ export default function EventListPage() {
                   <h2 className={styles.title}>{event.name}</h2>
                   <p className={styles.meta}>
                     {event.category} · {time} ·{' '}
-                    {siteNameById.get(event.siteId) ?? 'Lugar por confirmar'} ·
+                    {event.siteName || siteNameById.get(event.siteId) || 'Lugar por confirmar'} ·
                     aforo {event.maxCapacity}
                   </p>
                 </div>

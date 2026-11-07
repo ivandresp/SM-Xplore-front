@@ -17,6 +17,15 @@ function isNetworkFailure(error: unknown): boolean {
 /** Mensaje legible para los errores devueltos por la API. */
 export function describeApiError(error: unknown): string {
   if (isApiError(error)) {
+    // El backend responde en inglés y sin salida: aquí se traduce y se dice qué hacer.
+    if (error.status === 401) {
+      return 'Necesitas iniciar sesión para ver esta información.'
+    }
+
+    if (error.status === 403) {
+      return 'Tu cuenta no tiene permiso para ver esta información.'
+    }
+
     if (error.status === 404) {
       return 'No se encontró el recurso solicitado.'
     }
