@@ -1,135 +1,187 @@
+import { z } from 'zod'
 import { httpClient } from './httpClient'
+import { parseResponse, pageSchema } from './validate'
 import type {
-  ReceivedReservationsFilters,
-  ReservationByItemFilters,
-  ReservationByTouristFilters,
-  ReservationItemListFilters,
-  ReservationItemRequest,
   ReservationItemResponse,
-  ReservationItemsRequest,
-  ReservationListFilters,
   ReservationRequest,
   ReservationResponse,
+  ReservationStatus,
+  ReservationSummaryResponse,
 } from '@/types'
 
+const reservationSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  touristId: z.string(),
+  itemType: z.enum(['ACTIVITY', 'EVENT']),
+  itemId: z.string(),
+  providerId: z.string().nullish(),
+  guideId: z.string().nullish(),
+  unitPrice: z.number(),
+  numberOfPeople: z.number(),
+  total: z.number(),
+  paymentMethod: z.enum(['CARD', 'CASH', 'TRANSFER']),
+  status: z.enum(['CONFIRMED', 'CANCELLED', 'NO_SHOW']),
+  bookedAt: z.string(),
+  bookedFor: z.string(),
+  itemStartsAt: z.string(),
+  notes: z.string().nullish(),
+})
+
+const reservationPageSchema = pageSchema(reservationSchema)
+
+function toReservation(
+  value: z.infer<typeof reservationSchema>,
+): ReservationResponse {
+  return {
+    ...value,
+    providerId: value.providerId ?? null,
+    guideId: value.guideId ?? null,
+    notes: value.notes ?? null,
+  }
+}
+
+function toSummary(
+  value: z.infer<typeof reservationSchema>,
+): ReservationSummaryResponse {
+  const { notes: _notes, ...summary } = toReservation(value)
+  return summary
+}
+
+/** El backend no expone ítems sueltos: cada reserva trae el suyo. */
+export function itemOf(
+  reservation: ReservationResponse | ReservationSummaryResponse,
+): ReservationItemResponse {
+  return {
+    reservationId: reservation.id,
+    itemId: reservation.itemId,
+    type: reservation.itemType,
+    price: reservation.unitPrice,
+  }
+}
+
 export const reservationsApi = {
-  /** `POST /api/v1/reservations` — 201, nace en `PENDING` con `total: 0`. */
-  create: (payload: ReservationRequest) =>
-    httpClient.post<ReservationResponse>('/reservations', payload),
+  /** `POST /reservations` — 201. Nace `CONFIRMED`; el precio sale del catálogo. */
+  create: async (payload: ReservationRequest) => {
+    const data = await httpClient.post<unknown>('/reservations', payload)
+    return toReservation(parseResponse(reservationSchema, data, 'POST /reservations'))
+  },
 
-  /** `GET /api/v1/reservations?status=&limit=` — `status` obligatorio, `limit` 1-200 (50 por defecto). */
-  list: ({ status, limit }: ReservationListFilters) =>
-    httpClient.get<ReservationResponse[]>('/reservations', {
-      query: { status, limit },
-    }),
+  /** `GET /reservations/{id}` */
+  getById: async (reservationId: string) => {
+    const data = await httpClient.get<unknown>(`/reservations/${reservationId}`)
+    return toReservation(
+      parseResponse(reservationSchema, data, `GET /reservations/${reservationId}`),
+    )
+  },
 
-  /** `GET /api/v1/reservations/{reservationId}` */
-  getById: (reservationId: string) =>
-    httpClient.get<ReservationResponse>(`/reservations/${reservationId}`),
-
-  /** `GET /api/v1/reservations/tourists/{touristId}?limit=` */
-  listByTourist: (
-    touristId: string,
-    { limit }: ReservationByTouristFilters = {},
-  ) =>
-    httpClient.get<ReservationResponse[]>(
+  /** `GET /reservations/tourists/{touristId}?limit=` — devuelve un array. */
+  listByTourist: async (touristId: string, limit = 50) => {
+    const data = await httpClient.get<unknown>(
       `/reservations/tourists/${touristId}`,
       { query: { limit } },
-    ),
+    )
+    return parseResponse(
+      z.array(reservationSchema),
+      data,
+      `GET /reservations/tourists/${touristId}`,
+    ).map(toSummary)
+  },
 
-  /** `GET /api/v1/reservations/providers/{providerId}?status=&limit=` — la propia prestadora o staff. */
-  listByProvider: (
-    providerId: string,
-    { status, limit }: ReceivedReservationsFilters = {},
-  ) =>
-    httpClient.get<ReservationResponse[]>(
-      `/reservations/providers/${providerId}`,
-      { query: { status, limit } },
-    ),
-
-  /** `GET /api/v1/reservations/guides/{guideId}?status=&limit=` — el propio guía o staff. */
-  listByGuide: (
+  /** `GET /reservations/guides/{guideId}?status=&limit=` — devuelve un array. */
+  listByGuide: async (
     guideId: string,
-    { status, limit }: ReceivedReservationsFilters = {},
-  ) =>
-    httpClient.get<ReservationResponse[]>(`/reservations/guides/${guideId}`, {
-      query: { status, limit },
-    }),
+    { status, limit = 50 }: { status?: ReservationStatus; limit?: number } = {},
+  ) => {
+    const data = await httpClient.get<unknown>(
+      `/reservations/guides/${guideId}`,
+      { query: { status, limit } },
+    )
+    return parseResponse(
+      z.array(reservationSchema),
+      data,
+      `GET /reservations/guides/${guideId}`,
+    ).map(toSummary)
+  },
+
+  /** `GET /reservations/by-item?itemType=&itemId=&limit=` — devuelve un array. */
+  listByItem: async ({
+    itemType,
+    itemId,
+    limit = 50,
+  }: {
+    itemType: 'ACTIVITY' | 'EVENT'
+    itemId: string
+    limit?: number
+  }) => {
+    const data = await httpClient.get<unknown>('/reservations/by-item', {
+      query: { itemType, itemId, limit },
+    })
+    return parseResponse(
+      z.array(reservationSchema),
+      data,
+      'GET /reservations/by-item',
+    ).map(toSummary)
+  },
 
   /**
-   * `GET /api/v1/reservations/by-item?itemType=&itemId=&limit=` — reservas que
-   * contienen una actividad o un servicio (la propia guía/prestadora o staff).
+   * `GET /reservations?status=&page=` — página offset; `status` es obligatorio
+   * y solo lo puede llamar ADMIN o DESTINATION_MANAGER.
    */
-  listByItem: ({ itemType, itemId, limit }: ReservationByItemFilters) =>
-    httpClient.get<ReservationResponse[]>('/reservations/by-item', {
-      query: { itemType, itemId, limit },
-    }),
+  listByStatus: async ({ status, page = 0, size = 20 }: {
+    status: ReservationStatus
+    page?: number
+    size?: number
+  }) => {
+    const data = await httpClient.get<unknown>('/reservations', {
+      query: { status, page, size },
+    })
+    return parseResponse(
+      reservationPageSchema,
+      data,
+      'GET /reservations',
+    ).content.map(toSummary)
+  },
 
-  /** `PATCH /api/v1/reservations/{reservationId}/confirm` */
-  confirm: (reservationId: string) =>
-    httpClient.patch<ReservationResponse>(
-      `/reservations/${reservationId}/confirm`,
-    ),
-
-  /** `PATCH /api/v1/reservations/{reservationId}/reject` */
-  reject: (reservationId: string) =>
-    httpClient.patch<ReservationResponse>(
-      `/reservations/${reservationId}/reject`,
-    ),
-
-  /** `PATCH /api/v1/reservations/{reservationId}/cancel` */
-  cancel: (reservationId: string) =>
-    httpClient.patch<ReservationResponse>(
+  /** `PATCH /reservations/{id}/cancel` — el turista dueño hasta 24 h antes. */
+  cancel: async (reservationId: string) => {
+    const data = await httpClient.patch<unknown>(
       `/reservations/${reservationId}/cancel`,
-    ),
+    )
+    return toReservation(
+      parseResponse(
+        reservationSchema,
+        data,
+        `PATCH /reservations/${reservationId}/cancel`,
+      ),
+    )
+  },
 
-  /** `PATCH /api/v1/reservations/{reservationId}/request-cancellation` */
-  requestCancellation: (reservationId: string) =>
-    httpClient.patch<ReservationResponse>(
-      `/reservations/${reservationId}/request-cancellation`,
-    ),
-
-  /** `PATCH /api/v1/reservations/{reservationId}/attendance` */
-  markAttendance: (reservationId: string) =>
-    httpClient.patch<ReservationResponse>(
+  /** `PATCH /reservations/{id}/attendance` — solo staff del ítem o ADMIN. */
+  markAttendance: async (reservationId: string) => {
+    const data = await httpClient.patch<unknown>(
       `/reservations/${reservationId}/attendance`,
-    ),
+    )
+    return toReservation(
+      parseResponse(
+        reservationSchema,
+        data,
+        `PATCH /reservations/${reservationId}/attendance`,
+      ),
+    )
+  },
 
-  /** `PATCH /api/v1/reservations/{reservationId}/no-show` */
-  markNoShow: (reservationId: string) =>
-    httpClient.patch<ReservationResponse>(
+  /** `PATCH /reservations/{id}/no-show` — solo staff del ítem o ADMIN. */
+  markNoShow: async (reservationId: string) => {
+    const data = await httpClient.patch<unknown>(
       `/reservations/${reservationId}/no-show`,
-    ),
-
-  /** `POST /api/v1/reservations/{reservationId}/items` — 201. */
-  addItem: (reservationId: string, payload: ReservationItemRequest) =>
-    httpClient.post<ReservationItemResponse>(
-      `/reservations/${reservationId}/items`,
-      payload,
-    ),
-
-  /** `POST /api/v1/reservations/{reservationId}/items/batch` — 201, máximo 50 ítems. */
-  addItems: (reservationId: string, payload: ReservationItemsRequest) =>
-    httpClient.post<ReservationItemResponse[]>(
-      `/reservations/${reservationId}/items/batch`,
-      payload,
-    ),
-
-  /** `GET /api/v1/reservations/{reservationId}/items` */
-  listItems: (reservationId: string) =>
-    httpClient.get<ReservationItemResponse[]>(
-      `/reservations/${reservationId}/items`,
-    ),
-
-  /** `GET /api/v1/reservation-items/{reservationItemId}` */
-  getItem: (reservationItemId: string) =>
-    httpClient.get<ReservationItemResponse>(
-      `/reservation-items/${reservationItemId}`,
-    ),
-
-  /** `GET /api/v1/reservation-items?type=&limit=` — `type` obligatorio. */
-  listItemsByType: ({ type, limit }: ReservationItemListFilters) =>
-    httpClient.get<ReservationItemResponse[]>('/reservation-items', {
-      query: { type, limit },
-    }),
+    )
+    return toReservation(
+      parseResponse(
+        reservationSchema,
+        data,
+        `PATCH /reservations/${reservationId}/no-show`,
+      ),
+    )
+  },
 }

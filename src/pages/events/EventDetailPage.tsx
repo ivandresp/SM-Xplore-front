@@ -172,15 +172,11 @@ export default function EventDetailPage() {
     try {
       const reservation = await reservationsApi.create({
         touristId: user.id,
+        itemType: 'EVENT',
+        itemId: event!.id,
         numberOfPeople: people,
         paymentMethod,
         bookedFor: event!.startsAt,
-      })
-
-      await reservationsApi.addItem(reservation.id, {
-        itemId: event!.id,
-        type: 'EVENT',
-        price: event!.price,
       })
 
       setConfirmation(reservation)

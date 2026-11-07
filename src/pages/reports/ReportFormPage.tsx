@@ -11,7 +11,8 @@ import styles from './reports.module.css'
 export default function ReportFormPage() {
   const navigate = useNavigate()
 
-  const [text, setText] = useState('')
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
   const [photos, setPhotos] = useState('')
@@ -39,6 +40,12 @@ export default function ReportFormPage() {
 
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
+
+    if (title.trim() === '') {
+      setError('El título es obligatorio.')
+      return
+    }
+
     setIsSaving(true)
     setError(null)
 
@@ -52,7 +59,8 @@ export default function ReportFormPage() {
 
       // El autor lo toma el backend del token de sesión.
       await securityReportsApi.create({
-        text: text.trim(),
+        title: title.trim(),
+        description: description.trim(),
         location: hasLocation
           ? {
               latitude: Number(latitude),
@@ -89,14 +97,25 @@ export default function ReportFormPage() {
 
       <form className={styles.card} onSubmit={handleSubmit} noValidate>
         <div className={styles.grid}>
+          <div className={styles.full}>
+            <Field
+              label="Título"
+              placeholder="Ej: Intento de robo en el muelle"
+              maxLength={200}
+              required
+              value={title}
+              onChange={(changeEvent) => setTitle(changeEvent.target.value)}
+            />
+          </div>
+
           <label className={styles.full}>
             <span className={styles.fieldLabel}>¿Qué pasó?</span>
             <textarea
               className={styles.textarea}
-              placeholder="Ej: Intento de robo cerca del muelle. Dos personas en moto se acercaron a los turistas."
-              required
-              value={text}
-              onChange={(changeEvent) => setText(changeEvent.target.value)}
+              placeholder="Ej: Dos personas en moto se acercaron a los turistas."
+              maxLength={2000}
+              value={description}
+              onChange={(changeEvent) => setDescription(changeEvent.target.value)}
             />
           </label>
 

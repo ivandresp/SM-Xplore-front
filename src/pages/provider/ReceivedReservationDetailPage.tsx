@@ -13,7 +13,7 @@ import {
 } from '@/config/roles'
 import { itemLabel, loadCatalogLookup } from '@/services/catalogLookup'
 import type { CatalogEntry } from '@/services/catalogLookup'
-import { reservationsApi } from '@/services/reservationsApi'
+import { itemOf, reservationsApi } from '@/services/reservationsApi'
 import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
@@ -54,16 +54,15 @@ export default function ReceivedReservationDetailPage() {
 
     async function run() {
       try {
-        const [found, foundItems, catalog] = await Promise.all([
+        const [found, catalog] = await Promise.all([
           reservationsApi.getById(reservationId as string),
-          reservationsApi.listItems(reservationId as string),
           loadCatalogLookup(),
         ])
 
         if (cancelled) return
 
         setReservation(found)
-        setItems(foundItems)
+        setItems([itemOf(found)])
         setLookup(catalog)
         setError(null)
 
@@ -140,11 +139,9 @@ export default function ReceivedReservationDetailPage() {
     }
   }
 
-  const canConfirm = current.status === 'PENDING'
-  const canReject = current.status === 'PENDING'
   const canAttendance = current.status === 'CONFIRMED'
   const canNoShow = current.status === 'CONFIRMED'
-  const hasActions = canConfirm || canReject || canAttendance || canNoShow
+  const hasActions = canAttendance || canNoShow
 
   return (
     <div>
@@ -183,7 +180,7 @@ export default function ReceivedReservationDetailPage() {
             {items.map((item) => {
               const entry = lookup.get(item.itemId)
               return (
-                <div key={item.id} className={styles.itemRow}>
+                <div key={item.itemId} className={styles.itemRow}>
                   <span className={styles.itemThumb} aria-hidden="true">
                     Sin foto
                   </span>
@@ -237,34 +234,6 @@ export default function ReceivedReservationDetailPage() {
             </div>
 
             <div className={styles.actions}>
-              {canConfirm && (
-                <Button
-                  variant="primary"
-                  disabled={isWorking}
-                  onClick={() =>
-                    void runAction(
-                      reservationsApi.confirm,
-                      'Reserva confirmada.',
-                    )
-                  }
-                >
-                  Confirmar
-                </Button>
-              )}
-              {canReject && (
-                <Button
-                  variant="outline"
-                  disabled={isWorking}
-                  onClick={() =>
-                    void runAction(
-                      reservationsApi.reject,
-                      'Reserva rechazada.',
-                    )
-                  }
-                >
-                  Rechazar
-                </Button>
-              )}
               {canAttendance && (
                 <Button
                   variant="primary"
@@ -293,15 +262,7 @@ export default function ReceivedReservationDetailPage() {
                   No se presentó
                 </Button>
               )}
-              {current.status === 'CANCELLATION_REQUESTED' && (
-                <p className={styles.actionsNote}>
-                  El turista solicitó cancelar la reserva. Solo el turista o un
-                  admin/gestora pueden completar la cancelación; cancelar no
-                  está disponible para prestadoras ni guías.
-                </p>
-              )}
-
-              {!hasActions && current.status !== 'CANCELLATION_REQUESTED' && (
+              {!hasActions && (
                 <p className={styles.actionsNote}>
                   Esta reserva ya está cerrada: no hay acciones disponibles.
                 </p>

@@ -44,9 +44,10 @@ export default function MyReportsPage() {
 
     async function run() {
       try {
-        const mine = await securityReportsApi.listByUser(userId as string)
+        const page = await securityReportsApi.listByUser(userId as string)
         if (cancelled) return
 
+        const mine = page.content
         setReports(mine)
         setError(null)
 
@@ -58,7 +59,7 @@ export default function MyReportsPage() {
           const map: Record<string, number> = {}
           counts.forEach((result, index) => {
             map[mine[index].id] =
-              result.status === 'fulfilled' ? result.value.length : 0
+              result.status === 'fulfilled' ? result.value.content.length : 0
           })
           setComments(map)
         }
@@ -166,7 +167,10 @@ export default function MyReportsPage() {
               </StatusBadge>
             </div>
 
-            <p className={styles.text}>{report.text}</p>
+            <p className={styles.text}>{report.title}</p>
+            {report.description !== null && report.description !== '' && (
+              <p className={styles.helper}>{report.description}</p>
+            )}
 
             {report.photosUrls.length > 0 && (
               <div className={styles.photo}>

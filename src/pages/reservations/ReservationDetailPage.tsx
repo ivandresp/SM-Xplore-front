@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
@@ -10,27 +9,14 @@ import {
   PAYMENT_METHOD_LABELS,
   RESERVATION_STATUS_LABELS,
   RESERVATION_STATUS_TONES,
-  ROLE_LABELS,
 } from '@/config/roles'
 import { itemLabel, loadCatalogLookup } from '@/services/catalogLookup'
 import type { CatalogEntry } from '@/services/catalogLookup'
-import { reservationsApi } from '@/services/reservationsApi'
-import { usersApi } from '@/services/usersApi'
+import { itemOf, reservationsApi } from '@/services/reservationsApi'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
-import type {
-  ReservationItemResponse,
-  ReservationResponse,
-  UserRole,
-} from '@/types'
+import type { ReservationItemResponse, ReservationResponse } from '@/types'
 import styles from './reservations.module.css'
-
-interface ContactInfo {
-  name: string
-  role: UserRole
-  /** El backend lo entrega solo con sesión iniciada. */
-  email: string | null
-}
 
 function formatTime(value: string): string {
   return new Intl.DateTimeFormat('es-CO', {
@@ -47,7 +33,6 @@ export default function ReservationDetailPage() {
   )
   const [items, setItems] = useState<ReservationItemResponse[]>([])
   const [lookup, setLookup] = useState<Map<string, CatalogEntry>>(new Map())
-  const [contact, setContact] = useState<ContactInfo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,50 +47,19 @@ export default function ReservationDetailPage() {
 
     async function run() {
       try {
-        const [found, foundItems, catalog] = await Promise.all([
+        const [found, catalog] = await Promise.all([
           reservationsApi.getById(reservationId as string),
-          reservationsApi.listItems(reservationId as string),
           loadCatalogLookup(),
         ])
 
         if (cancelled) return
 
+        const item = itemOf(found)
+
         setReservation(found)
-        setItems(foundItems)
+        setItems([item])
         setLookup(catalog)
         setError(null)
-
-        // Quién presta el servicio: guía de la actividad o prestadora del servicio.
-        const first = foundItems[0]
-        const entry = first !== undefined ? catalog.get(first.itemId) : undefined
-
-        if (entry !== undefined && entry.providerId !== undefined) {
-          try {
-            if (entry.type === 'ACTIVITY') {
-              const guide = await usersApi.getGuideProfile(entry.providerId)
-              if (!cancelled) {
-                setContact({
-                  name: guide.fullName,
-                  role: 'GUIDE',
-                  email: guide.email,
-                })
-              }
-            } else if (entry.type === 'SERVICE') {
-              const provider = await usersApi.getProviderProfile(
-                entry.providerId,
-              )
-              if (!cancelled) {
-                setContact({
-                  name: provider.fullName,
-                  role: 'SERVICE_PROVIDER',
-                  email: provider.email,
-                })
-              }
-            }
-          } catch {
-            // Si no se puede resolver el contacto, la tarjeta no se muestra.
-          }
-        }
       } catch (cause) {
         if (!cancelled) {
           setError(describeApiError(cause))
@@ -145,8 +99,7 @@ export default function ReservationDetailPage() {
   const entry = first !== undefined ? lookup.get(first.itemId) : undefined
   const subtotal = items.reduce((sum, item) => sum + item.price, 0)
   const code = reservation.code
-  const canRequestCancellation =
-    reservation.status === 'PENDING' || reservation.status === 'CONFIRMED'
+  const canRequestCancellation = reservation.status === 'CONFIRMED'
 
   const infoItems: DefItem[] = [
     {
@@ -166,13 +119,9 @@ export default function ReservationDetailPage() {
     setFeedback(null)
 
     try {
-      const updated = await reservationsApi.requestCancellation(
-        reservation!.id,
-      )
+      const updated = await reservationsApi.cancel(reservation!.id)
       setReservation(updated)
-      setFeedback(
-        'Solicitud de cancelación enviada. La prestadora o el guía la revisarán.',
-      )
+      setFeedback('Reserva cancelada.')
     } catch (cause) {
       setError(describeApiError(cause))
     } finally {
@@ -223,8 +172,6 @@ export default function ReservationDetailPage() {
                 </h2>
                 <p className={styles.itemMeta}>
                   {itemLabel(entry?.type ?? first?.type ?? 'ACTIVITY')}
-                  {contact !== null &&
-                    ` · ${ROLE_LABELS[contact.role]}: ${contact.name}`}
                 </p>
               </div>
             </div>
@@ -238,22 +185,6 @@ export default function ReservationDetailPage() {
               backend todavía no los almacena.
             </p>
           </article>
-
-          {contact !== null && (
-            <article className={styles.card}>
-              <h2 className={styles.cardTitle}>Prestador</h2>
-              <div className={styles.contact}>
-                <Avatar name={contact.name} />
-                <div>
-                  <p className={styles.contactName}>{contact.name}</p>
-                  <p className={styles.contactMeta}>
-                    {ROLE_LABELS[contact.role]} ·{' '}
-                    {contact.email ?? 'Correo no disponible'}
-                  </p>
-                </div>
-              </div>
-            </article>
-          )}
         </div>
 
         <div className={styles.column}>

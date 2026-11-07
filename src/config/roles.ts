@@ -131,24 +131,16 @@ export const REPORT_STATUS_TONES: Record<SecurityReportStatus, BadgeTone> = {
 
 /** Nombre legible del estado de una reserva. */
 export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
-  PENDING: 'Pendiente',
   CONFIRMED: 'Confirmada',
-  CANCELLATION_REQUESTED: 'Cancelación solicitada',
-  REJECTED: 'Rechazada',
   CANCELLED: 'Cancelada',
   NO_SHOW: 'No asistió',
-  COMPLETED: 'Completada',
 }
 
 /** Color de la etiqueta según el estado de una reserva. */
 export const RESERVATION_STATUS_TONES: Record<ReservationStatus, BadgeTone> = {
-  PENDING: 'warning',
   CONFIRMED: 'success',
-  CANCELLATION_REQUESTED: 'info',
-  REJECTED: 'danger',
   CANCELLED: 'danger',
   NO_SHOW: 'neutral',
-  COMPLETED: 'success',
 }
 
 /** Nombre legible del estado de la cuenta autenticada (`AccountStatus`). */

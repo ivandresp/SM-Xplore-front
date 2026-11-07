@@ -12,23 +12,19 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { itemLabel, loadCatalogLookup } from '@/services/catalogLookup'
 import type { CatalogEntry } from '@/services/catalogLookup'
-import { reservationsApi } from '@/services/reservationsApi'
+import { itemOf, reservationsApi } from '@/services/reservationsApi'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency } from '@/utils/format'
-import type {
-  ReservationItemResponse,
-  ReservationResponse,
-  ReservationStatus,
-} from '@/types'
+import type { ReservationStatus, ReservationSummaryResponse } from '@/types'
 import styles from './reservations.module.css'
 
 const PAGE_SIZE = 12
 
 const FILTERS: Array<{ label: string; statuses?: ReservationStatus[] }> = [
   { label: 'Todas' },
-  { label: 'Pendientes', statuses: ['PENDING'] },
-  { label: 'Confirmadas', statuses: ['CONFIRMED', 'COMPLETED'] },
-  { label: 'Canceladas', statuses: ['CANCELLED', 'REJECTED'] },
+  { label: 'Confirmadas', statuses: ['CONFIRMED'] },
+  { label: 'Canceladas', statuses: ['CANCELLED'] },
+  { label: 'No asistió', statuses: ['NO_SHOW'] },
 ]
 
 function dateParts(value: string) {
@@ -48,11 +44,10 @@ function dateParts(value: string) {
 export default function MyReservationsPage() {
   const { user } = useAuth()
 
-  const [reservations, setReservations] = useState<ReservationResponse[]>([])
+  const [reservations, setReservations] = useState<
+    ReservationSummaryResponse[]
+  >([])
   const [lookup, setLookup] = useState<Map<string, CatalogEntry>>(new Map())
-  const [items, setItems] = useState(
-    new Map<string, ReservationItemResponse>(),
-  )
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
@@ -70,7 +65,7 @@ export default function MyReservationsPage() {
     async function run() {
       try {
         const [list, catalog] = await Promise.all([
-          reservationsApi.listByTourist(touristId as string, { limit: 200 }),
+          reservationsApi.listByTourist(touristId as string, 200),
           loadCatalogLookup(),
         ])
 
@@ -117,46 +112,6 @@ export default function MyReservationsPage() {
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
-  // Los ítems se piden solo para las reservas visibles.
-  useEffect(() => {
-    const missing = visible
-      .filter((reservation) => !items.has(reservation.id))
-      .map((reservation) => reservation.id)
-
-    if (missing.length === 0) {
-      return
-    }
-
-    let cancelled = false
-
-    async function run() {
-      const results = await Promise.allSettled(
-        missing.map((id) => reservationsApi.listItems(id)),
-      )
-
-      if (cancelled) {
-        return
-      }
-
-      setItems((current) => {
-        const next = new Map(current)
-        results.forEach((result, index) => {
-          if (result.status === 'fulfilled' && result.value.length > 0) {
-            next.set(missing[index], result.value[0])
-          }
-        })
-        return next
-      })
-    }
-
-    void run()
-
-    return () => {
-      cancelled = true
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filterIndex, reservations])
 
   const hasAny = reservations.length > 0
 
@@ -218,11 +173,10 @@ export default function MyReservationsPage() {
       {visible.length > 0 && (
         <div className={styles.list}>
           {visible.map((reservation) => {
-            const item = items.get(reservation.id)
-            const entry =
-              item !== undefined ? lookup.get(item.itemId) : undefined
+            const item = itemOf(reservation)
+            const entry = lookup.get(item.itemId)
             const { day, month, time } = dateParts(reservation.bookedFor)
-            const type = item?.type ?? entry?.type ?? 'ACTIVITY'
+            const type = item.type
 
             return (
               <article key={reservation.id} className={styles.row}>

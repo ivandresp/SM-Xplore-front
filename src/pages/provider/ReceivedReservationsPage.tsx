@@ -14,25 +14,23 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { loadCatalogLookup } from '@/services/catalogLookup'
 import type { CatalogEntry } from '@/services/catalogLookup'
-import { reservationsApi } from '@/services/reservationsApi'
-import { usersApi } from '@/services/usersApi'
+import { itemOf, reservationsApi } from '@/services/reservationsApi'
 import { describeApiError } from '@/utils/errors'
-import { formatDate } from '@/utils/format'
-import type { ReservationResponse, ReservationStatus } from '@/types'
+import { formatCurrency, formatDate } from '@/utils/format'
+import type { ReservationSummaryResponse, ReservationStatus } from '@/types'
 import tableStyles from '@/pages/admin/admin.module.css'
 import styles from '@/pages/reservations/reservations.module.css'
 
 const FILTERS: Array<{ label: string; statuses?: ReservationStatus[] }> = [
   { label: 'Todas' },
-  { label: 'Pendientes', statuses: ['PENDING'] },
-  { label: 'Confirmadas', statuses: ['CONFIRMED', 'COMPLETED'] },
-  { label: 'Rechazadas', statuses: ['REJECTED', 'CANCELLED'] },
+  { label: 'Confirmadas', statuses: ['CONFIRMED'] },
+  { label: 'Canceladas', statuses: ['CANCELLED'] },
+  { label: 'No asistió', statuses: ['NO_SHOW'] },
 ]
 
 interface Row {
-  reservation: ReservationResponse
+  reservation: ReservationSummaryResponse
   entry: CatalogEntry | undefined
-  touristName: string
 }
 
 export default function ReceivedReservationsPage() {
@@ -42,7 +40,6 @@ export default function ReceivedReservationsPage() {
   const [rows, setRows] = useState<Row[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [workingId, setWorkingId] = useState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [term, setTerm] = useState('')
 
@@ -57,55 +54,30 @@ export default function ReceivedReservationsPage() {
     setIsLoading(true)
     setError(null)
 
+    // El backend solo expone reservas por guía, por turista o por ítem. No hay
+    // listado por prestadora, y los servicios no son reservables.
+    if (role !== 'GUIDE') {
+      setRows([])
+      setIsLoading(false)
+      return
+    }
+
     try {
-      // Reservas recibidas: una sola consulta por cuenta (prestadora o guía).
-      const received =
-        role === 'GUIDE'
-          ? await reservationsApi.listByGuide(userId, { limit: 200 })
-          : await reservationsApi.listByProvider(userId, { limit: 200 })
-
-      const sorted = [...received].sort(
-        (a, b) =>
-          new Date(b.bookedAt).getTime() - new Date(a.bookedAt).getTime(),
-      )
-
-      // Primer ítem de cada reserva (para mostrar el nombre del servicio/actividad)
-      // y nombre del turista. Ambas consultas van en paralelo.
-      const touristIds = [
-        ...new Set(sorted.map((reservation) => reservation.touristId)),
-      ]
-
-      const [itemResults, touristResults, catalog] = await Promise.all([
-        Promise.allSettled(
-          sorted.map((reservation) =>
-            reservationsApi.listItems(reservation.id),
-          ),
-        ),
-        Promise.allSettled(touristIds.map((id) => usersApi.getById(id))),
+      const [received, catalog] = await Promise.all([
+        reservationsApi.listByGuide(userId, { limit: 200 }),
         loadCatalogLookup(),
       ])
 
-      const names = new Map<string, string>()
-      touristResults.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          names.set(touristIds[index], result.value.fullName)
-        }
-      })
-
       setRows(
-        sorted.map((reservation, index) => {
-          const itemResult = itemResults[index]
-          const item =
-            itemResult?.status === 'fulfilled'
-              ? itemResult.value[0]
-              : undefined
-
-          return {
+        [...received]
+          .sort(
+            (a, b) =>
+              new Date(b.bookedAt).getTime() - new Date(a.bookedAt).getTime(),
+          )
+          .map((reservation) => ({
             reservation,
-            entry: item !== undefined ? catalog.get(item.itemId) : undefined,
-            touristName: names.get(reservation.touristId) ?? 'Turista',
-          }
-        }),
+            entry: catalog.get(itemOf(reservation).itemId),
+          })),
       )
     } catch (cause) {
       setRows([])
@@ -119,29 +91,6 @@ export default function ReceivedReservationsPage() {
     void load()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, role])
-
-  async function runAction(
-    reservationId: string,
-    action: (id: string) => Promise<ReservationResponse>,
-  ) {
-    setWorkingId(reservationId)
-    setError(null)
-
-    try {
-      const updated = await action(reservationId)
-      setRows((current) =>
-        current.map((row) =>
-          row.reservation.id === reservationId
-            ? { ...row, reservation: updated }
-            : row,
-        ),
-      )
-    } catch (cause) {
-      setError(describeApiError(cause))
-    } finally {
-      setWorkingId(null)
-    }
-  }
 
   const filtered = useMemo(() => {
     const statuses = FILTERS[filterIndex]?.statuses
@@ -157,32 +106,11 @@ export default function ReceivedReservationsPage() {
       }
 
       return (
-        row.touristName.toLowerCase().includes(needle) ||
+        (row.entry?.name.toLowerCase().includes(needle) ?? false) ||
         row.reservation.code.toLowerCase().includes(needle)
       )
     })
   }, [rows, filterIndex, term])
-
-  function actionFor(row: Row) {
-    // Confirmar/rechazar/asistencia/no-show los puede hacer la prestadora o el
-    // guía de la reserva; cancelar queda reservado al turista dueño o a staff.
-    if (row.reservation.status === 'PENDING') {
-      return (
-        <Button
-          variant="outline"
-          size="sm"
-          disabled={workingId === row.reservation.id}
-          onClick={() =>
-            void runAction(row.reservation.id, reservationsApi.confirm)
-          }
-        >
-          Confirmar
-        </Button>
-      )
-    }
-
-    return null
-  }
 
   const columns: Column<Row>[] = [
     {
@@ -192,15 +120,9 @@ export default function ReceivedReservationsPage() {
           <p className={tableStyles.userName}>
             {row.entry?.name ?? 'Ítem reservado'}
           </p>
-          <p className={tableStyles.userEmail}>
-            #{row.reservation.code}
-          </p>
+          <p className={tableStyles.userEmail}>#{row.reservation.code}</p>
         </div>
       ),
-    },
-    {
-      header: 'Turista',
-      render: (row) => row.touristName,
     },
     {
       header: 'Fecha',
@@ -209,6 +131,11 @@ export default function ReceivedReservationsPage() {
     {
       header: 'Personas',
       render: (row) => row.reservation.numberOfPeople,
+    },
+    {
+      header: 'Total',
+      align: 'right',
+      render: (row) => formatCurrency(row.reservation.total),
     },
     {
       header: 'Estado',
@@ -222,18 +149,15 @@ export default function ReceivedReservationsPage() {
       header: 'Acciones',
       align: 'right',
       render: (row) => (
-        <div className={tableStyles.form}>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              navigate(`/app/reservas-recibidas/${row.reservation.id}`)
-            }
-          >
-            Ver
-          </Button>
-          {actionFor(row)}
-        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            navigate(`/app/reservas-recibidas/${row.reservation.id}`)
+          }
+        >
+          Ver
+        </Button>
       ),
     },
   ]
@@ -246,8 +170,8 @@ export default function ReceivedReservationsPage() {
         actions={
           <div className={tableStyles.search}>
             <SearchInput
-              label="Buscar por turista o código"
-              placeholder="Buscar por turista o código…"
+              label="Buscar por actividad o código"
+              placeholder="Buscar por actividad o código…"
               value={term}
               onChange={setTerm}
             />
@@ -261,38 +185,43 @@ export default function ReceivedReservationsPage() {
         </p>
       )}
 
-      <div className={styles.filters}>
-        {FILTERS.map((filter, index) => (
-          <Chip
-            key={filter.label}
-            selected={filterIndex === index}
-            onClick={() => setFilterIndex(index)}
-          >
-            {filter.label}
-          </Chip>
-        ))}
-      </div>
+      {role !== 'GUIDE' ? (
+        <p className={styles.notice}>
+          El API no expone un listado de reservas por prestadora: solo hay
+          consultas por guía, por turista y por ítem. Además, los servicios no
+          son reservables, así que una prestadora no recibe reservas por esta
+          vía.{' '}
+          <Link to="/app/mis-servicios">Ver mis servicios</Link>
+        </p>
+      ) : (
+        <>
+          <div className={styles.filters}>
+            {FILTERS.map((filter, index) => (
+              <Chip
+                key={filter.label}
+                selected={filterIndex === index}
+                onClick={() => setFilterIndex(index)}
+              >
+                {filter.label}
+              </Chip>
+            ))}
+          </div>
 
-      <DataTable
-        columns={columns}
-        rows={filtered}
-        rowKey={(row) => row.reservation.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando reservas recibidas…"
-        emptyMessage="No tienes reservas recibidas con estos filtros."
-      />
+          <DataTable
+            columns={columns}
+            rows={filtered}
+            rowKey={(row) => row.reservation.id}
+            isLoading={isLoading}
+            loadingMessage="Cargando reservas recibidas…"
+            emptyMessage="No tienes reservas recibidas con estos filtros."
+          />
 
-      <p className={styles.notice}>
-        Datos reales de <code>/reservations/providers|guides/{'{id}'}</code>.
-        El diseño muestra «Cancelar» en las confirmadas, pero la API solo permite
-        cancelar al turista dueño o a un admin/gestora: aquí la prestadora y el
-        guía confirman, rechazan y registran asistencia o no-show.{' '}
-        <Link
-          to={role === 'GUIDE' ? '/app/mis-actividades' : '/app/mis-servicios'}
-        >
-          {role === 'GUIDE' ? 'Ver mis actividades' : 'Ver mis servicios'}
-        </Link>
-      </p>
+          <p className={styles.notice}>
+            Datos reales de <code>/reservations/guides/{'{id}'}</code>. La API
+            solo permite confirmar asistencia o marcar no-show desde el detalle.
+          </p>
+        </>
+      )}
     </section>
   )
 }

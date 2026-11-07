@@ -16,6 +16,7 @@ export default function ReportDetailPage() {
 
   const [report, setReport] = useState<SecurityReportResponse | null>(null)
   const [comments, setComments] = useState<CommentResponse[]>([])
+  const [newTitle, setNewTitle] = useState('')
   const [newText, setNewText] = useState('')
   const [photoUrl, setPhotoUrl] = useState('')
   const [comment, setComment] = useState('')
@@ -41,8 +42,9 @@ export default function ReportDetailPage() {
         if (cancelled) return
 
         setReport(found)
-        setNewText(found.text)
-        setComments(foundComments)
+        setNewTitle(found.title)
+        setNewText(found.description ?? '')
+        setComments(foundComments.content)
         setError(null)
       } catch (cause) {
         if (!cancelled) setError(describeApiError(cause))
@@ -120,7 +122,13 @@ export default function ReportDetailPage() {
       <div className={styles.layout}>
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Descripción</h2>
+            <h2 className={styles.cardTitle}>Título y descripción</h2>
+            <Field
+              label="Título"
+              maxLength={200}
+              value={newTitle}
+              onChange={(changeEvent) => setNewTitle(changeEvent.target.value)}
+            />
             <textarea
               className={styles.textarea}
               value={newText}
@@ -129,18 +137,21 @@ export default function ReportDetailPage() {
             <div className={styles.actions}>
               <Button
                 variant="accent"
-                disabled={isWorking || newText.trim() === ''}
+                disabled={isWorking || newTitle.trim() === '' || newText.trim() === ''}
                 onClick={() =>
                   void runAction(async () => {
-                    const updated = await securityReportsApi.changeText(
+                    const updated = await securityReportsApi.changeContent(
                       current.id,
-                      { text: newText.trim() },
+                      {
+                        title: newTitle.trim(),
+                        description: newText.trim(),
+                      },
                     )
                     setReport(updated)
-                  }, 'Texto del reporte actualizado.')
+                  }, 'Reporte actualizado.')
                 }
               >
-                Guardar texto
+                Guardar cambios
               </Button>
             </div>
           </article>
@@ -221,7 +232,7 @@ export default function ReportDetailPage() {
                     const updated = await securityReportsApi.listComments(
                       current.id,
                     )
-                    setComments(updated)
+                    setComments(updated.content)
                     setComment('')
                   }, 'Respuesta publicada.')
                 }

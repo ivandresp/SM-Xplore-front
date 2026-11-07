@@ -12,11 +12,11 @@ import { eventsApi } from '@/services/eventsApi'
 import { reservationsApi } from '@/services/reservationsApi'
 import { describeApiError } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
-import type { EventResponse, ReservationResponse } from '@/types'
+import type { EventResponse, ReservationSummaryResponse } from '@/types'
 import styles from './events.module.css'
 
 interface PlannedEvent {
-  reservation: ReservationResponse
+  reservation: ReservationSummaryResponse
   event: EventResponse | undefined
   eventId: string
 }
@@ -40,33 +40,25 @@ export default function PlannedEventsPage() {
     async function run() {
       try {
         const [reservations, events] = await Promise.all([
-          reservationsApi.listByTourist(touristId as string, { limit: 200 }),
+          reservationsApi.listByTourist(touristId as string, 200),
           eventsApi.list(),
         ])
-
-        const itemResults = await Promise.allSettled(
-          reservations.map((reservation) =>
-            reservationsApi.listItems(reservation.id),
-          ),
-        )
 
         if (cancelled) return
 
         const byId = new Map(events.map((event) => [event.id, event]))
         const list: PlannedEvent[] = []
 
-        itemResults.forEach((result, index) => {
-          if (result.status !== 'fulfilled') return
+        // La reserva guarda un solo ítem: se filtra por tipo, no se piden ítems aparte.
+        for (const reservation of reservations) {
+          if (reservation.itemType !== 'EVENT') continue
 
-          const eventItem = result.value.find((item) => item.type === 'EVENT')
-          if (eventItem !== undefined) {
-            list.push({
-              reservation: reservations[index],
-              event: byId.get(eventItem.itemId),
-              eventId: eventItem.itemId,
-            })
-          }
-        })
+          list.push({
+            reservation,
+            event: byId.get(reservation.itemId),
+            eventId: reservation.itemId,
+          })
+        }
 
         setPlanned(
           list.sort(

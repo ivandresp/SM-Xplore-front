@@ -4,7 +4,7 @@ import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { useAuth } from '@/hooks/useAuth'
-import { groupPendingEntries, useItinerary } from '@/hooks/useItinerary'
+import { useItinerary } from '@/hooks/useItinerary'
 import type { ItineraryEntry } from '@/hooks/useItinerary'
 import { reservationsApi } from '@/services/reservationsApi'
 import { describeApiError } from '@/utils/errors'
@@ -84,28 +84,18 @@ export default function ItineraryPage() {
     setFeedback(null)
 
     try {
-      // Una reserva por grupo: mismo tipo de ítem y misma prestadora.
-      for (const group of groupPendingEntries(entries)) {
-        const first = group[0]
-
+      // Una reserva por entrada: el backend guarda un solo ítem por reserva.
+      for (const entry of entries) {
         const reservation = await reservationsApi.create({
           touristId: user.id,
+          itemType: entry.type,
+          itemId: entry.itemId,
           numberOfPeople: 1,
           paymentMethod: 'CARD',
-          bookedFor: first.startsAt,
+          bookedFor: entry.startsAt,
         })
 
-        await reservationsApi.addItems(reservation.id, {
-          items: group.map((entry) => ({
-            itemId: entry.itemId,
-            type: entry.type,
-            price: entry.price,
-          })),
-        })
-
-        for (const entry of group) {
-          patchEntry(entry.itemId, { reservationId: reservation.id })
-        }
+        patchEntry(entry.itemId, { reservationId: reservation.id })
       }
 
       setFeedback('Reservas creadas. Puedes verlas en "Mis reservas".')

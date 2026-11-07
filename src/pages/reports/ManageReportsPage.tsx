@@ -41,7 +41,7 @@ export default function ManageReportsPage() {
         const byId = new Map<string, SecurityReportResponse>()
         results.forEach((result) => {
           if (result.status === 'fulfilled') {
-            for (const report of result.value) {
+            for (const report of result.value.content) {
               byId.set(report.id, report)
             }
           }
@@ -198,9 +198,9 @@ export default function ManageReportsPage() {
                   {REPORT_STATUS_LABELS[report.status]}
                 </StatusBadge>
                 <p className={styles.recentTitle}>
-                  {report.text.length > 60
-                    ? `${report.text.slice(0, 60)}…`
-                    : report.text}
+                  {report.title.length > 60
+                    ? `${report.title.slice(0, 60)}…`
+                    : report.title}
                 </p>
                 <p className={styles.recentMeta}>
                   {report.user.name} · {formatRelativeTime(report.createdAt)}

@@ -5,22 +5,27 @@ export type SecurityReportStatus = 'ONGOING' | 'REPORTED' | 'SOLVED'
 export interface SecurityReportResponse {
   id: string
   user: UserRefDto
-  text: string
+  title: string
+  description: string
   location: LocationDto | null
   photosUrls: string[]
   status: SecurityReportStatus
   createdAt: string
+  updatedAt: string
 }
 
 /** El autor lo deriva el backend del token: no se envía en el cuerpo. */
 export interface SecurityReportRequest {
-  text: string
+  title: string
+  description?: string
   location?: LocationDto
   photosUrls?: string[]
 }
 
-export interface ChangeReportTextRequest {
-  text: string
+/** `PATCH /security-reports/{id}/content` */
+export interface ChangeReportContentRequest {
+  title: string
+  description: string
 }
 
 /** El autor lo deriva el backend del token: no se envía en el cuerpo. */
@@ -33,10 +38,26 @@ export interface CommentResponse {
   reportId: string
   user: UserRefDto
   content: string
+  createdAt: string
 }
 
 export type SecurityReportPhotosRequest = PhotosRequest
 
+/** ms-02 pagina por cursor: `status` es obligatorio en el listado general. */
 export interface SecurityReportListFilters {
   status: SecurityReportStatus
+  cursor?: string
+  size?: number
+}
+
+export interface SecurityReportByUserFilters {
+  cursor?: string
+  size?: number
+}
+
+/** ms-02 usa `{content, nextCursor, hasNext}`, no la página offset de ms-03/ms-04. */
+export interface CursorPage<T> {
+  content: T[]
+  nextCursor: string | null
+  hasNext: boolean
 }

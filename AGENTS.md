@@ -109,13 +109,23 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
   Solo hay registro público de turista (`/auth/register/turista`) y prestadora
   (`/auth/register/prestadora`); guías y gestoras los crea un admin.
 - **`PATCH /api/v1/users/me` no acepta `email`** (solo nombre, teléfono y campos de perfil).
-- **Paginación: no hay un tipo único.** ms-02 devuelve `{content, nextCursor, hasNext}`;
-  ms-03 y ms-04 devuelven `{content, page, size, total, totalPages}`
-  (`PageResponse<T>` en `types/common.ts`, validado con `pageSchema()`).
-  **`size` máximo 100** (`MAX_PAGE_SIZE`); fuera de 1..100 o `page < 0` -> 400.
-  Todos los listados devuelven página, **nunca un array pelado**.
+- **Paginación: dos formas, no una.** ms-02 devuelve `{content, nextCursor, hasNext}`
+  (`CursorPage<T>` en `types/securityReport.ts`); ms-03 y ms-04 devuelven
+  `{content, page, size, total, totalPages}` (`PageResponse<T>` en `types/common.ts`,
+  validado con `pageSchema()`). **`size` máximo 100** (`MAX_PAGE_SIZE`); fuera de 1..100
+  o `page < 0` -> 400. Las colecciones cortas (`/reservations/tourists|guides|by-item`)
+  sí devuelven **array pelado** con `limit` (no `size`), acotado por el backend.
 - **`ReservationStatus` no es único.** ms-03: `CONFIRMED | CANCELLED | NO_SHOW`;
   ms-04: `PENDING | CONFIRMED | CANCELLED`.
+- **Una reserva guarda un solo ítem.** `ReservationRequest` lleva `itemType` + `itemId`;
+  no existe `/reservation-items`. El precio lo calcula el backend desde el catálogo
+  (`total = unitPrice × numberOfPeople`): el cliente nunca lo envía.
+  Solo se reservan `ACTIVITY` y `EVENT`; los servicios no son reservables.
+- **No hay listado de reservas por prestadora** (solo por guía, por turista y por ítem),
+  ni acciones `confirm`/`reject`: la reserva nace `CONFIRMED` y solo se puede cancelar,
+  marcar asistencia o marcar no-show.
+- **Reportes de seguridad (ms-02)** usan `title` + `description` (no `text`) y el listado
+  global exige `status`.
 - **El backend arma enlaces al front**: `forgot-password` envía
   `http://localhost:5173/reset-password?token=...`. Esa ruta debe existir.
 
@@ -150,10 +160,12 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
 ## Deuda conocida
 
 - `usersApi` y las pantallas de admin usan endpoints que no existen (`/users/{id}`,
-  `/users/{id}/approve-*`): deben reescribirse contra `/api/v1/admin/users/**`.
-- `reservationsApi` y `securityReportsApi` siguen con contratos inventados.
-  Verificados contra el backend: `authApi`, `activitiesApi`, `zonesApi`, `sitesApi`,
-  `servicesApi`, `eventsApi` y `categoriesApi`.
+  `/users/{id}/approve-*`, `/users/guides/{id}`): deben reescribirse contra
+  `/api/v1/admin/users/**`. Es el único módulo con contratos inventados.
+- Verificados contra el backend: `authApi`, `activitiesApi`, `zonesApi`, `sitesApi`,
+  `servicesApi`, `eventsApi`, `categoriesApi`, `reservationsApi`, `securityReportsApi`.
+- La prestadora no puede listar reservas recibidas (el backend no expone el endpoint) y
+  los servicios no son reservables: `ReceivedReservationsPage` lo dice en pantalla.
 - `servicesApi` no tiene endpoint de fotos, atributos ni precio suelto: `PUT /services/{id}`
   reemplaza el recurso completo. `eventsApi` no puede editar (`PUT /events/{id}` no existe).
 - Todo ms-04 (`/categories`, `/zones`, `/sites`, `/services`) era de lectura cerrada; desde la rama
