@@ -156,8 +156,9 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
   `servicesApi`, `eventsApi` y `categoriesApi`.
 - `servicesApi` no tiene endpoint de fotos, atributos ni precio suelto: `PUT /services/{id}`
   reemplaza el recurso completo. `eventsApi` no puede editar (`PUT /events/{id}` no existe).
-- Todo ms-04 (`/categories`, `/zones`, `/sites`, `/services`) exige token, también en lectura:
-  el catálogo de servicios no funciona sin sesión. ms-03 sí es `permitAll` en sus GET.
+- Todo ms-04 (`/categories`, `/zones`, `/sites`, `/services`) era de lectura cerrada; desde la rama
+  `feat/ms-04-public-catalog-reads` del backend, `GET`/`HEAD` es `permitAll` (igual que ms-03) y solo
+  la escritura exige rol. `GET /sites?managerId=…` anónimo devuelve 403.
 - `Site` y `Zone` (`types/zone.ts`) son modelos de vista, no el wire: los servicios mapean
   `SiteResponse`/`ZoneResponse` (`photosUrls` -> `photoUrls`, `siteId` -> `id`).
 - `UserResponse`, `UserStatus` y `RegistrationStatus` siguen con los valores antiguos.
