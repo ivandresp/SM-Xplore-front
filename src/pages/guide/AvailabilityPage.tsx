@@ -21,7 +21,11 @@ import type { ActivityResponse, ReservationStatus } from '@/types'
 import styles from './guide.module.css'
 
 /** Estados finales: ya no cuentan como reserva activa. */
-const FINAL_RESERVATION_STATUSES: ReservationStatus[] = ['CANCELLED', 'NO_SHOW']
+const FINAL_RESERVATION_STATUSES: ReservationStatus[] = [
+  'CANCELLED',
+  'NO_SHOW',
+  'COMPLETED',
+]
 
 export default function AvailabilityPage() {
   const { user } = useAuth()

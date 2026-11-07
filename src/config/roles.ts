@@ -139,6 +139,7 @@ export const RESERVATION_STATUS_LABELS: Record<ReservationStatus, string> = {
   CONFIRMED: 'Confirmada',
   CANCELLED: 'Cancelada',
   NO_SHOW: 'No asistió',
+  COMPLETED: 'Asistió',
 }
 
 /** Color de la etiqueta según el estado de una reserva. */
@@ -146,4 +147,5 @@ export const RESERVATION_STATUS_TONES: Record<ReservationStatus, BadgeTone> = {
   CONFIRMED: 'success',
   CANCELLED: 'danger',
   NO_SHOW: 'neutral',
+  COMPLETED: 'info',
 }

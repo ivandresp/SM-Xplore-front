@@ -324,6 +324,14 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
       },
+      {
+        path: 'reportes/:reportId',
+        element: (
+          <RequireRole roles={['DESTINATION_MANAGER', 'ADMIN']}>
+            <ReportDetailPage />
+          </RequireRole>
+        ),
+      },
       /* Zonas y sitios (wireframes 11) — API real `/zones` y `/sites` */
       {
         path: 'zonas',

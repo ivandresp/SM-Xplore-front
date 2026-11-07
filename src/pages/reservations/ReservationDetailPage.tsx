@@ -219,7 +219,7 @@ export default function ReservationDetailPage() {
               </Button>
               <p className={styles.actionsNote}>
                 {canRequestCancellation
-                  ? 'La prestadora o el guía confirman o rechazan desde su panel.'
+                  ? 'La reserva nace confirmada: solo puedes cancelarla, y el guía o la prestadora ven el cambio en su panel.'
                   : 'Con el estado actual ya no se puede cancelar.'}
               </p>
               <p className={styles.actionsNote}>

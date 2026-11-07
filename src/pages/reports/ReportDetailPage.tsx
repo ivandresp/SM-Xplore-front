@@ -5,6 +5,7 @@ import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { REPORT_STATUS_LABELS, REPORT_STATUS_TONES } from '@/config/roles'
+import { useAuth } from '@/hooks/useAuth'
 import { securityReportsApi } from '@/services/securityReportsApi'
 import { describeApiError } from '@/utils/errors'
 import { formatDateTime } from '@/utils/format'
@@ -13,6 +14,11 @@ import styles from './reports.module.css'
 
 export default function ReportDetailPage() {
   const { reportId } = useParams<{ reportId: string }>()
+  const { user } = useAuth()
+  const isManager =
+    user?.role === 'DESTINATION_MANAGER' || user?.role === 'ADMIN'
+  const backTo = isManager ? '/app/reportes' : '/reportes'
+  const backLabel = isManager ? 'Volver a reportes' : 'Volver a mis reportes'
 
   const [report, setReport] = useState<SecurityReportResponse | null>(null)
   const [comments, setComments] = useState<CommentResponse[]>([])
@@ -67,8 +73,8 @@ export default function ReportDetailPage() {
   if (report === null) {
     return (
       <div className={styles.page}>
-        <Link to="/reportes" className={styles.back}>
-          ← Volver a mis reportes
+        <Link to={backTo} className={styles.back}>
+          ← {backLabel}
         </Link>
         <p className={`${styles.feedback} ${styles.error}`} role="alert">
           {error ?? 'No se encontró el reporte.'}
@@ -96,8 +102,8 @@ export default function ReportDetailPage() {
 
   return (
     <div className={styles.page}>
-      <Link to="/reportes" className={styles.back}>
-        ← Volver a mis reportes
+      <Link to={backTo} className={styles.back}>
+        ← {backLabel}
       </Link>
 
       <PageHeader
@@ -264,9 +270,9 @@ export default function ReportDetailPage() {
             </div>
 
             <p className={styles.notice}>
-              Cerrar el reporte (pasar a "Reportado") solo lo pueden hacer las
-              gestoras de destino y los administradores. "Resuelto" existe en el
-              dominio pero ningún endpoint lo aplica.
+              Cerrar el reporte (pasar a «Reportado») lo hacen las gestoras de
+              destino y los administradores desde el listado; «Resuelto» se
+              aplica cuando el incidente queda atendido.
             </p>
           </article>
         </div>

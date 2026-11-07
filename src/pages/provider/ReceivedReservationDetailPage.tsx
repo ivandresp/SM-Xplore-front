@@ -34,6 +34,7 @@ export default function ReceivedReservationDetailPage() {
   const [items, setItems] = useState<ReservationItemResponse[]>([])
   const [lookup, setLookup] = useState<Map<string, CatalogEntry>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
+  const [hasStarted, setHasStarted] = useState(false)
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
@@ -57,6 +58,8 @@ export default function ReceivedReservationDetailPage() {
         setReservation(found)
         setItems([itemOf(found)])
         setLookup(catalog)
+        // El backend rechaza la asistencia antes de la fecha reservada.
+        setHasStarted(new Date(found.bookedFor).getTime() <= Date.now())
         setError(null)
       } catch (cause) {
         if (!cancelled) setError(describeApiError(cause))
@@ -125,9 +128,9 @@ export default function ReceivedReservationDetailPage() {
     }
   }
 
-  const canAttendance = current.status === 'CONFIRMED'
-  const canNoShow = current.status === 'CONFIRMED'
-  const hasActions = canAttendance || canNoShow
+  const canAttendance = current.status === 'CONFIRMED' && hasStarted
+  const canNoShow = current.status === 'CONFIRMED' && hasStarted
+  const hasActions = current.status === 'CONFIRMED'
 
   return (
     <div>
@@ -240,6 +243,13 @@ export default function ReceivedReservationDetailPage() {
                 >
                   No se presentó
                 </Button>
+              )}
+              {current.status === 'CONFIRMED' && !hasStarted && (
+                <p className={styles.actionsNote}>
+                  Podrás marcar asistencia o no-show cuando empiece la reserva
+                  ({formatDate(current.bookedFor)} ·{' '}
+                  {formatTime(current.bookedFor)}).
+                </p>
               )}
               {!hasActions && (
                 <p className={styles.actionsNote}>

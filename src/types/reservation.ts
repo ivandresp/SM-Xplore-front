@@ -1,7 +1,11 @@
 import type { QueryLimit } from './common'
 
 /** ms-03 solo maneja estos tres estados: nace `CONFIRMED`. */
-export type ReservationStatus = 'CONFIRMED' | 'CANCELLED' | 'NO_SHOW'
+export type ReservationStatus =
+  | 'CONFIRMED'
+  | 'CANCELLED'
+  | 'NO_SHOW'
+  | 'COMPLETED'
 
 export type PaymentMethod = 'CARD' | 'CASH' | 'TRANSFER'
 

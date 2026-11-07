@@ -25,6 +25,7 @@ const FILTERS: Array<{ label: string; statuses?: ReservationStatus[] }> = [
   { label: 'Confirmadas', statuses: ['CONFIRMED'] },
   { label: 'Canceladas', statuses: ['CANCELLED'] },
   { label: 'No asistió', statuses: ['NO_SHOW'] },
+  { label: 'Asistió', statuses: ['COMPLETED'] },
 ]
 
 function dateParts(value: string) {

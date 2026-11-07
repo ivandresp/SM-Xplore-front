@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -198,9 +199,11 @@ export default function ManageReportsPage() {
                   {REPORT_STATUS_LABELS[report.status]}
                 </StatusBadge>
                 <p className={styles.recentTitle}>
-                  {report.title.length > 60
-                    ? `${report.title.slice(0, 60)}…`
-                    : report.title}
+                  <Link to={`/app/reportes/${report.id}`}>
+                    {report.title.length > 60
+                      ? `${report.title.slice(0, 60)}…`
+                      : report.title}
+                  </Link>
                 </p>
                 <p className={styles.recentMeta}>
                   {report.user.name} · {formatRelativeTime(report.createdAt)}

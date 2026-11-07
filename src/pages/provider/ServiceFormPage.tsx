@@ -78,8 +78,17 @@ export default function ServiceFormPage() {
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
 
-    if (categoryId === '' || zoneId === '' || siteId === '') {
-      setError('Selecciona categoría, zona y atractivo: el backend los exige.')
+    const missing =
+      categoryId === ''
+        ? 'la categoría'
+        : zoneId === ''
+          ? 'la zona'
+          : siteId === ''
+            ? 'el atractivo'
+            : null
+
+    if (missing !== null) {
+      setError(`Selecciona ${missing}: el backend lo exige.`)
       return
     }
 

@@ -72,6 +72,19 @@ describe('reservationsApi', () => {
     expect(url).toContain('limit=200')
   })
 
+  it('acepta el estado COMPLETED que devuelve el backend', async () => {
+    const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({ ...reservation, status: 'COMPLETED' }),
+    )
+    vi.stubGlobal('fetch', fetchStub)
+
+    const updated = await reservationsApi.markAttendance('r1')
+
+    expect(updated.status).toBe('COMPLETED')
+    expect(String(fetchStub.mock.calls[0][0])).toContain('/reservations/r1/attendance')
+    expect(fetchStub.mock.calls[0][1]?.method).toBe('PATCH')
+  })
+
   it('itemOf deriva el ítem de la propia reserva', () => {
     const item = itemOf(reservation)
 

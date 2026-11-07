@@ -21,7 +21,7 @@ const reservationSchema = z.object({
   numberOfPeople: z.number(),
   total: z.number(),
   paymentMethod: z.enum(['CARD', 'CASH', 'TRANSFER']),
-  status: z.enum(['CONFIRMED', 'CANCELLED', 'NO_SHOW']),
+  status: z.enum(['CONFIRMED', 'CANCELLED', 'NO_SHOW', 'COMPLETED']),
   bookedAt: z.string(),
   bookedFor: z.string(),
   itemStartsAt: z.string(),

@@ -2,12 +2,15 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
-import { Field } from '@/components/FormField'
+import { Field, SelectField } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
+import { CONTENT_STATUS_LABELS, CONTENT_STATUS_TONES } from '@/config/roles'
+import { categoriesApi } from '@/services/categoriesApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
-import type { Site, Zone } from '@/types'
+import type { CategoryResponse, Site, Zone } from '@/types'
 import styles from './zones.module.css'
 
 /** Separa las URLs de fotos escritas una por línea. */
@@ -57,20 +60,27 @@ export default function ZoneFormPage() {
   const [zoneSuccess, setZoneSuccess] = useState<string | null>(null)
 
   const [sites, setSites] = useState<Site[]>([])
+  const [categories, setCategories] = useState<CategoryResponse[]>([])
   const [isAddingSite, setIsAddingSite] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
   const [newSiteName, setNewSiteName] = useState('')
+  const [newCategoryId, setNewCategoryId] = useState('')
+  const [newMaxCapacity, setNewMaxCapacity] = useState('10')
   const [newLatitude, setNewLatitude] = useState('')
   const [newLongitude, setNewLongitude] = useState('')
   const [newPhotoUrls, setNewPhotoUrls] = useState('')
 
   const [editingSiteId, setEditingSiteId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
+  const [editCategoryId, setEditCategoryId] = useState('')
+  const [editMaxCapacity, setEditMaxCapacity] = useState('')
   const [editLatitude, setEditLatitude] = useState('')
   const [editLongitude, setEditLongitude] = useState('')
   const [editPhotoUrls, setEditPhotoUrls] = useState('')
   const [isSavingSite, setIsSavingSite] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  const [sitesError, setSitesError] = useState<string | null>(null)
+  const [statusSiteId, setStatusSiteId] = useState<string | null>(null)
 
   const isNew = zoneId === undefined
 
@@ -83,15 +93,17 @@ export default function ZoneFormPage() {
 
     async function run() {
       try {
-        const [found, foundSites] = await Promise.all([
+        const [found, foundSites, foundCategories] = await Promise.all([
           zonesApi.getById(zoneId as string),
           sitesApi.list(zoneId as string),
+          categoriesApi.list('SITE'),
         ])
 
         if (!cancelled) {
           setZone(found)
           setName(found.name)
           setSites(foundSites)
+          setCategories(foundCategories)
           setZoneError(null)
         }
       } catch (cause) {
@@ -161,6 +173,17 @@ export default function ZoneFormPage() {
       return
     }
 
+    if (newCategoryId === '') {
+      setAddError('Selecciona la categoría del atractivo.')
+      return
+    }
+
+    const capacity = Number(newMaxCapacity)
+    if (!Number.isInteger(capacity) || capacity < 1) {
+      setAddError('La capacidad debe ser un número entero mayor que cero.')
+      return
+    }
+
     setIsAddingSite(true)
     setAddError(null)
 
@@ -168,8 +191,10 @@ export default function ZoneFormPage() {
       const created = await sitesApi.create({
         zoneId: zone.id,
         name: trimmedName,
+        categoryId: newCategoryId,
         latitude: latitude as number,
         longitude: longitude as number,
+        maxCapacity: capacity,
         photoUrls: parsePhotoUrls(newPhotoUrls),
       })
 
@@ -188,10 +213,31 @@ export default function ZoneFormPage() {
   function startEditSite(site: Site) {
     setEditingSiteId(site.id)
     setEditName(site.name)
+    setEditCategoryId(site.categoryId ?? '')
+    setEditMaxCapacity(String(site.maxCapacity))
     setEditLatitude(String(site.latitude))
     setEditLongitude(String(site.longitude))
     setEditPhotoUrls(site.photoUrls.join('\n'))
     setEditError(null)
+  }
+
+  async function toggleSiteStatus(site: Site) {
+    setStatusSiteId(site.id)
+    setSitesError(null)
+
+    try {
+      const updated = await sitesApi.changeStatus(
+        site.id,
+        site.status === 'PUBLISHED' ? 'INACTIVE' : 'PUBLISHED',
+      )
+      setSites((current) =>
+        current.map((item) => (item.id === updated.id ? updated : item)),
+      )
+    } catch (cause) {
+      setSitesError(describeApiError(cause))
+    } finally {
+      setStatusSiteId(null)
+    }
   }
 
   async function saveSite(site: Site) {
@@ -209,14 +255,28 @@ export default function ZoneFormPage() {
       return
     }
 
+    if (editCategoryId === '') {
+      setEditError('Selecciona la categoría del atractivo.')
+      return
+    }
+
+    const capacity = Number(editMaxCapacity)
+    if (!Number.isInteger(capacity) || capacity < 1) {
+      setEditError('La capacidad debe ser un número entero mayor que cero.')
+      return
+    }
+
     setIsSavingSite(true)
     setEditError(null)
 
     try {
       const updated = await sitesApi.update(site.id, {
         name: trimmedName,
+        categoryId: editCategoryId,
+        zoneId: site.zoneId,
         latitude: latitude as number,
         longitude: longitude as number,
+        maxCapacity: capacity,
         photoUrls: parsePhotoUrls(editPhotoUrls),
       })
 
@@ -315,6 +375,34 @@ export default function ZoneFormPage() {
                         />
 
                         <div className={`${styles.grid} ${styles.twoColumns}`}>
+                          <SelectField
+                            label="Categoría"
+                            required
+                            value={editCategoryId}
+                            options={[
+                              { value: '', label: 'Selecciona una categoría' },
+                              ...categories.map((category) => ({
+                                value: category.id,
+                                label: category.name,
+                              })),
+                            ]}
+                            onChange={(changeEvent) =>
+                              setEditCategoryId(changeEvent.target.value)
+                            }
+                          />
+                          <Field
+                            label="Capacidad máxima"
+                            type="number"
+                            min={1}
+                            required
+                            value={editMaxCapacity}
+                            onChange={(changeEvent) =>
+                              setEditMaxCapacity(changeEvent.target.value)
+                            }
+                          />
+                        </div>
+
+                        <div className={`${styles.grid} ${styles.twoColumns}`}>
                           <Field
                             label="Latitud"
                             type="number"
@@ -387,12 +475,24 @@ export default function ZoneFormPage() {
                         <div className={styles.siteInfo}>
                           <p className={styles.siteTitle}>{site.name}</p>
                           <p className={styles.helper}>
+                            {site.maxCapacity} personas ·{' '}
                             {site.latitude.toFixed(5)},{' '}
                             {site.longitude.toFixed(5)} ·{' '}
                             {site.photoUrls.length}{' '}
                             {site.photoUrls.length === 1 ? 'foto' : 'fotos'}
                           </p>
                         </div>
+                        <StatusBadge tone={CONTENT_STATUS_TONES[site.status]}>
+                          {CONTENT_STATUS_LABELS[site.status]}
+                        </StatusBadge>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={statusSiteId === site.id}
+                          onClick={() => void toggleSiteStatus(site)}
+                        >
+                          {site.status === 'PUBLISHED' ? 'Despublicar' : 'Publicar'}
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -405,6 +505,12 @@ export default function ZoneFormPage() {
                   </li>
                 ))}
               </ul>
+
+              {sitesError !== null && (
+                <p className={`${styles.feedback} ${styles.error}`} role="alert">
+                  {sitesError}
+                </p>
+              )}
 
               <form
                 className={styles.siteForm}
@@ -422,6 +528,39 @@ export default function ZoneFormPage() {
                     setNewSiteName(changeEvent.target.value)
                   }
                 />
+
+                <div className={`${styles.grid} ${styles.twoColumns}`}>
+                  <SelectField
+                    label="Categoría"
+                    required
+                    hint={
+                      categories.length === 0
+                        ? 'No hay categorías de atractivos: pide a la gestora que cree una.'
+                        : undefined
+                    }
+                    value={newCategoryId}
+                    options={[
+                      { value: '', label: 'Selecciona una categoría' },
+                      ...categories.map((category) => ({
+                        value: category.id,
+                        label: category.name,
+                      })),
+                    ]}
+                    onChange={(changeEvent) =>
+                      setNewCategoryId(changeEvent.target.value)
+                    }
+                  />
+                  <Field
+                    label="Capacidad máxima"
+                    type="number"
+                    min={1}
+                    required
+                    value={newMaxCapacity}
+                    onChange={(changeEvent) =>
+                      setNewMaxCapacity(changeEvent.target.value)
+                    }
+                  />
+                </div>
 
                 <div className={`${styles.grid} ${styles.twoColumns}`}>
                   <Field
