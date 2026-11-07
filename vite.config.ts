@@ -1,10 +1,10 @@
 import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 // https://vite.dev/config/
-/** Puerto del backend Spring Boot (SM-Xplore-Proto). */
-const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
+/** Gateway nginx del backend SM-Xplore (`../SM-Xplore`). */
+const BACKEND_URL = process.env.BACKEND_URL ?? 'http://127.0.0.1:8088'
 
 export default defineConfig({
   plugins: [react()],
@@ -14,11 +14,15 @@ export default defineConfig({
     },
   },
   server: {
-    // El backend todavía no expone CORS, así que en desarrollo se hace proxy
-    // desde el mismo origen del frontend para evitar el bloqueo del navegador.
+    // En desarrollo se llama al gateway desde el mismo origen del frontend,
+    // así que el navegador no aplica CORS aunque el servicio no lo permita.
     proxy: {
       '/api': { target: BACKEND_URL, changeOrigin: true },
       '/actuator': { target: BACKEND_URL, changeOrigin: true },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
   },
 })
