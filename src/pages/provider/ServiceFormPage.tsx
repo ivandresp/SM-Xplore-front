@@ -1,62 +1,85 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
-import { Field } from '@/components/FormField'
+import { Field, SelectField } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
-import { SERVICE_TYPE_LABELS } from '@/config/roles'
-import { useAuth } from '@/hooks/useAuth'
+import { serviceTypeLabel } from '@/config/roles'
+import { categoriesApi } from '@/services/categoriesApi'
 import { servicesApi } from '@/services/servicesApi'
+import { sitesApi } from '@/services/sitesApi'
+import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
-import type { AttributeDto, ServiceType } from '@/types'
+import type { CategoryResponse, Site, Zone } from '@/types'
 import styles from './provider.module.css'
 
-interface AttributeDraft {
-  name: string
-  value: string
-}
-
-const TYPE_OPTIONS = Object.entries(SERVICE_TYPE_LABELS).map(
-  ([value, label]) => ({ value, label }),
-)
-
-/** Interpreta el valor escrito: número, booleano o texto. */
-function toAttributeValue(value: string): string | number | boolean {
-  const trimmed = value.trim()
-
-  if (trimmed === 'true') return true
-  if (trimmed === 'false') return false
-  if (trimmed !== '' && !Number.isNaN(Number(trimmed))) return Number(trimmed)
-
-  return trimmed
-}
+/** El backend guarda `type` como texto libre; estos son los que ofrece la UI. */
+const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
 
 export default function ServiceFormPage() {
-  const { user } = useAuth()
   const navigate = useNavigate()
 
   const [name, setName] = useState('')
-  const [type, setType] = useState<ServiceType>('LODGING')
+  const [type, setType] = useState(SERVICE_TYPES[0])
+  const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
+  const [maxCapacity, setMaxCapacity] = useState('')
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
   const [photos, setPhotos] = useState('')
-  const [attributes, setAttributes] = useState<AttributeDraft[]>([])
+  const [cancellationPolicy, setCancellationPolicy] = useState('')
+
+  const [categories, setCategories] = useState<CategoryResponse[]>([])
+  const [zones, setZones] = useState<Zone[]>([])
+  const [sites, setSites] = useState<Site[]>([])
+  const [categoryId, setCategoryId] = useState('')
+  const [zoneId, setZoneId] = useState('')
+  const [siteId, setSiteId] = useState('')
+
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function updateAttribute(index: number, patch: Partial<AttributeDraft>) {
-    setAttributes((current) =>
-      current.map((attribute, position) =>
-        position === index ? { ...attribute, ...patch } : attribute,
-      ),
-    )
-  }
+  // El formulario necesita los tres catálogos para armar un servicio válido.
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      try {
+        const [categoryList, zoneList, siteList] = await Promise.all([
+          categoriesApi.list(),
+          zonesApi.list(),
+          sitesApi.list(),
+        ])
+
+        if (!cancelled) {
+          setCategories(categoryList)
+          setZones(zoneList)
+          setSites(siteList)
+        }
+      } catch (cause) {
+        if (!cancelled) {
+          setError(describeApiError(cause))
+        }
+      }
+    }
+
+    void load()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Un sitio pertenece a una zona: al cambiar de zona se ofrece solo ese subconjunto.
+  const siteOptions = sites.filter(
+    (site) => zoneId === '' || site.zoneId === zoneId,
+  )
 
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
 
-    if (user === null) {
+    if (categoryId === '' || zoneId === '' || siteId === '') {
+      setError('Selecciona categoría, zona y atractivo: el backend los exige.')
       return
     }
 
@@ -64,29 +87,26 @@ export default function ServiceFormPage() {
     setError(null)
 
     try {
-      const extras: AttributeDto[] = attributes
-        .filter((attribute) => attribute.name.trim() !== '')
-        .map((attribute) => ({
-          name: attribute.name.trim(),
-          value: toAttributeValue(attribute.value),
-        }))
-
       const photosUrls = photos
         .split('\n')
         .map((url) => url.trim())
         .filter((url) => url !== '')
 
       await servicesApi.create({
-        provider: { id: user.id, name: user.fullName },
         name: name.trim(),
+        description: description.trim() || undefined,
         type,
+        categoryId,
+        siteId,
+        zoneId,
+        latitude: Number(latitude),
+        longitude: Number(longitude),
         price: Number(price),
-        location: {
-          latitude: Number(latitude),
-          longitude: Number(longitude),
-        },
+        maxCapacity: Number(maxCapacity),
         photosUrls: photosUrls.length > 0 ? photosUrls : undefined,
-        extras: extras.length > 0 ? extras : undefined,
+        cancellationPolicy: cancellationPolicy.trim() || undefined,
+        // Un servicio nuevo sale publicado: sin esto nace en DRAFT y no aparece en el catálogo.
+        status: 'PUBLISHED',
       })
 
       navigate('/app/mis-servicios')
@@ -109,7 +129,7 @@ export default function ServiceFormPage() {
           { label: 'Nuevo servicio' },
         ]}
         title="Registrar servicio"
-        description="El servicio queda disponible para el catálogo apenas se crea."
+        description="El servicio se publica en el catálogo apenas se crea."
       />
 
       {error !== null && (
@@ -131,23 +151,62 @@ export default function ServiceFormPage() {
               onChange={(changeEvent) => setName(changeEvent.target.value)}
             />
 
-            <label>
-              <span className={styles.names}>Tipo de servicio</span>
-              <select
-                className={styles.textarea}
-                style={{ minHeight: 'auto' }}
-                value={type}
-                onChange={(changeEvent) =>
-                  setType(changeEvent.target.value as ServiceType)
-                }
-              >
-                {TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <SelectField
+              label="Tipo de servicio"
+              value={type}
+              onChange={(changeEvent) => setType(changeEvent.target.value)}
+              options={SERVICE_TYPES.map((value) => ({
+                value,
+                label: serviceTypeLabel(value),
+              }))}
+            />
+
+            <SelectField
+              label="Categoría"
+              required
+              value={categoryId}
+              onChange={(changeEvent) => setCategoryId(changeEvent.target.value)}
+              options={[
+                { value: '', label: 'Selecciona una categoría' },
+                ...categories.map((category) => ({
+                  value: category.id,
+                  label: category.name,
+                })),
+              ]}
+            />
+
+            <SelectField
+              label="Zona"
+              required
+              value={zoneId}
+              onChange={(changeEvent) => {
+                setZoneId(changeEvent.target.value)
+                setSiteId('')
+              }}
+              options={[
+                { value: '', label: 'Selecciona una zona' },
+                ...zones.map((zone) => ({ value: zone.id, label: zone.name })),
+              ]}
+            />
+
+            <SelectField
+              label="Atractivo"
+              required
+              hint={
+                zoneId === ''
+                  ? 'Elige primero una zona para acotar la lista.'
+                  : undefined
+              }
+              value={siteId}
+              onChange={(changeEvent) => setSiteId(changeEvent.target.value)}
+              options={[
+                { value: '', label: 'Selecciona un atractivo' },
+                ...siteOptions.map((site) => ({
+                  value: site.id,
+                  label: site.name,
+                })),
+              ]}
+            />
 
             <Field
               label="Precio por persona (COP)"
@@ -157,26 +216,51 @@ export default function ServiceFormPage() {
               value={price}
               onChange={(changeEvent) => setPrice(changeEvent.target.value)}
             />
-            <div className={`${styles.grid} ${styles.twoColumns}`}>
-              <Field
-                label="Latitud"
-                inputMode="decimal"
-                placeholder="11.2404"
-                required
-                value={latitude}
-                onChange={(changeEvent) => setLatitude(changeEvent.target.value)}
+
+            <Field
+              label="Capacidad máxima"
+              type="number"
+              min={1}
+              required
+              value={maxCapacity}
+              onChange={(changeEvent) => setMaxCapacity(changeEvent.target.value)}
+            />
+
+            <Field
+              label="Latitud"
+              inputMode="decimal"
+              placeholder="11.2404"
+              required
+              value={latitude}
+              onChange={(changeEvent) => setLatitude(changeEvent.target.value)}
+            />
+
+            <Field
+              label="Longitud"
+              inputMode="decimal"
+              placeholder="-74.1990"
+              required
+              value={longitude}
+              onChange={(changeEvent) => setLongitude(changeEvent.target.value)}
+            />
+
+            <Field
+              label="Política de cancelación"
+              placeholder="Cancelación gratuita hasta 24 h antes"
+              value={cancellationPolicy}
+              onChange={(changeEvent) =>
+                setCancellationPolicy(changeEvent.target.value)
+              }
+            />
+
+            <label className={styles.full}>
+              <span className={styles.names}>Descripción</span>
+              <textarea
+                className={styles.textarea}
+                value={description}
+                onChange={(changeEvent) => setDescription(changeEvent.target.value)}
               />
-              <Field
-                label="Longitud"
-                inputMode="decimal"
-                placeholder="-74.1990"
-                required
-                value={longitude}
-                onChange={(changeEvent) =>
-                  setLongitude(changeEvent.target.value)
-                }
-              />
-            </div>
+            </label>
 
             <label className={styles.full}>
               <span className={styles.names}>Fotos (una URL por línea)</span>
@@ -190,59 +274,6 @@ export default function ServiceFormPage() {
                 El backend no sube archivos: solo guarda URLs.
               </span>
             </label>
-          </div>
-
-          <h2 className={styles.cardTitle} style={{ marginTop: '1.5rem' }}>
-            Atributos extra
-          </h2>
-
-          {attributes.length === 0 && (
-            <p className={styles.meta}>
-              Sin atributos. Ejemplos: “Incluye equipo” = true, “Capacidad” = 8.
-            </p>
-          )}
-
-          {attributes.map((attribute, index) => (
-            <div key={index} className={styles.row}>
-              <Field
-                label="Nombre"
-                placeholder="Incluye equipo"
-                value={attribute.name}
-                onChange={(changeEvent) =>
-                  updateAttribute(index, { name: changeEvent.target.value })
-                }
-              />
-              <Field
-                label="Valor"
-                placeholder="true"
-                value={attribute.value}
-                onChange={(changeEvent) =>
-                  updateAttribute(index, { value: changeEvent.target.value })
-                }
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setAttributes((current) =>
-                    current.filter((_, position) => position !== index),
-                  )
-                }
-              >
-                Quitar
-              </Button>
-            </div>
-          ))}
-
-          <div className={styles.actions}>
-            <Button
-              variant="outline"
-              onClick={() =>
-                setAttributes((current) => [...current, { name: '', value: '' }])
-              }
-            >
-              + Agregar atributo
-            </Button>
           </div>
 
           <div className={styles.actions}>
@@ -261,9 +292,8 @@ export default function ServiceFormPage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Cómo funciona</h2>
             <p className={styles.meta}>
-              El servicio nace **Disponible**. Después puedes cambiar el precio,
-              añadir fotos y atributos, o marcarlo como no disponible desde
-              "Gestionar".
+              El servicio se publica al crearse. Para ocultarlo del catálogo,
+              cámbialo a inactivo desde «Gestionar».
             </p>
           </article>
         </div>

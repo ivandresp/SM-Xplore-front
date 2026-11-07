@@ -32,6 +32,9 @@ export interface PageResponse<T> {
 /** Tamaño de página máximo que aceptan ms-03 y ms-04. */
 export const MAX_PAGE_SIZE = 100
 
+/** Estado de publicación de sitios y servicios (ms-04). */
+export type ContentStatus = 'DRAFT' | 'PUBLISHED' | 'INACTIVE'
+
 /** Petición con lista de URLs de fotos (usada por servicios y reportes). */
 export interface PhotosRequest {
   photosUrls: string[]

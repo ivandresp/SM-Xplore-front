@@ -6,9 +6,9 @@ import type { Column } from '@/components/DataTable/DataTable'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
-  SERVICE_STATUS_LABELS,
-  SERVICE_STATUS_TONES,
-  SERVICE_TYPE_LABELS,
+  CONTENT_STATUS_LABELS,
+  CONTENT_STATUS_TONES,
+  serviceTypeLabel,
 } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { servicesApi } from '@/services/servicesApi'
@@ -35,7 +35,7 @@ export default function MyServicesPage() {
 
     async function run() {
       try {
-        const mine = await servicesApi.listByProvider(providerId as string)
+        const mine = await servicesApi.list({ providerId: providerId as string })
         if (!cancelled) {
           setServices(mine)
           setError(null)
@@ -64,7 +64,7 @@ export default function MyServicesPage() {
         <div>
           <p className={styles.names}>{service.name}</p>
           <p className={styles.meta}>
-            {SERVICE_TYPE_LABELS[service.type]} ·{' '}
+            {serviceTypeLabel(service.type)} ·{' '}
             {formatCurrency(service.price)}
           </p>
         </div>
@@ -72,22 +72,21 @@ export default function MyServicesPage() {
     },
     {
       header: 'Ubicación',
-      render: (service) =>
-        `${service.location.latitude}, ${service.location.longitude}`,
+      render: (service) => `${service.latitude}, ${service.longitude}`,
     },
     {
       header: 'Fotos',
       render: (service) => service.photosUrls.length,
     },
     {
-      header: 'Extras',
-      render: (service) => service.extras.length,
+      header: 'Capacidad',
+      render: (service) => service.maxCapacity,
     },
     {
       header: 'Estado',
       render: (service) => (
-        <StatusBadge tone={SERVICE_STATUS_TONES[service.status]}>
-          {SERVICE_STATUS_LABELS[service.status]}
+        <StatusBadge tone={CONTENT_STATUS_TONES[service.status]}>
+          {CONTENT_STATUS_LABELS[service.status]}
         </StatusBadge>
       ),
     },

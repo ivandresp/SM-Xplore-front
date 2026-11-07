@@ -1,5 +1,6 @@
 export type * from './activity'
 export type * from './auth'
+export type * from './category'
 export type * from './common'
 export type * from './event'
 export type * from './reservation'

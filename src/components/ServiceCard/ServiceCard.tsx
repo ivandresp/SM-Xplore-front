@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
-import { SERVICE_TYPE_LABELS } from '@/config/roles'
+import { serviceTypeLabel } from '@/config/roles'
 import { formatCurrency } from '@/utils/format'
 import type { ServiceResponse } from '@/types'
 import styles from './ServiceCard.module.css'
@@ -25,7 +25,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
 
       <h3 className={styles.name}>{service.name}</h3>
       <p className={styles.meta}>
-        {SERVICE_TYPE_LABELS[service.type]} · {service.provider.name}
+        {serviceTypeLabel(service.type)} · {service.providerName}
       </p>
       <p className={styles.price}>{formatCurrency(service.price)}</p>
 

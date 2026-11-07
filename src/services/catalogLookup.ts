@@ -18,7 +18,7 @@ export interface CatalogEntry {
 export async function loadCatalogLookup(): Promise<Map<string, CatalogEntry>> {
   const [activities, services, events] = await Promise.allSettled([
     activitiesApi.list(),
-    servicesApi.list({ status: 'AVAILABLE' }),
+    servicesApi.list({ status: 'PUBLISHED' }),
     eventsApi.list(),
   ])
 
@@ -39,7 +39,7 @@ export async function loadCatalogLookup(): Promise<Map<string, CatalogEntry>> {
       lookup.set(service.id, {
         name: service.name,
         type: 'SERVICE',
-        providerId: service.provider.id,
+        providerId: service.providerId,
       })
     }
   }

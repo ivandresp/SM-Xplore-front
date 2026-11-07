@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
@@ -9,11 +8,6 @@ import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { EVENT_STATUS_LABELS, EVENT_STATUS_TONES } from '@/config/roles'
 import { eventsApi } from '@/services/eventsApi'
-import {
-  combineDateAndTime,
-  toDateInput,
-  toTimeInput,
-} from '@/utils/datetime'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDateTime } from '@/utils/format'
 import type { EventResponse, EventStatus } from '@/types'
@@ -28,17 +22,6 @@ export default function EventManageDetailPage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
-
-  // Edición de los detalles del evento (nombre, categoría, precio, aforo y fechas).
-  const [isEditing, setIsEditing] = useState(false)
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState('')
-  const [description, setDescription] = useState('')
-  const [price, setPrice] = useState('')
-  const [maxCapacity, setMaxCapacity] = useState('')
-  const [date, setDate] = useState('')
-  const [startTime, setStartTime] = useState('')
-  const [endTime, setEndTime] = useState('')
 
   useEffect(() => {
     if (eventId === undefined) {
@@ -124,60 +107,6 @@ export default function EventManageDetailPage() {
     }
   }
 
-  function startEditing() {
-    setName(current.name)
-    setCategory(current.category)
-    setDescription(current.description ?? '')
-    setPrice(String(current.price))
-    setMaxCapacity(String(current.maxCapacity))
-    setDate(toDateInput(current.startsAt))
-    setStartTime(toTimeInput(current.startsAt))
-    setEndTime(toTimeInput(current.endsAt))
-    setIsEditing(true)
-    setError(null)
-    setFeedback(null)
-  }
-
-  async function handleSave(formEvent: FormEvent<HTMLFormElement>) {
-    formEvent.preventDefault()
-
-    if (name.trim() === '' || category.trim() === '') {
-      setError('El nombre y la categoría son obligatorios.')
-      return
-    }
-
-    if (date === '' || startTime === '' || endTime === '') {
-      setError('Completa la fecha y las horas del evento.')
-      return
-    }
-
-    setIsWorking(true)
-    setError(null)
-    setFeedback(null)
-
-    try {
-      const updated = await eventsApi.update(current.id, {
-        name: name.trim(),
-        category: category.trim(),
-        price: Number(price),
-        maxCapacity: Number(maxCapacity),
-        startsAt: combineDateAndTime(date, startTime),
-        endsAt: combineDateAndTime(date, endTime),
-        description:
-          description.trim() === '' ? undefined : description.trim(),
-      })
-
-      setEvent(updated)
-      setExpected(String(updated.expectedAttendance))
-      setIsEditing(false)
-      setFeedback('Evento actualizado.')
-    } catch (cause) {
-      setError(describeApiError(cause))
-    } finally {
-      setIsWorking(false)
-    }
-  }
-
   const statusActions: Array<{ status: EventStatus; label: string }> = []
   if (current.status === 'DRAFT' || current.status === 'POSTPONED') {
     statusActions.push({ status: 'PUBLISHED', label: 'Publicar' })
@@ -223,122 +152,14 @@ export default function EventManageDetailPage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Información del evento</h2>
 
-            {isEditing ? (
-              <form
-                className={`${styles.grid} ${styles.twoColumns}`}
-                onSubmit={handleSave}
-                noValidate
-              >
-                <Field
-                  label="Nombre del evento"
-                  required
-                  value={name}
-                  onChange={(changeEvent) => setName(changeEvent.target.value)}
-                />
-                <Field
-                  label="Categoría"
-                  required
-                  value={category}
-                  onChange={(changeEvent) =>
-                    setCategory(changeEvent.target.value)
-                  }
-                />
-
-                <label className={styles.full}>
-                  <span className={styles.fieldLabel}>Descripción</span>
-                  <textarea
-                    className={styles.textarea}
-                    value={description}
-                    onChange={(changeEvent) =>
-                      setDescription(changeEvent.target.value)
-                    }
-                  />
-                </label>
-
-                <Field
-                  label="Precio de entrada (COP)"
-                  type="number"
-                  min={0}
-                  required
-                  value={price}
-                  onChange={(changeEvent) => setPrice(changeEvent.target.value)}
-                />
-                <Field
-                  label="Aforo / capacidad"
-                  type="number"
-                  min={1}
-                  required
-                  value={maxCapacity}
-                  onChange={(changeEvent) =>
-                    setMaxCapacity(changeEvent.target.value)
-                  }
-                />
-
-                <Field
-                  label="Fecha del evento"
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(changeEvent) => setDate(changeEvent.target.value)}
-                />
-                <div className={`${styles.grid} ${styles.twoColumns}`}>
-                  <Field
-                    label="Hora inicio"
-                    type="time"
-                    required
-                    value={startTime}
-                    onChange={(changeEvent) =>
-                      setStartTime(changeEvent.target.value)
-                    }
-                  />
-                  <Field
-                    label="Hora fin"
-                    type="time"
-                    required
-                    value={endTime}
-                    onChange={(changeEvent) =>
-                      setEndTime(changeEvent.target.value)
-                    }
-                  />
-                </div>
-
-                <div className={styles.full}>
-                  <p className={styles.helper}>
-                    El lugar (atractivo) no se cambia en la edición: se define
-                    al crear el evento. El estado y la afluencia se gestionan en
-                    sus propias tarjetas.
-                  </p>
-                </div>
-
-                <div className={`${styles.actions} ${styles.full}`}>
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    disabled={isWorking}
-                  >
-                    {isWorking ? 'Guardando…' : 'Guardar cambios'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(false)}
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </form>
-            ) : (
-              <>
-                <DefList items={infoItems} />
-                {current.description !== null && (
-                  <p className={styles.meta}>{current.description}</p>
-                )}
-                <div className={styles.actions}>
-                  <Button variant="outline" onClick={startEditing}>
-                    Editar evento
-                  </Button>
-                </div>
-              </>
+            <DefList items={infoItems} />
+            {current.description !== null && (
+              <p className={styles.meta}>{current.description}</p>
             )}
+            <p className={styles.helper}>
+              El backend no expone un endpoint para editar un evento: nombre,
+              fechas y aforo se definen al crearlo.
+            </p>
           </article>
         </div>
 

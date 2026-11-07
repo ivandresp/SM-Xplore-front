@@ -4,10 +4,10 @@ import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
+  CONTENT_STATUS_LABELS,
+  CONTENT_STATUS_TONES,
   PAYMENT_METHOD_LABELS,
-  SERVICE_STATUS_LABELS,
-  SERVICE_STATUS_TONES,
-  SERVICE_TYPE_LABELS,
+  serviceTypeLabel,
 } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { useItinerary } from '@/hooks/useItinerary'
@@ -17,7 +17,6 @@ import { combineDateAndTime, toDateInput } from '@/utils/datetime'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
 import type {
-  AttributeValue,
   PaymentMethod,
   ReservationResponse,
   ServiceResponse,
@@ -27,14 +26,6 @@ import styles from './catalog.module.css'
 /** Los servicios no tienen agenda: la reserva elige fecha y hora. */
 function defaultBookingDate(): string {
   return toDateInput(new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString())
-}
-
-function formatAttributeValue(value: AttributeValue): string {
-  if (typeof value === 'object' && value !== null) {
-    return `${value.name}: ${formatAttributeValue(value.value)}`
-  }
-
-  return String(value)
 }
 
 const PAYMENT_OPTIONS = Object.entries(PAYMENT_METHOD_LABELS).map(
@@ -132,10 +123,10 @@ export default function ServiceDetailPage() {
       itemId: service.id,
       type: 'SERVICE',
       name: service.name,
-      meta: `Servicio · ${SERVICE_TYPE_LABELS[service.type]}`,
+      meta: `Servicio · ${serviceTypeLabel(service.type)}`,
       startsAt: combineDateAndTime(date, time),
       price: service.price,
-      providerId: service.provider.id,
+      providerId: service.providerId,
     })
   }
 
@@ -193,10 +184,10 @@ export default function ServiceDetailPage() {
           { label: service.name },
         ]}
         title={service.name}
-        description={`${SERVICE_TYPE_LABELS[service.type]} · ${service.provider.name}`}
+        description={`${serviceTypeLabel(service.type)} · ${service.providerName}`}
         actions={
-          <StatusBadge tone={SERVICE_STATUS_TONES[service.status]}>
-            {SERVICE_STATUS_LABELS[service.status]}
+          <StatusBadge tone={CONTENT_STATUS_TONES[service.status]}>
+            {CONTENT_STATUS_LABELS[service.status]}
           </StatusBadge>
         }
       />
@@ -216,22 +207,13 @@ export default function ServiceDetailPage() {
           </div>
 
           <section>
-            <h2 className={styles.sectionTitle}>Características</h2>
-            {service.extras.length === 0 ? (
+            <h2 className={styles.sectionTitle}>Descripción</h2>
+            {service.description === '' ? (
               <p className={styles.paragraphMuted}>
-                La prestadora no registró características adicionales.
+                La prestadora no escribió una descripción.
               </p>
             ) : (
-              <div className={styles.tiles}>
-                {service.extras.map((extra) => (
-                  <div key={extra.name} className={styles.tile}>
-                    <span className={styles.tileLabel}>{extra.name}</span>
-                    <span className={styles.tileValue}>
-                      {formatAttributeValue(extra.value)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <p className={styles.paragraph}>{service.description}</p>
             )}
           </section>
 
@@ -239,12 +221,18 @@ export default function ServiceDetailPage() {
             <div className={styles.tile}>
               <span className={styles.tileLabel}>Tipo</span>
               <span className={styles.tileValue}>
-                {SERVICE_TYPE_LABELS[service.type]}
+                {serviceTypeLabel(service.type)}
               </span>
             </div>
             <div className={styles.tile}>
               <span className={styles.tileLabel}>Prestadora</span>
-              <span className={styles.tileValue}>{service.provider.name}</span>
+              <span className={styles.tileValue}>{service.providerName}</span>
+            </div>
+            <div className={styles.tile}>
+              <span className={styles.tileLabel}>Capacidad</span>
+              <span className={styles.tileValue}>
+                {service.maxCapacity} personas
+              </span>
             </div>
             <div className={styles.tile}>
               <span className={styles.tileLabel}>Publicado</span>
@@ -257,10 +245,10 @@ export default function ServiceDetailPage() {
           <section>
             <h2 className={styles.sectionTitle}>Ubicación</h2>
             <div className={styles.map}>
-              <strong>{service.provider.name}</strong>
+              <strong>{service.providerName}</strong>
               <br />
-              {service.location.latitude.toFixed(5)},{' '}
-              {service.location.longitude.toFixed(5)}
+              {service.latitude.toFixed(5)},{' '}
+              {service.longitude.toFixed(5)}
             </div>
           </section>
         </div>
@@ -410,8 +398,8 @@ export default function ServiceDetailPage() {
 
           <article className={styles.booking}>
             <h2 className={styles.sectionTitle}>Prestadora</h2>
-            <p className={styles.paragraph}>{service.provider.name}</p>
-            <Link to={`/prestadoras/${service.provider.id}`}>
+            <p className={styles.paragraph}>{service.providerName}</p>
+            <Link to={`/prestadoras/${service.providerId}`}>
               <Button variant="outline" block>
                 Ver perfil de la prestadora
               </Button>

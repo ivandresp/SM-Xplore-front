@@ -1,52 +1,65 @@
-import type {
-  AttributeDto,
-  LocationDto,
-  PhotosRequest,
-  ProviderRefDto,
-} from './common'
+import type { ContentStatus } from './common'
 
+/** Tipos que ofrece el formulario; el backend acepta cualquier texto (máx. 50). */
 export type ServiceType = 'TRANSPORT' | 'LODGING' | 'FEEDING'
 
-export type ServiceStatus = 'AVAILABLE' | 'UNAVAILABLE'
-
+/**
+ * Servicio turístico tal como lo consumen las páginas: el `ServiceResponse` de ms-04
+ * con `serviceId` mapeado a `id` y los nulos normalizados a cadena vacía.
+ */
 export interface ServiceResponse {
   id: string
+  providerId: string
+  providerName: string
+  siteId: string
+  siteName: string
+  zoneId: string
+  zoneName: string
+  categoryId: string
+  categoryName: string
   name: string
-  type: ServiceType
-  provider: ProviderRefDto
-  location: LocationDto
+  description: string
+  type: string
+  latitude: number
+  longitude: number
   price: number
+  status: ContentStatus
+  maxCapacity: number
   photosUrls: string[]
-  status: ServiceStatus
+  cancellationPolicy: string
   createdAt: string
-  extras: AttributeDto[]
+  updatedAt: string
 }
 
-export interface ServiceRequest {
-  provider: ProviderRefDto
+/** Cuerpo de `POST /api/v1/services`. */
+export interface CreateServiceRequest {
   name: string
-  type: ServiceType
+  description?: string
+  type: string
+  categoryId: string
+  siteId: string
+  zoneId: string
+  latitude: number
+  longitude: number
   price: number
-  location: LocationDto
+  maxCapacity: number
   photosUrls?: string[]
-  extras?: AttributeDto[]
+  cancellationPolicy?: string
+  status?: ContentStatus
 }
 
-export interface ChangePriceRequest {
-  price: number
-}
+/** Cuerpo de `PUT /api/v1/services/{id}`: igual que el alta, sin `status`. */
+export type UpdateServiceRequest = Omit<CreateServiceRequest, 'status'>
 
-export interface AddAttributesRequest {
-  attributes: AttributeDto[]
-}
-
-export type ServicePhotosRequest = PhotosRequest
-
+/** Filtros de `GET /api/v1/services`: todos son opcionales. */
 export interface ServiceListFilters {
-  status: ServiceStatus
-}
-
-export interface ServiceSearchFilters {
-  type: ServiceType
-  status: ServiceStatus
+  categoryId?: string
+  zoneId?: string
+  siteId?: string
+  providerId?: string
+  status?: ContentStatus
+  type?: string
+  search?: string
+  page?: number
+  size?: number
 }

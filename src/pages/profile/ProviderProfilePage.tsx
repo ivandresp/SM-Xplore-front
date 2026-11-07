@@ -6,7 +6,7 @@ import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
-import { SERVICE_TYPE_LABELS } from '@/config/roles'
+import { serviceTypeLabel } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { servicesApi } from '@/services/servicesApi'
 import { usersApi } from '@/services/usersApi'
@@ -43,9 +43,7 @@ export default function ProviderProfilePage() {
         setProvider(found)
 
         try {
-          const offered = await servicesApi.listByProvider(
-            providerId as string,
-          )
+          const offered = await servicesApi.list({ providerId: providerId as string })
           if (!cancelled) setServices(offered)
         } catch {
           if (!cancelled) setServices([])
@@ -116,9 +114,7 @@ export default function ProviderProfilePage() {
                 <h2 className={styles.name}>{provider.fullName}</h2>
                 {provider.serviceType !== null && (
                   <p className={styles.meta}>
-                    {SERVICE_TYPE_LABELS[
-                      provider.serviceType as keyof typeof SERVICE_TYPE_LABELS
-                    ] ?? provider.serviceType}
+                    {serviceTypeLabel(provider.serviceType)}
                   </p>
                 )}
                 {provider.startOperationDate !== null && (
@@ -165,7 +161,7 @@ export default function ProviderProfilePage() {
                   <span>
                     <span className={styles.listName}>{service.name}</span>
                     <span className={styles.listMeta}>
-                      {SERVICE_TYPE_LABELS[service.type]} ·{' '}
+                      {serviceTypeLabel(service.type)} ·{' '}
                       {formatCurrency(service.price)}
                     </span>
                   </span>

@@ -3,6 +3,7 @@ export type EventStatus = 'DRAFT' | 'PUBLISHED' | 'POSTPONED' | 'CANCELLED'
 export interface EventResponse {
   id: string
   siteId: string
+  siteName: string
   name: string
   category: string
   status: EventStatus
@@ -16,20 +17,7 @@ export interface EventResponse {
 
 export interface EventRequest {
   siteId: string
-  name: string
-  category: string
-  price: number
-  maxCapacity: number
-  startsAt: string
-  endsAt: string
-  description?: string
-}
-
-/**
- * `PUT /events/{eventId}` — actualiza los detalles del evento. El atractivo
- * (`siteId`) no se cambia aquí: se define al crearlo.
- */
-export interface UpdateEventRequest {
+  siteName?: string
   name: string
   category: string
   price: number

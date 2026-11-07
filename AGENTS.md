@@ -151,8 +151,13 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
 
 - `usersApi` y las pantallas de admin usan endpoints que no existen (`/users/{id}`,
   `/users/{id}/approve-*`): deben reescribirse contra `/api/v1/admin/users/**`.
-- `servicesApi`, `eventsApi`, `reservationsApi` y `securityReportsApi` siguen con contratos
-  inventados. Solo `activitiesApi`, `zonesApi`, `sitesApi` y `authApi` están verificados.
+- `reservationsApi` y `securityReportsApi` siguen con contratos inventados.
+  Verificados contra el backend: `authApi`, `activitiesApi`, `zonesApi`, `sitesApi`,
+  `servicesApi`, `eventsApi` y `categoriesApi`.
+- `servicesApi` no tiene endpoint de fotos, atributos ni precio suelto: `PUT /services/{id}`
+  reemplaza el recurso completo. `eventsApi` no puede editar (`PUT /events/{id}` no existe).
+- Todo ms-04 (`/categories`, `/zones`, `/sites`, `/services`) exige token, también en lectura:
+  el catálogo de servicios no funciona sin sesión. ms-03 sí es `permitAll` en sus GET.
 - `Site` y `Zone` (`types/zone.ts`) son modelos de vista, no el wire: los servicios mapean
   `SiteResponse`/`ZoneResponse` (`photosUrls` -> `photoUrls`, `siteId` -> `id`).
 - `UserResponse`, `UserStatus` y `RegistrationStatus` siguen con los valores antiguos.

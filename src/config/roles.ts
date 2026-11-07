@@ -2,13 +2,12 @@ import type {
   AccountStatus,
   ActivityStatus,
   BadgeTone,
+  ContentStatus,
   EventStatus,
   PaymentMethod,
   RegistrationStatus,
   ReservationStatus,
   SecurityReportStatus,
-  ServiceStatus,
-  ServiceType,
   UserRole,
   UserStatus,
 } from '@/types'
@@ -51,23 +50,30 @@ export const REGISTRATION_TONES: Record<RegistrationStatus, BadgeTone> = {
   REJECTED: 'danger',
 }
 
-/** Nombre legible del tipo de servicio turístico. */
-export const SERVICE_TYPE_LABELS: Record<ServiceType, string> = {
+/** Tipos de servicio que ofrece el formulario; el backend acepta cualquier texto. */
+const SERVICE_TYPE_LABELS: Record<string, string> = {
   TRANSPORT: 'Transporte',
   LODGING: 'Alojamiento',
   FEEDING: 'Alimentación',
 }
 
-/** Nombre legible del estado de un servicio. */
-export const SERVICE_STATUS_LABELS: Record<ServiceStatus, string> = {
-  AVAILABLE: 'Disponible',
-  UNAVAILABLE: 'No disponible',
+/** Nombre legible del tipo de servicio; si el backend trae otro, se muestra tal cual. */
+export function serviceTypeLabel(type: string): string {
+  return SERVICE_TYPE_LABELS[type] ?? type
 }
 
-/** Color de la etiqueta según el estado de un servicio. */
-export const SERVICE_STATUS_TONES: Record<ServiceStatus, BadgeTone> = {
-  AVAILABLE: 'success',
-  UNAVAILABLE: 'neutral',
+/** Nombre legible del estado de un sitio o servicio. */
+export const CONTENT_STATUS_LABELS: Record<ContentStatus, string> = {
+  DRAFT: 'Borrador',
+  PUBLISHED: 'Publicado',
+  INACTIVE: 'Inactivo',
+}
+
+/** Color de la etiqueta según el estado de un sitio o servicio. */
+export const CONTENT_STATUS_TONES: Record<ContentStatus, BadgeTone> = {
+  DRAFT: 'neutral',
+  PUBLISHED: 'success',
+  INACTIVE: 'warning',
 }
 
 /** Nombre legible del estado de una actividad. */

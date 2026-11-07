@@ -4,16 +4,17 @@ import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { ServiceCard } from '@/components/ServiceCard/ServiceCard'
-import { SERVICE_TYPE_LABELS } from '@/config/roles'
+import { serviceTypeLabel } from '@/config/roles'
 import { servicesApi } from '@/services/servicesApi'
 import { describeApiError } from '@/utils/errors'
-import type { ServiceResponse, ServiceType } from '@/types'
+import type { ServiceResponse } from '@/types'
 import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
 const PRICE_STEP = 10000
 
-const SERVICE_TYPES: ServiceType[] = ['LODGING', 'TRANSPORT', 'FEEDING']
+// El backend filtra por `type` como texto libre; estos son los que ofrece la UI.
+const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
 
 type SortOrder = 'relevance' | 'priceAsc' | 'priceDesc'
 
@@ -24,11 +25,11 @@ export default function ServiceListPage() {
   const [error, setError] = useState<string | null>(null)
 
   // Filtros aplicados
-  const [types, setTypes] = useState<ServiceType[]>([])
+  const [types, setTypes] = useState<string[]>([])
   const [maxPrice, setMaxPrice] = useState<number | null>(null)
 
   // Borrador: se confirma con "Aplicar"
-  const [draftTypes, setDraftTypes] = useState<ServiceType[]>([])
+  const [draftTypes, setDraftTypes] = useState<string[]>([])
   const [draftMaxPrice, setDraftMaxPrice] = useState<number | null>(null)
 
   const [sort, setSort] = useState<SortOrder>('relevance')
@@ -42,7 +43,7 @@ export default function ServiceListPage() {
     async function run() {
       try {
         // El catálogo público solo muestra servicios disponibles.
-        const found = await servicesApi.list({ status: 'AVAILABLE' })
+        const found = await servicesApi.list({ status: 'PUBLISHED' })
 
         if (!cancelled) {
           setServices(found)
@@ -105,7 +106,7 @@ export default function ServiceListPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-  function toggleDraftType(type: ServiceType) {
+  function toggleDraftType(type: string) {
     setDraftTypes((current) =>
       current.includes(type)
         ? current.filter((item) => item !== type)
@@ -172,7 +173,7 @@ export default function ServiceListPage() {
                   selected={draftTypes.includes(type)}
                   onClick={() => toggleDraftType(type)}
                 >
-                  {SERVICE_TYPE_LABELS[type]}
+                  {serviceTypeLabel(type)}
                 </Chip>
               ))}
             </div>
