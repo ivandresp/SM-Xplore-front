@@ -3,48 +3,50 @@ import { Placeholder } from '@/components/Placeholder'
 import { NAV_ITEMS } from '@/config/navigation'
 import { AppLayout } from '@/layouts/AppLayout'
 import { PublicLayout } from '@/layouts/PublicLayout'
-import DashboardPage from '@/pages/DashboardPage'
-import NotFoundPage from '@/pages/NotFoundPage'
-import CreateUserPage from '@/pages/admin/CreateUserPage'
-import ProviderApprovalPage from '@/pages/admin/ProviderApprovalPage'
-import UserDetailPage from '@/pages/admin/UserDetailPage'
-import UsersPage from '@/pages/admin/UsersPage'
-import LoginPage from '@/pages/auth/LoginPage'
-import RegisterPage from '@/pages/auth/RegisterPage'
-import ResetPasswordPage from '@/pages/auth/ResetPasswordPage'
-import ActivityDetailPage from '@/pages/catalog/ActivityDetailPage'
-import ExplorePage from '@/pages/catalog/ExplorePage'
-import ServiceDetailPage from '@/pages/catalog/ServiceDetailPage'
-import ServiceListPage from '@/pages/catalog/ServiceListPage'
-import SiteDetailPage from '@/pages/catalog/SiteDetailPage'
-import SiteListPage from '@/pages/catalog/SiteListPage'
-import EventDetailPage from '@/pages/events/EventDetailPage'
-import EventFormPage from '@/pages/events/EventFormPage'
-import EventListPage from '@/pages/events/EventListPage'
-import EventManageDetailPage from '@/pages/events/EventManageDetailPage'
-import ManageEventsPage from '@/pages/events/ManageEventsPage'
-import PlannedEventsPage from '@/pages/events/PlannedEventsPage'
-import ActivityFormPage from '@/pages/guide/ActivityFormPage'
-import ActivityManagePage from '@/pages/guide/ActivityManagePage'
-import AvailabilityPage from '@/pages/guide/AvailabilityPage'
-import MyActivitiesPage from '@/pages/guide/MyActivitiesPage'
-import ItineraryPage from '@/pages/itinerary/ItineraryPage'
-import GuideProfilePage from '@/pages/profile/GuideProfilePage'
-import MyProfilePage from '@/pages/profile/MyProfilePage'
-import ProviderProfilePage from '@/pages/profile/ProviderProfilePage'
-import ReceivedReservationDetailPage from '@/pages/provider/ReceivedReservationDetailPage'
-import ReceivedReservationsPage from '@/pages/provider/ReceivedReservationsPage'
-import MyServicesPage from '@/pages/provider/MyServicesPage'
-import ServiceFormPage from '@/pages/provider/ServiceFormPage'
-import ServiceManagePage from '@/pages/provider/ServiceManagePage'
-import MyReservationsPage from '@/pages/reservations/MyReservationsPage'
-import ReservationDetailPage from '@/pages/reservations/ReservationDetailPage'
-import ManageReportsPage from '@/pages/reports/ManageReportsPage'
-import MyReportsPage from '@/pages/reports/MyReportsPage'
-import ReportDetailPage from '@/pages/reports/ReportDetailPage'
-import ReportFormPage from '@/pages/reports/ReportFormPage'
-import ZoneFormPage from '@/pages/zones/ZoneFormPage'
-import ZonesListPage from '@/pages/zones/ZonesListPage'
+import {
+  DashboardPage,
+  NotFoundPage,
+  CreateUserPage,
+  ProviderApprovalPage,
+  UserDetailPage,
+  UsersPage,
+  LoginPage,
+  RegisterPage,
+  ResetPasswordPage,
+  ActivityDetailPage,
+  ExplorePage,
+  ServiceDetailPage,
+  ServiceListPage,
+  SiteDetailPage,
+  SiteListPage,
+  EventDetailPage,
+  EventFormPage,
+  EventListPage,
+  EventManageDetailPage,
+  ManageEventsPage,
+  PlannedEventsPage,
+  ActivityFormPage,
+  ActivityManagePage,
+  AvailabilityPage,
+  MyActivitiesPage,
+  ItineraryPage,
+  GuideProfilePage,
+  MyProfilePage,
+  ProviderProfilePage,
+  ReceivedReservationDetailPage,
+  ReceivedReservationsPage,
+  MyServicesPage,
+  ServiceFormPage,
+  ServiceManagePage,
+  MyReservationsPage,
+  ReservationDetailPage,
+  ManageReportsPage,
+  MyReportsPage,
+  ReportDetailPage,
+  ReportFormPage,
+  ZoneFormPage,
+ZonesListPage
+} from './pages'
 import { RequireAuth, RequireRole } from './guards'
 
 /** Secciones del menú del panel que ya tienen pantalla propia. */

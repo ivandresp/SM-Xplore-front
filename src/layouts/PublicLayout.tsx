@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Footer } from '@/components/Footer'
@@ -76,7 +77,15 @@ export function PublicLayout() {
       />
 
       <main className={styles.main}>
-        <Outlet />
+        <Suspense
+          fallback={
+            <p className={styles.routeLoading} role="status">
+              Cargando…
+            </p>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
 
       <Footer />

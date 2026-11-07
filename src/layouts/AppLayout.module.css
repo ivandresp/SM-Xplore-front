@@ -74,6 +74,14 @@
   background-color: var(--color-surface);
 }
 
+/* Fallback del trozo de ruta que aún se está descargando. */
+.routeLoading {
+  margin: 0;
+  color: var(--color-muted);
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+}
+
 /* Elementos de la barra superior del panel */
 .role {
   padding: 0.35rem 0.85rem;

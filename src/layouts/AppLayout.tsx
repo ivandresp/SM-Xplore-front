@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { TopBar } from '@/components/TopBar'
 import { navItemsFor } from '@/config/navigation'
@@ -59,7 +60,15 @@ export function AppLayout() {
         </aside>
 
         <main className={styles.content}>
-          <Outlet />
+          <Suspense
+            fallback={
+              <p className={styles.routeLoading} role="status">
+                Cargando…
+              </p>
+            }
+          >
+            <Outlet />
+          </Suspense>
         </main>
       </div>
     </div>
