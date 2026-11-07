@@ -40,7 +40,7 @@ const INITIAL_FORM: FormState = {
   email: '',
   phone: '',
   password: '',
-  dniType: 'CITIZENSHIP_CARD',
+  dniType: 'CC',
   dniNumber: '',
   nationality: '',
   preferredLanguage: '',
@@ -59,10 +59,10 @@ const ACCOUNT_OPTIONS = [
 ]
 
 const DNI_TYPE_OPTIONS = [
-  { value: 'CITIZENSHIP_CARD', label: 'Cédula de ciudadanía' },
-  { value: 'FOREIGNER_ID', label: 'Cédula de extranjería' },
-  { value: 'PASSPORT', label: 'Pasaporte' },
-  { value: 'TAX_ID', label: 'NIT' },
+  { value: 'CC', label: 'Cédula de ciudadanía' },
+  { value: 'CE', label: 'Cédula de extranjería' },
+  { value: 'PA', label: 'Pasaporte' },
+  { value: 'NIT', label: 'NIT' },
 ]
 
 const LANGUAGE_OPTIONS = [

@@ -14,8 +14,23 @@ export interface ProblemDetail {
   retryAfterSeconds?: number
 }
 
-/** Límite de elementos de los endpoints paginados (el backend lo acota a 1-200). */
+/** Límite de elementos de los endpoints paginados (el backend lo acota a 1-100). */
 export type QueryLimit = number
+
+/**
+ * Envoltorio de página de ms-03 y ms-04: `{content, page, size, total, totalPages}`.
+ * `page` es 0-based y `size` va tope a 100. ms-02 usa paginación por cursor.
+ */
+export interface PageResponse<T> {
+  content: T[]
+  page: number
+  size: number
+  total: number
+  totalPages: number
+}
+
+/** Tamaño de página máximo que aceptan ms-03 y ms-04. */
+export const MAX_PAGE_SIZE = 100
 
 /** Petición con lista de URLs de fotos (usada por servicios y reportes). */
 export interface PhotosRequest {

@@ -1,37 +1,82 @@
+import { z } from 'zod'
 import { httpClient } from './httpClient'
+import { pageSchema, parseResponse } from './validate'
+import { MAX_PAGE_SIZE } from '@/types/common'
 import type {
   ActivityRequest,
   ActivityResponse,
   ActivitySearchFilters,
   AvailabilityRequest,
   ChangeActivityStatusRequest,
+  PageResponse,
   SlotsRequest,
   UpdateActivityRequest,
 } from '@/types'
 
+/** Contrato de `ActivityResponse` (ms-03). */
+const activitySchema = z.object({
+  id: z.string(),
+  siteId: z.string(),
+  guideId: z.string().nullable(),
+  name: z.string(),
+  category: z.string(),
+  status: z.enum(['DRAFT', 'PUBLISHED', 'PAUSED', 'CANCELLED']),
+  price: z.number(),
+  maxCapacity: z.number(),
+  durationMinutes: z.number(),
+  startsAt: z.string(),
+  endsAt: z.string(),
+  description: z.string().nullable(),
+})
+
+const activityPageSchema = pageSchema(activitySchema)
+
+async function listPage(
+  path: string,
+  query: Record<string, string | number | undefined>,
+  label: string,
+): Promise<PageResponse<ActivityResponse>> {
+  const payload = await httpClient.get<unknown>(path, { query })
+  return parseResponse(activityPageSchema, payload, label)
+}
+
 export const activitiesApi = {
-  /** `POST /api/v1/activities` — 201, nace en `DRAFT`. */
+  /** `POST /api/v1/activities` - 201, nace en `DRAFT`. */
   create: (payload: ActivityRequest) =>
     httpClient.post<ActivityResponse>('/activities', payload),
 
-  /** `GET /api/v1/activities` */
-  list: () => httpClient.get<ActivityResponse[]>('/activities'),
+  /**
+   * `GET /api/v1/activities` - primera página de 100.
+   * shortcut: el catálogo filtra por precio y fecha en cliente y el API no acepta
+   * esos filtros; se trae una sola página acotada. Paginar en servidor cuando el
+   * catálogo pase de 100 actividades.
+   */
+  list: () =>
+    listPage('/activities', { page: 0, size: MAX_PAGE_SIZE }, 'GET /activities').then(
+      (page) => page.content,
+    ),
 
   /** `GET /api/v1/activities/{activityId}` */
   getById: (activityId: string) =>
     httpClient.get<ActivityResponse>(`/activities/${activityId}`),
 
-  /** `GET /api/v1/activities/search` — `category` es obligatorio. */
+  /** `GET /api/v1/activities/search` - `category` es obligatorio. */
   search: ({ category }: ActivitySearchFilters) =>
-    httpClient.get<ActivityResponse[]>('/activities/search', {
-      query: { category },
-    }),
+    listPage(
+      '/activities/search',
+      { category, page: 0, size: MAX_PAGE_SIZE },
+      'GET /activities/search',
+    ).then((page) => page.content),
 
   /** `GET /api/v1/activities/site/{siteId}` */
   listBySite: (siteId: string) =>
-    httpClient.get<ActivityResponse[]>(`/activities/site/${siteId}`),
+    listPage(
+      `/activities/site/${siteId}`,
+      { page: 0, size: MAX_PAGE_SIZE },
+      'GET /activities/site/{siteId}',
+    ).then((page) => page.content),
 
-  /** `PATCH /api/v1/activities/{activityId}` — nombre, categoría, descripción y precio. */
+  /** `PATCH /api/v1/activities/{activityId}` - nombre, categoría, descripción y precio. */
   update: (activityId: string, payload: UpdateActivityRequest) =>
     httpClient.patch<ActivityResponse>(`/activities/${activityId}`, payload),
 

@@ -110,7 +110,10 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
   (`/auth/register/prestadora`); guías y gestoras los crea un admin.
 - **`PATCH /api/v1/users/me` no acepta `email`** (solo nombre, teléfono y campos de perfil).
 - **Paginación: no hay un tipo único.** ms-02 devuelve `{content, nextCursor, hasNext}`;
-  ms-03 y ms-04 devuelven `{content, page, size, total, totalPages}`. Tipar por endpoint.
+  ms-03 y ms-04 devuelven `{content, page, size, total, totalPages}`
+  (`PageResponse<T>` en `types/common.ts`, validado con `pageSchema()`).
+  **`size` máximo 100** (`MAX_PAGE_SIZE`); fuera de 1..100 o `page < 0` -> 400.
+  Todos los listados devuelven página, **nunca un array pelado**.
 - **`ReservationStatus` no es único.** ms-03: `CONFIRMED | CANCELLED | NO_SHOW`;
   ms-04: `PENDING | CONFIRMED | CANCELLED`.
 - **El backend arma enlaces al front**: `forgot-password` envía
@@ -148,7 +151,13 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
 
 - `usersApi` y las pantallas de admin usan endpoints que no existen (`/users/{id}`,
   `/users/{id}/approve-*`): deben reescribirse contra `/api/v1/admin/users/**`.
+- `servicesApi`, `eventsApi`, `reservationsApi` y `securityReportsApi` siguen con contratos
+  inventados. Solo `activitiesApi`, `zonesApi`, `sitesApi` y `authApi` están verificados.
+- `Site` y `Zone` (`types/zone.ts`) son modelos de vista, no el wire: los servicios mapean
+  `SiteResponse`/`ZoneResponse` (`photosUrls` -> `photoUrls`, `siteId` -> `id`).
 - `UserResponse`, `UserStatus` y `RegistrationStatus` siguen con los valores antiguos.
+- El catálogo filtra en cliente sobre un máximo de 100 registros: paginar en servidor
+  cuando haya volumen.
 - El bundle pasa de 500 kB: falta `lazy()` por página.
 
 ## No hacer
