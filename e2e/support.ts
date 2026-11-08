@@ -176,28 +176,24 @@ async function waitForInvitationToken(
 }
 
 /**
- * Crea un usuario interno (guia o prestadora) con `POST /admin/users`,
- * lee la invitacion en Mailpit y completa la contrasena. Devuelve `null` si
- * el entorno no permite el ciclo completo.
+ * Crea una guia con `POST /admin/users`, lee la invitacion en Mailpit y
+ * completa la contrasena. Devuelve `null` si el entorno no permite el ciclo.
  */
-export async function provisionInternalUser(
+export async function provisionGuide(
   request: APIRequestContext,
-  role: 'GUIDE' | 'SERVICE_PROVIDER',
   email: string,
 ): Promise<string | null> {
   const token = await adminToken(request)
   const created = await request.post('/api/v1/admin/users', {
     headers: authHeader(token),
     data: {
-      role,
-      fullName: `E2E ${role}`,
+      role: 'GUIDE',
+      fullName: 'Guia E2E',
       email,
       phone: uniquePhone(),
       dniType: 'CC',
       dniNumber: uniqueDni(),
-      ...(role === 'GUIDE'
-        ? { license: `LIC-E2E-${Date.now()}` }
-        : { nit: uniqueNit() }),
+      license: `LIC-E2E-${Date.now()}`,
     },
   })
   if (!created.ok()) return null

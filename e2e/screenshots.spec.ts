@@ -4,7 +4,7 @@ import {
   ADMIN_EMAIL,
   createBookableActivity,
   loginUi,
-  provisionInternalUser,
+  provisionGuide,
   provisionProvider,
   registerTouristApi,
   uniqueEmail,
@@ -84,7 +84,7 @@ test.describe('capturas por rol', () => {
 
   test('panel del guia', async ({ page, request }) => {
     const email = uniqueEmail('capturas-guia')
-    const provisioned = await provisionInternalUser(request, 'GUIDE', email)
+    const provisioned = await provisionGuide(request, email)
     if (provisioned === null) {
       test.skip(
         true,
