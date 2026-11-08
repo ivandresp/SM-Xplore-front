@@ -8,6 +8,7 @@ import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import { MAX_PRICE_OPTIONS } from '@/config/catalog'
 import { useAuth } from '@/hooks/useAuth'
 import {
   useFilterParam,
@@ -37,8 +38,6 @@ const SORT_OPTIONS: Array<{ value: EventSort; label: string }> = [
   { value: 'priceDesc', label: 'Precio: mayor a menor' },
   { value: 'name', label: 'Nombre (A–Z)' },
 ]
-
-const MAX_PRICE_OPTIONS = [50000, 100000, 200000, 500000]
 
 const FILTER_KEYS = [
   'search',

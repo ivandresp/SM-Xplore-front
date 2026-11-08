@@ -9,6 +9,7 @@ import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { ServiceCard } from '@/components/ServiceCard/ServiceCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import { MAX_PRICE_OPTIONS } from '@/config/catalog'
 import { serviceTypeLabel } from '@/config/roles'
 import {
   useFilterParam,
@@ -25,8 +26,6 @@ const PAGE_SIZE = 12
 
 // El backend filtra por `type` como texto libre; estos son los que ofrece la UI.
 const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
-
-const MAX_PRICE_OPTIONS = [50000, 100000, 200000, 500000]
 
 const FILTER_KEYS = ['search', 'tipo', 'zona', 'precioMax'] as const
 

@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test'
 
+// El catálogo consulta el gateway real: bajo carga paralela 5 s no bastan.
+const READY = { timeout: 15_000 }
+
 test.describe('catálogo con filtros', () => {
   test('los filtros viven en la URL y el chip los quita', async ({ page }) => {
     await page.goto('/explorar?categoria=acuaticos')
 
-    await expect(page.getByRole('status').first()).toContainText('resultados')
+    await expect(page.locator('p[role="status"]')).toContainText('resultados', READY)
 
     const chip = page.getByRole('button', {
       name: /Quitar filtro Categoría/,
@@ -27,7 +30,7 @@ test.describe('catálogo con filtros', () => {
       .fill('snorkel')
 
     await expect(page).toHaveURL(/search=snorkel/, { timeout: 5000 })
-    await expect(page.getByRole('status').first()).toContainText('resultados')
+    await expect(page.locator('p[role="status"]')).toContainText('resultados', READY)
   })
 
   test('el buscador global cierra el círculo al catálogo filtrado', async ({
@@ -47,7 +50,7 @@ test.describe('catálogo con filtros', () => {
     await seeAll.click()
 
     await expect(page).toHaveURL(/search=kayak/)
-    await expect(page.getByRole('status').first()).toContainText('resultado')
+    await expect(page.locator('p[role="status"]')).toContainText('resultado', READY)
   })
 })
 
@@ -57,7 +60,7 @@ test.describe('servicios con filtro de precio', () => {
   }) => {
     await page.goto('/servicios?precioMax=100000')
 
-    await expect(page.getByRole('status').first()).toContainText('resultado')
+    await expect(page.locator('p[role="status"]')).toContainText('resultado', READY)
 
     const chip = page.getByRole('button', { name: /Quitar filtro Precio/ })
     await expect(chip).toBeVisible()
@@ -76,8 +79,9 @@ test.describe('catálogo responsive', () => {
       await page.emulateMedia({ colorScheme: 'dark' })
       await page.goto('/explorar?categoria=acuaticos')
 
-      await expect(page.getByRole('status').first()).toContainText(
+      await expect(page.locator('p[role="status"]')).toContainText(
         'resultados',
+        READY,
       )
 
       const overflow = await page.evaluate(
@@ -98,7 +102,7 @@ test.describe('catálogo responsive', () => {
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.emulateMedia({ colorScheme: 'light' })
     await page.goto('/explorar?categoria=acuaticos')
-    await expect(page.getByRole('status').first()).toContainText('resultados')
+    await expect(page.locator('p[role="status"]')).toContainText('resultados', READY)
 
     await page.screenshot({
       path: 'docs/diseno/catalogo-1280-claro.png',
