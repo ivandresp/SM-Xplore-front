@@ -4,6 +4,7 @@ import { Button } from '@/components/Button'
 import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   CONTENT_STATUS_LABELS,
@@ -23,6 +24,7 @@ export default function MyServicesPage() {
   const [services, setServices] = useState<ServiceResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   const providerId = user?.id
 
@@ -34,6 +36,9 @@ export default function MyServicesPage() {
     let cancelled = false
 
     async function run() {
+      setIsLoading(true)
+      setError(null)
+
       try {
         const mine = await servicesApi.list({ providerId: providerId as string })
         if (!cancelled) {
@@ -55,7 +60,13 @@ export default function MyServicesPage() {
     return () => {
       cancelled = true
     }
-  }, [providerId])
+  }, [providerId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   const columns: Column<ServiceResponse>[] = [
     {
@@ -116,20 +127,28 @@ export default function MyServicesPage() {
         }
       />
 
-      {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+      {error !== null ? (
+        <StateMessage
+          title="No se pudieron cargar tus servicios"
+          description={error}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={services}
+          rowKey={(service) => service.id}
+          isLoading={isLoading}
+          loadingMessage="Cargando tus servicios…"
+          emptyMessage="Todavía no tienes servicios. Crea el primero con “Nuevo servicio”."
+          emptyAction={
+            <Link to="/app/mis-servicios/nuevo">
+              <Button variant="accent">Nuevo servicio</Button>
+            </Link>
+          }
+        />
       )}
-
-      <DataTable
-        columns={columns}
-        rows={services}
-        rowKey={(service) => service.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando tus servicios…"
-        emptyMessage="Todavía no tienes servicios. Crea el primero con “Nuevo servicio”."
-      />
 
       <p className={styles.notice}>
         Este módulo no tiene mockup en Figma: se construyó con el sistema de

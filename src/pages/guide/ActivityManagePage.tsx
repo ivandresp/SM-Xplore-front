@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   ACTIVITY_STATUS_LABELS,
@@ -28,6 +30,7 @@ export default function ActivityManagePage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (activityId === undefined) {
@@ -60,10 +63,20 @@ export default function ActivityManagePage() {
     return () => {
       cancelled = true
     }
-  }, [activityId])
+  }, [activityId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.state}>Cargando actividad…</p>
+    return (
+      <section>
+        <Skeleton variant="text" count={6} label="Cargando actividad…" />
+      </section>
+    )
   }
 
   if (activity === null) {
@@ -72,9 +85,12 @@ export default function ActivityManagePage() {
         <Link to="/app/mis-actividades" className={styles.back}>
           ← Volver a mis actividades
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró la actividad.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar la actividad"
+          description={error ?? 'No se encontró la actividad.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </section>
     )
   }

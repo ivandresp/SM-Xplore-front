@@ -5,6 +5,8 @@ import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { ServiceCard } from '@/components/ServiceCard/ServiceCard'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { serviceTypeLabel } from '@/config/roles'
 import { isApiError } from '@/services/httpClient'
 import { servicesApi } from '@/services/servicesApi'
@@ -162,12 +164,6 @@ export default function ServiceListPage() {
         }
       />
 
-      {error !== null && (
-        <p className={`${styles.banner} ${styles.error}`} role="alert">
-          {error}
-        </p>
-      )}
-
       <div className={styles.layout}>
         <aside className={styles.filters}>
           <h2 className={styles.filtersTitle}>Filtros</h2>
@@ -217,42 +213,49 @@ export default function ServiceListPage() {
         </aside>
 
         <section>
-          {isLoading && <p className={styles.state}>Cargando servicios…</p>}
-
-          {!isLoading && !error && filtered.length === 0 && (
-            <div className={styles.state}>
-              <p className={styles.stateTitle}>
-                {hasActiveFilters
-                  ? 'No encontramos servicios con esos filtros'
-                  : 'Todavía no hay servicios publicados'}
-              </p>
-              <p>
-                {hasActiveFilters
-                  ? 'Prueba con otro tipo de servicio o un precio mayor.'
-                  : 'Cuando las prestadoras publiquen sus servicios aparecerán aquí.'}
-              </p>
-              {hasActiveFilters && (
-                <div className={styles.stateActions}>
-                  <Button variant="outline" onClick={clearFilters}>
-                    Limpiar filtros
-                  </Button>
-                </div>
-              )}
-            </div>
+          {isLoading && (
+            <Skeleton variant="card" count={6} label="Cargando servicios…" />
           )}
 
           {!isLoading && error !== null && (
-            <div className={styles.stateActions}>
-              {needsLogin ? (
-                <Link to="/login" className={styles.retryLink}>
-                  Iniciar sesión
-                </Link>
-              ) : (
-                <Button variant="accent" onClick={retry}>
-                  Reintentar
-                </Button>
-              )}
-            </div>
+            <StateMessage
+              tone="error"
+              title="No pudimos cargar los servicios"
+              description={error}
+              action={
+                needsLogin ? (
+                  <Link to="/login" className={styles.retryLink}>
+                    Iniciar sesión
+                  </Link>
+                ) : (
+                  <Button variant="accent" onClick={retry}>
+                    Reintentar
+                  </Button>
+                )
+              }
+            />
+          )}
+
+          {!isLoading && !error && filtered.length === 0 && (
+            <StateMessage
+              title={
+                hasActiveFilters
+                  ? 'No encontramos servicios con esos filtros'
+                  : 'Todavía no hay servicios publicados'
+              }
+              description={
+                hasActiveFilters
+                  ? 'Prueba con otro tipo de servicio o un precio mayor.'
+                  : 'Cuando las prestadoras publiquen sus servicios aparecerán aquí.'
+              }
+              action={
+                hasActiveFilters ? (
+                  <Button variant="outline" onClick={clearFilters}>
+                    Limpiar filtros
+                  </Button>
+                ) : undefined
+              }
+            />
           )}
 
           {visible.length > 0 && (

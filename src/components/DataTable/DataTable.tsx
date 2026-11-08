@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { classNames } from '@/utils/format'
+import { Skeleton } from '@/components/Skeleton'
 import styles from './DataTable.module.css'
 
 export interface Column<T> {
@@ -16,24 +17,32 @@ export interface DataTableProps<T> {
   rowKey: (row: T) => string
   /** Mensaje cuando no hay filas. */
   emptyMessage?: string
+  /** Acción de salida cuando no hay filas (crear, limpiar filtros…). */
+  emptyAction?: ReactNode
   /** Mientras la primera carga está en curso. */
   isLoading?: boolean
   loadingMessage?: string
 }
 
-/** Tabla de datos con encabezado y estado vacío. */
+/** Tabla de datos con encabezado, carga y estado vacío. */
 export function DataTable<T>({
   columns,
   rows,
   rowKey,
   emptyMessage = 'Sin resultados.',
+  emptyAction,
   isLoading = false,
   loadingMessage = 'Cargando…',
 }: DataTableProps<T>) {
   if (isLoading) {
     return (
       <div className={styles.wrapper}>
-        <p className={styles.loading}>{loadingMessage}</p>
+        <Skeleton
+          variant="table"
+          count={5}
+          label={loadingMessage}
+          className={styles.skeleton}
+        />
       </div>
     )
   }
@@ -61,6 +70,9 @@ export function DataTable<T>({
             <tr>
               <td className={styles.empty} colSpan={columns.length}>
                 {emptyMessage}
+                {emptyAction !== undefined && (
+                  <div className={styles.emptyAction}>{emptyAction}</div>
+                )}
               </td>
             </tr>
           ) : (

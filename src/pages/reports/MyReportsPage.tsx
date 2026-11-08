@@ -4,6 +4,8 @@ import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { REPORT_STATUS_LABELS, REPORT_STATUS_TONES } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
@@ -32,6 +34,7 @@ export default function MyReportsPage() {
   const [error, setError] = useState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [sort, setSort] = useState<SortOrder>('recent')
+  const [reloadToken, setReloadToken] = useState(0)
 
   const userId = user?.id
 
@@ -78,7 +81,13 @@ export default function MyReportsPage() {
     return () => {
       cancelled = true
     }
-  }, [userId])
+  }, [userId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   const filtered = useMemo(() => {
     const status = FILTERS[filterIndex]?.status
@@ -106,9 +115,12 @@ export default function MyReportsPage() {
       />
 
       {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+        <StateMessage
+          title="No se pudieron cargar tus reportes"
+          description={error}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       )}
 
       {reports.length > 0 && (
@@ -137,13 +149,31 @@ export default function MyReportsPage() {
         </div>
       )}
 
-      {isLoading && <p className={styles.state}>Cargando reportes…</p>}
+      {isLoading && (
+        <Skeleton variant="table" count={3} label="Cargando reportes…" />
+      )}
 
       {!isLoading && reports.length === 0 && error === null && (
-        <p className={styles.state}>
-          Todavía no has reportado nada.{' '}
-          <Link to="/reportes/nuevo">Crea el primer reporte</Link>.
-        </p>
+        <StateMessage
+          title="Todavía no has reportado nada"
+          description="Cuéntanos qué pasó y dónde; las gestoras de destino recibirán el aviso."
+          action={
+            <Link to="/reportes/nuevo">
+              <Button variant="accent">Crear el primer reporte</Button>
+            </Link>
+          }
+        />
+      )}
+
+      {!isLoading && reports.length > 0 && filtered.length === 0 && (
+        <StateMessage
+          title="No tienes reportes en este estado."
+          action={
+            <Button variant="outline" onClick={() => setFilterIndex(0)}>
+              Ver todos
+            </Button>
+          }
+        />
       )}
 
       <div className={styles.feed}>

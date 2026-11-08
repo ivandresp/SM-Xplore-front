@@ -4,6 +4,8 @@ import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { EVENT_STATUS_LABELS, EVENT_STATUS_TONES, PAYMENT_METHOD_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
@@ -48,6 +50,8 @@ export default function EventDetailPage() {
   const [zone, setZone] = useState<Zone | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
+  const [reloadToken, setReloadToken] = useState(0)
 
   const [people, setPeople] = useState(2)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CARD')
@@ -103,10 +107,20 @@ export default function EventDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [eventId])
+  }, [eventId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((current) => current + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.page}>Cargando evento…</p>
+    return (
+      <div className={styles.page}>
+        <Skeleton variant="text" count={6} label="Cargando evento…" />
+      </div>
+    )
   }
 
   if (event === null) {
@@ -115,9 +129,16 @@ export default function EventDetailPage() {
         <Link to="/eventos" className={styles.back}>
           ← Volver a eventos
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró el evento.'}
-        </p>
+        <StateMessage
+          tone="error"
+          title="No pudimos cargar el evento"
+          description={error ?? 'No se encontró el evento.'}
+          action={
+            <Button variant="accent" onClick={retry}>
+              Reintentar
+            </Button>
+          }
+        />
       </div>
     )
   }

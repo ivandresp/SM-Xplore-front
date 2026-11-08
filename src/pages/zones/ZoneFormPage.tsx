@@ -4,6 +4,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field, SelectField } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { CONTENT_STATUS_LABELS, CONTENT_STATUS_TONES } from '@/config/roles'
 import { categoriesApi } from '@/services/categoriesApi'
@@ -81,6 +83,7 @@ export default function ZoneFormPage() {
   const [editError, setEditError] = useState<string | null>(null)
   const [sitesError, setSitesError] = useState<string | null>(null)
   const [statusSiteId, setStatusSiteId] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   const isNew = zoneId === undefined
 
@@ -92,6 +95,9 @@ export default function ZoneFormPage() {
     let cancelled = false
 
     async function run() {
+      setIsLoading(true)
+      setZoneError(null)
+
       try {
         const [found, foundSites, foundCategories] = await Promise.all([
           zonesApi.getById(zoneId as string),
@@ -118,7 +124,13 @@ export default function ZoneFormPage() {
     return () => {
       cancelled = true
     }
-  }, [zoneId])
+  }, [zoneId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setZoneError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
@@ -292,7 +304,23 @@ export default function ZoneFormPage() {
   }
 
   if (isLoading) {
-    return <p className={styles.state}>Cargando zona…</p>
+    return <Skeleton variant="text" count={4} label="Cargando zona…" />
+  }
+
+  if (!isNew && zone === null) {
+    return (
+      <section>
+        <Link to="/app/zonas" className={styles.back}>
+          ← Volver a zonas
+        </Link>
+        <StateMessage
+          title="No se pudo cargar la zona"
+          description={zoneError ?? 'No se encontró la zona.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
+      </section>
+    )
   }
 
   return (

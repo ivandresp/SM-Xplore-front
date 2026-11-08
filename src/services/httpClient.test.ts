@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, httpClient } from './httpClient'
+import { ApiError, RequestTimeoutError, httpClient } from './httpClient'
 import { clearToken, loadToken, onUnauthorized, saveToken } from './authToken'
 
 function jsonResponse(body: unknown, status = 200) {
@@ -7,6 +7,18 @@ function jsonResponse(body: unknown, status = 200) {
     status,
     headers: { 'Content-Type': 'application/json' },
   })
+}
+
+/** `fetch` que solo termina cuando la señal se aborta. */
+function hangingFetch() {
+  return vi.fn(
+    (_input: RequestInfo | URL, init?: RequestInit) =>
+      new Promise<Response>((_resolve, reject) => {
+        init?.signal?.addEventListener('abort', () => {
+          reject(new DOMException('Aborted', 'AbortError'))
+        })
+      }),
+  )
 }
 
 describe('httpClient', () => {
@@ -115,5 +127,29 @@ describe('httpClient', () => {
 
     expect(handler).not.toHaveBeenCalled()
     expect(loadToken()).toBeNull()
+  })
+
+  it('aborta y avisa cuando el servidor no responde a tiempo', async () => {
+    vi.stubGlobal('fetch', hangingFetch())
+
+    const error = await httpClient
+      .get('/users/me', { timeoutMs: 5 })
+      .catch((cause) => cause)
+
+    expect(error).toBeInstanceOf(RequestTimeoutError)
+    expect((error as RequestTimeoutError).timeoutMs).toBe(5)
+  })
+
+  it('respeta la señal del llamador y no la disfraza de timeout', async () => {
+    vi.stubGlobal('fetch', hangingFetch())
+    const controller = new AbortController()
+
+    const pending = httpClient
+      .get('/users/me', { signal: controller.signal })
+      .catch((cause) => cause)
+    controller.abort()
+
+    const error = await pending
+    expect(error).not.toBeInstanceOf(RequestTimeoutError)
   })
 })

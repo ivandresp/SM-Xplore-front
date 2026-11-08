@@ -5,6 +5,8 @@ import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { servicesApi } from '@/services/servicesApi'
 import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
@@ -19,6 +21,7 @@ export default function ProviderProfilePage() {
   const [services, setServices] = useState<ServiceResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (providerId === undefined) {
@@ -58,10 +61,20 @@ export default function ProviderProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [providerId])
+  }, [providerId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.page}>Cargando perfil…</p>
+    return (
+      <div className={styles.page}>
+        <Skeleton variant="text" count={6} label="Cargando perfil…" />
+      </div>
+    )
   }
 
   if (provider === null) {
@@ -70,9 +83,12 @@ export default function ProviderProfilePage() {
         <Link to="/explorar" className={styles.back}>
           ← Volver al catálogo
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró la prestadora.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar el perfil"
+          description={error ?? 'No se encontró la prestadora.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </section>
     )
   }

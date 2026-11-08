@@ -5,6 +5,8 @@ import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { activitiesApi } from '@/services/activitiesApi'
 import { usersApi } from '@/services/usersApi'
@@ -20,6 +22,7 @@ export default function GuideProfilePage() {
   const [activities, setActivities] = useState<ActivityResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (guideId === undefined) {
@@ -63,10 +66,20 @@ export default function GuideProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [guideId])
+  }, [guideId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.page}>Cargando perfil…</p>
+    return (
+      <div className={styles.page}>
+        <Skeleton variant="text" count={6} label="Cargando perfil…" />
+      </div>
+    )
   }
 
   if (guide === null) {
@@ -75,9 +88,12 @@ export default function GuideProfilePage() {
         <Link to="/explorar" className={styles.back}>
           ← Volver al catálogo
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró el guía.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar el perfil"
+          description={error ?? 'No se encontró el guía.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </section>
     )
   }

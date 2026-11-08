@@ -4,6 +4,8 @@ import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   PAYMENT_METHOD_LABELS,
@@ -37,6 +39,7 @@ export default function ReservationDetailPage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (reservationId === undefined) {
@@ -76,10 +79,20 @@ export default function ReservationDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [reservationId])
+  }, [reservationId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.page}>Cargando reserva…</p>
+    return (
+      <div className={styles.page}>
+        <Skeleton variant="text" count={6} label="Cargando reserva…" />
+      </div>
+    )
   }
 
   if (reservation === null) {
@@ -88,9 +101,12 @@ export default function ReservationDetailPage() {
         <Link to="/mis-reservas" className={styles.back}>
           ← Volver a mis reservas
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró la reserva.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar la reserva"
+          description={error ?? 'No se encontró la reserva.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </div>
     )
   }

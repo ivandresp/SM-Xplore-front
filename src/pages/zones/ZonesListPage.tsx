@@ -5,6 +5,7 @@ import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
+import { StateMessage } from '@/components/StateMessage'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
@@ -24,11 +25,15 @@ export default function ZonesListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [term, setTerm] = useState('')
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
     async function run() {
+      setIsLoading(true)
+      setError(null)
+
       try {
         const [zoneList, siteList] = await Promise.all([
           zonesApi.list(),
@@ -52,7 +57,13 @@ export default function ZonesListPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   const filtered = useMemo(() => {
     const needle = term.trim().toLowerCase()
@@ -135,20 +146,28 @@ export default function ZonesListPage() {
         }
       />
 
-      {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+      {error !== null ? (
+        <StateMessage
+          title="No se pudieron cargar las zonas"
+          description={error}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={rows}
+          rowKey={(row) => row.zone.id}
+          isLoading={isLoading}
+          loadingMessage="Cargando zonas…"
+          emptyMessage="No hay zonas con estos filtros."
+          emptyAction={
+            <Link to="/app/zonas/nueva">
+              <Button variant="primary">+ Nueva zona</Button>
+            </Link>
+          }
+        />
       )}
-
-      <DataTable
-        columns={columns}
-        rows={rows}
-        rowKey={(row) => row.zone.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando zonas…"
-        emptyMessage="No hay zonas con estos filtros."
-      />
 
       {!isLoading && error === null && withoutSites > 0 && (
         <p className={styles.helper}>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ApiError } from '@/services/httpClient'
+import { ApiError, RequestTimeoutError } from '@/services/httpClient'
 import { describeApiError } from './errors'
 
 function apiError(status: number, code?: string, detail = 'English detail') {
@@ -52,5 +52,44 @@ describe('describeApiError', () => {
     })
 
     expect(describeApiError(error)).toContain('42 segundos')
+  })
+
+  it('distingue el timeout del fallo de conexión', () => {
+    const message = describeApiError(new RequestTimeoutError(45_000))
+
+    expect(message).toContain('45 s')
+    expect(message).not.toContain('No se pudo conectar')
+  })
+
+  it('explica un 405 sin mostrar el detalle crudo', () => {
+    const message = describeApiError(
+      apiError(405, undefined, 'Method Not Allowed'),
+    )
+
+    expect(message).toContain('no está disponible')
+    expect(message).not.toContain('Method Not Allowed')
+  })
+
+  it('distingue el rate limit de los intentos de login', () => {
+    expect(describeApiError(apiError(429, 'RATE_LIMIT_EXCEEDED'))).toContain(
+      'Demasiadas solicitudes',
+    )
+  })
+
+  it('traduce los códigos de permisos y sesión', () => {
+    expect(describeApiError(apiError(403, 'ACCESS_DENIED'))).toContain('permiso')
+    expect(describeApiError(apiError(401, 'UNAUTHORIZED'))).toContain(
+      'Inicia sesión',
+    )
+    expect(describeApiError(apiError(403, 'MFA_ENROLLMENT_REQUIRED'))).toContain(
+      'dos pasos',
+    )
+  })
+
+  it('no llama error interno a un 503', () => {
+    const message = describeApiError(apiError(503))
+
+    expect(message).toContain('no está disponible')
+    expect(message).not.toContain('error interno')
   })
 })

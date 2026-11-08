@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { eventsApi } from '@/services/eventsApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -30,25 +32,34 @@ export default function EventFormPage() {
   const [endTime, setEndTime] = useState('22:00')
   const [publish, setPublish] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
     async function run() {
-      const [zonesResult, sitesResult] = await Promise.allSettled([
-        zonesApi.list(),
-        sitesApi.list(),
-      ])
+      setIsLoading(true)
+      setSitesError(null)
 
-      if (cancelled) return
+      try {
+        const [zonesResult, sitesResult] = await Promise.allSettled([
+          zonesApi.list(),
+          sitesApi.list(),
+        ])
 
-      if (zonesResult.status === 'fulfilled') setZones(zonesResult.value)
-      if (sitesResult.status === 'fulfilled') {
-        setSites(sitesResult.value)
-        setSitesError(null)
-      } else {
-        setSitesError(describeApiError(sitesResult.reason))
+        if (cancelled) return
+
+        if (zonesResult.status === 'fulfilled') setZones(zonesResult.value)
+        if (sitesResult.status === 'fulfilled') {
+          setSites(sitesResult.value)
+          setSitesError(null)
+        } else {
+          setSitesError(describeApiError(sitesResult.reason))
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false)
       }
     }
 
@@ -57,7 +68,13 @@ export default function EventFormPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setSitesError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   /** Atractivos agrupados por zona (los huérfanos van al final). */
   const groupedSites = useMemo(() => {
@@ -134,6 +151,26 @@ export default function EventFormPage() {
     }
   }
 
+  if (isLoading) {
+    return <Skeleton variant="text" count={6} label="Cargando formulario…" />
+  }
+
+  if (sitesError !== null) {
+    return (
+      <section>
+        <Link to="/app/eventos" className={styles.back}>
+          ← Volver a gestión de eventos
+        </Link>
+        <StateMessage
+          title="No se pudieron cargar los atractivos"
+          description={sitesError}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
+      </section>
+    )
+  }
+
   return (
     <section>
       <Link to="/app/eventos" className={styles.back}>
@@ -203,10 +240,7 @@ export default function EventFormPage() {
                   </optgroup>
                 ))}
               </select>
-              {sitesError !== null && (
-                <p className={styles.helper}>{sitesError}</p>
-              )}
-              {sitesError === null && sites.length === 0 && (
+              {sites.length === 0 && (
                 <p className={styles.helper}>
                   Todavía no hay atractivos registrados: una gestora debe
                   crearlos en Zonas.

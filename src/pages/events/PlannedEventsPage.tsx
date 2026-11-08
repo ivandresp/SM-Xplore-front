@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   RESERVATION_STATUS_LABELS,
@@ -27,6 +29,8 @@ export default function PlannedEventsPage() {
   const [planned, setPlanned] = useState<PlannedEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
+  const [reloadToken, setReloadToken] = useState(0)
 
   const touristId = user?.id
 
@@ -80,7 +84,13 @@ export default function PlannedEventsPage() {
     return () => {
       cancelled = true
     }
-  }, [touristId])
+  }, [touristId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((current) => current + 1)
+  }
 
   return (
     <div className={styles.page}>
@@ -95,18 +105,32 @@ export default function PlannedEventsPage() {
       />
 
       {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+        <StateMessage
+          tone="error"
+          title="No pudimos cargar tus eventos"
+          description={error}
+          action={
+            <Button variant="accent" onClick={retry}>
+              Reintentar
+            </Button>
+          }
+        />
       )}
 
-      {isLoading && <p className={styles.state}>Cargando eventos…</p>}
+      {isLoading && (
+        <Skeleton variant="table" count={4} label="Cargando eventos…" />
+      )}
 
       {!isLoading && planned.length === 0 && error === null && (
-        <p className={styles.state}>
-          Todavía no tienes eventos reservados.{' '}
-          <Link to="/eventos">Explora la agenda de eventos</Link>.
-        </p>
+        <StateMessage
+          title="Todavía no tienes eventos reservados"
+          description="Cuando reserves un evento aparecerá aquí con el estado de la reserva."
+          action={
+            <Link to="/eventos">
+              <Button variant="outline">Explorar la agenda de eventos</Button>
+            </Link>
+          }
+        />
       )}
 
       {planned.length > 0 && (

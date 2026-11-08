@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { StateMessage } from '@/components/StateMessage'
 import { securityReportsApi } from '@/services/securityReportsApi'
 import { describeApiError } from '@/utils/errors'
 import styles from './reports.module.css'
@@ -89,11 +90,7 @@ export default function ReportFormPage() {
         description="Cuéntanos qué pasó y dónde. Las gestoras de destino recibirán el aviso."
       />
 
-      {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
-      )}
+      {error !== null && <StateMessage title={error} tone="error" />}
 
       <form className={styles.card} onSubmit={handleSubmit} noValidate>
         <div className={styles.grid}>

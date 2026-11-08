@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { ActivityCard } from '@/components/ActivityCard/ActivityCard'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { activitiesApi } from '@/services/activitiesApi'
 import { eventsApi } from '@/services/eventsApi'
 import { sitesApi } from '@/services/sitesApi'
@@ -31,6 +33,8 @@ export default function SiteDetailPage() {
   const [events, setEvents] = useState<EventResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (siteId === undefined) {
@@ -89,10 +93,20 @@ export default function SiteDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [siteId])
+  }, [siteId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((current) => current + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.page}>Cargando atractivo…</p>
+    return (
+      <div className={styles.page}>
+        <Skeleton variant="text" count={6} label="Cargando atractivo…" />
+      </div>
+    )
   }
 
   if (site === null) {
@@ -101,9 +115,16 @@ export default function SiteDetailPage() {
         <Link to="/atractivos" className={styles.state}>
           ← Volver a atractivos
         </Link>
-        <p className={`${styles.banner} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró el atractivo.'}
-        </p>
+        <StateMessage
+          tone="error"
+          title="No pudimos cargar el atractivo"
+          description={error ?? 'No se encontró el atractivo.'}
+          action={
+            <Button variant="accent" onClick={retry}>
+              Reintentar
+            </Button>
+          }
+        />
       </div>
     )
   }

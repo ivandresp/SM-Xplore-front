@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { useAuth } from '@/hooks/useAuth'
 import { useItinerary } from '@/hooks/useItinerary'
@@ -119,9 +120,11 @@ export default function ItineraryPage() {
       />
 
       {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+        <StateMessage
+          tone="error"
+          title="No se pudieron crear las reservas"
+          description={error}
+        />
       )}
       {feedback !== null && (
         <p className={`${styles.feedback} ${styles.success}`}>{feedback}</p>
@@ -175,10 +178,15 @@ export default function ItineraryPage() {
             <h2 className={styles.cardTitle}>Itinerario</h2>
 
             {days.length === 0 && (
-              <p className={styles.empty}>
-                Todavía no has agregado nada. Busca actividades en el catálogo
-                y pulsa "Agregar al itinerario".
-              </p>
+              <StateMessage
+                title="Todavía no has agregado nada"
+                description='Busca actividades en el catálogo y pulsa "Agregar al itinerario".'
+                action={
+                  <Link to="/explorar">
+                    <Button variant="outline">Explorar actividades</Button>
+                  </Link>
+                }
+              />
             )}
 
             {days.map(([day, entries], index) => (
@@ -229,9 +237,11 @@ export default function ItineraryPage() {
               </div>
             ))}
 
-            <Link to="/explorar" className={styles.addEntry}>
-              + Agregar servicio, actividad o evento
-            </Link>
+            {days.length > 0 && (
+              <Link to="/explorar" className={styles.addEntry}>
+                + Agregar servicio, actividad o evento
+              </Link>
+            )}
           </article>
         </div>
 

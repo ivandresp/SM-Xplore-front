@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { REPORT_STATUS_LABELS, REPORT_STATUS_TONES } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
@@ -30,6 +32,7 @@ export default function ReportDetailPage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (reportId === undefined) {
@@ -64,10 +67,20 @@ export default function ReportDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [reportId])
+  }, [reportId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.page}>Cargando reporte…</p>
+    return (
+      <div className={styles.page}>
+        <Skeleton variant="text" count={6} label="Cargando reporte…" />
+      </div>
+    )
   }
 
   if (report === null) {
@@ -76,9 +89,12 @@ export default function ReportDetailPage() {
         <Link to={backTo} className={styles.back}>
           ← {backLabel}
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró el reporte.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar el reporte"
+          description={error ?? 'No se encontró el reporte.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </div>
     )
   }

@@ -4,6 +4,8 @@ import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   ACCOUNT_STATUS_LABELS,
@@ -32,6 +34,7 @@ export default function ProviderApprovalPage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (providerId === undefined) {
@@ -65,7 +68,13 @@ export default function ProviderApprovalPage() {
     return () => {
       cancelled = true
     }
-  }, [providerId])
+  }, [providerId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   async function review(decision: 'APROBADO' | 'RECHAZADO') {
     if (provider === null) {
@@ -97,7 +106,7 @@ export default function ProviderApprovalPage() {
   }
 
   if (isLoading) {
-    return <p className={styles.description}>Cargando solicitud…</p>
+    return <Skeleton variant="text" count={4} label="Cargando solicitud…" />
   }
 
   if (provider === null) {
@@ -106,9 +115,12 @@ export default function ProviderApprovalPage() {
         <Link to="/app/usuarios" className={styles.back}>
           ← Volver al listado
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró la solicitud.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar la solicitud"
+          description={error ?? 'No se encontró la solicitud.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </section>
     )
   }

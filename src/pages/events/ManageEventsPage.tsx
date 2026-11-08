@@ -4,6 +4,7 @@ import { Button } from '@/components/Button'
 import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { EVENT_STATUS_LABELS, EVENT_STATUS_TONES } from '@/config/roles'
 import { eventsApi } from '@/services/eventsApi'
@@ -16,11 +17,15 @@ export default function ManageEventsPage() {
   const [events, setEvents] = useState<EventResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
 
     async function run() {
+      setIsLoading(true)
+      setError(null)
+
       try {
         const all = await eventsApi.list()
         if (!cancelled) {
@@ -47,7 +52,13 @@ export default function ManageEventsPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   const columns: Column<EventResponse>[] = [
     {
@@ -107,20 +118,28 @@ export default function ManageEventsPage() {
         }
       />
 
-      {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+      {error !== null ? (
+        <StateMessage
+          title="No se pudieron cargar los eventos"
+          description={error}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={events}
+          rowKey={(event) => event.id}
+          isLoading={isLoading}
+          loadingMessage="Cargando eventos…"
+          emptyMessage="Todavía no hay eventos. Crea el primero con “Nuevo evento”."
+          emptyAction={
+            <Link to="/app/eventos/nuevo">
+              <Button variant="accent">Nuevo evento</Button>
+            </Link>
+          }
+        />
       )}
-
-      <DataTable
-        columns={columns}
-        rows={events}
-        rowKey={(event) => event.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando eventos…"
-        emptyMessage="Todavía no hay eventos. Crea el primero con “Nuevo evento”."
-      />
 
       <p className={styles.notice}>
         El backend no tiene endpoint para editar un evento: solo se cambian el

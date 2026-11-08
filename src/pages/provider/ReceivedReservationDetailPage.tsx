@@ -4,6 +4,8 @@ import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   PAYMENT_METHOD_LABELS,
@@ -38,6 +40,7 @@ export default function ReceivedReservationDetailPage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (reservationId === undefined) {
@@ -47,6 +50,9 @@ export default function ReceivedReservationDetailPage() {
     let cancelled = false
 
     async function run() {
+      setIsLoading(true)
+      setError(null)
+
       try {
         const [found, catalog] = await Promise.all([
           reservationsApi.getById(reservationId as string),
@@ -73,10 +79,16 @@ export default function ReceivedReservationDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [reservationId])
+  }, [reservationId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.state}>Cargando reserva…</p>
+    return <Skeleton variant="text" count={4} label="Cargando reserva…" />
   }
 
   if (reservation === null) {
@@ -85,9 +97,12 @@ export default function ReceivedReservationDetailPage() {
         <Link to="/app/reservas-recibidas" className={styles.back}>
           ← Volver a reservas recibidas
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró la reserva.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar la reserva"
+          description={error ?? 'No se encontró la reserva.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </div>
     )
   }

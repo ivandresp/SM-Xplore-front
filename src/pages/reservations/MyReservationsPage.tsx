@@ -4,6 +4,8 @@ import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   RESERVATION_STATUS_LABELS,
@@ -53,6 +55,7 @@ export default function MyReservationsPage() {
   const [error, setError] = useState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [page, setPage] = useState(1)
+  const [reloadToken, setReloadToken] = useState(0)
 
   const touristId = user?.id
 
@@ -97,7 +100,13 @@ export default function MyReservationsPage() {
     return () => {
       cancelled = true
     }
-  }, [touristId])
+  }, [touristId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   const filtered = useMemo(() => {
     const statuses = FILTERS[filterIndex]?.statuses
@@ -121,9 +130,12 @@ export default function MyReservationsPage() {
       <PageHeader title="Mis reservas" />
 
       {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+        <StateMessage
+          title="No se pudieron cargar tus reservas"
+          description={error}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       )}
 
       {hasAny && (
@@ -143,32 +155,37 @@ export default function MyReservationsPage() {
         </div>
       )}
 
-      {isLoading && <p className={styles.state}>Cargando reservas…</p>}
+      {isLoading && (
+        <Skeleton variant="table" count={4} label="Cargando reservas…" />
+      )}
 
       {!isLoading && !hasAny && error === null && (
-        <div className={styles.empty}>
-          <div className={styles.emptyRow}>
-            <span className={styles.emptyIcon}>?</span>
-            <div className={styles.rowBody}>
-              <h2 className={styles.rowTitle}>Caso: aún no tienes reservas</h2>
-              <p className={styles.rowMeta}>
-                Explora actividades, servicios y eventos para empezar.
-              </p>
-            </div>
+        <StateMessage
+          title="Aún no tienes reservas"
+          description="Explora actividades, servicios y eventos para empezar."
+          action={
             <Link to="/explorar">
               <Button variant="outline">Explorar</Button>
             </Link>
-          </div>
-        </div>
+          }
+        />
       )}
 
       {!isLoading && hasAny && filtered.length === 0 && (
-        <p className={styles.state}>
-          No tienes reservas en este estado.{' '}
-          <Link to="#" onClick={() => setFilterIndex(0)}>
-            Ver todas
-          </Link>
-        </p>
+        <StateMessage
+          title="No tienes reservas en este estado."
+          action={
+            <Button
+              variant="outline"
+              onClick={() => {
+                setFilterIndex(0)
+                setPage(1)
+              }}
+            >
+              Ver todas
+            </Button>
+          }
+        />
       )}
 
       {visible.length > 0 && (

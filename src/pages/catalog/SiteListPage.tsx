@@ -3,6 +3,8 @@ import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { SiteCard } from '@/components/SiteCard/SiteCard'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
@@ -20,6 +22,8 @@ export default function SiteListPage() {
   const [term, setTerm] = useState('')
   const [zoneId, setZoneId] = useState('')
   const [page, setPage] = useState(1)
+  /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -57,7 +61,13 @@ export default function SiteListPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((current) => current + 1)
+  }
 
   const zoneOptions = useMemo(
     () => [...zones].sort((a, b) => a.name.localeCompare(b.name, 'es')),
@@ -103,9 +113,16 @@ export default function SiteListPage() {
       />
 
       {error !== null && (
-        <p className={`${styles.banner} ${styles.error}`} role="alert">
-          {error}
-        </p>
+        <StateMessage
+          tone="error"
+          title="No pudimos cargar los atractivos"
+          description={error}
+          action={
+            <Button variant="accent" onClick={retry}>
+              Reintentar
+            </Button>
+          }
+        />
       )}
 
       <div className={styles.toolbar}>
@@ -144,22 +161,24 @@ export default function SiteListPage() {
         </label>
       </div>
 
-      {isLoading && <p className={styles.state}>Cargando atractivos…</p>}
+      {isLoading && (
+        <Skeleton variant="card" count={6} label="Cargando atractivos…" />
+      )}
 
       {!isLoading && !error && filtered.length === 0 && (
-        <div className={styles.state}>
-          <p className={styles.stateTitle}>
-            {term !== '' || zoneId !== ''
+        <StateMessage
+          title={
+            term !== '' || zoneId !== ''
               ? 'No encontramos atractivos con esos filtros'
-              : 'Todavía no hay atractivos publicados'}
-          </p>
-          <p>
-            {term !== '' || zoneId !== ''
+              : 'Todavía no hay atractivos publicados'
+          }
+          description={
+            term !== '' || zoneId !== ''
               ? 'Prueba con otro nombre o cambia de zona.'
-              : 'Cuando las gestoras registren sitios en sus zonas aparecerán aquí.'}
-          </p>
-          {(term !== '' || zoneId !== '') && (
-            <div className={styles.stateActions}>
+              : 'Cuando las gestoras registren sitios en sus zonas aparecerán aquí.'
+          }
+          action={
+            term !== '' || zoneId !== '' ? (
               <Button
                 variant="outline"
                 onClick={() => {
@@ -170,9 +189,9 @@ export default function SiteListPage() {
               >
                 Limpiar filtros
               </Button>
-            </div>
-          )}
-        </div>
+            ) : undefined
+          }
+        />
       )}
 
       {visible.length > 0 && (

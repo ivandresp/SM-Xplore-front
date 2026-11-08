@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { useAuth } from '@/hooks/useAuth'
 import { eventsApi } from '@/services/eventsApi'
 import { sitesApi } from '@/services/sitesApi'
@@ -37,6 +39,8 @@ export default function EventListPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
+  /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
+  const [reloadToken, setReloadToken] = useState(0)
 
   // Filtros aplicados y su borrador (se confirman con "Filtrar")
   const [term, setTerm] = useState('')
@@ -89,7 +93,13 @@ export default function EventListPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((current) => current + 1)
+  }
 
   const categories = useMemo(
     () => [...new Set(events.map((event) => event.category))].sort(),
@@ -159,6 +169,23 @@ export default function EventListPage() {
     setPage(1)
   }
 
+  function clearFilters() {
+    setTerm('')
+    setFrom('')
+    setTo('')
+    setCategory('')
+    setZoneId('')
+    setDraftTerm('')
+    setDraftFrom('')
+    setDraftTo('')
+    setDraftCategory('')
+    setDraftZoneId('')
+    setPage(1)
+  }
+
+  const hasActiveFilters =
+    term !== '' || from !== '' || to !== '' || category !== '' || zoneId !== ''
+
   return (
     <div className={styles.page}>
       <PageHeader
@@ -179,9 +206,16 @@ export default function EventListPage() {
       />
 
       {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+        <StateMessage
+          tone="error"
+          title="No pudimos cargar los eventos"
+          description={error}
+          action={
+            <Button variant="accent" onClick={retry}>
+              Reintentar
+            </Button>
+          }
+        />
       )}
 
       <div className={styles.filters}>
@@ -251,12 +285,22 @@ export default function EventListPage() {
         </Button>
       </div>
 
-      {isLoading && <p className={styles.state}>Cargando eventos…</p>}
+      {isLoading && (
+        <Skeleton variant="table" count={6} label="Cargando eventos…" />
+      )}
 
-      {!isLoading && !error && filtered.length === 0 && (
-        <p className={styles.state}>
-          No hay eventos publicados con estos filtros.
-        </p>
+      {!isLoading && error === null && filtered.length === 0 && (
+        <StateMessage
+          title="No hay eventos publicados con estos filtros"
+          description="Prueba con otra fecha, categoría o zona."
+          action={
+            hasActiveFilters ? (
+              <Button variant="outline" onClick={clearFilters}>
+                Limpiar filtros
+              </Button>
+            ) : undefined
+          }
+        />
       )}
 
       {visible.length > 0 && (

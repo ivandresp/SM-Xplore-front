@@ -5,6 +5,8 @@ import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { EVENT_STATUS_LABELS, EVENT_STATUS_TONES } from '@/config/roles'
 import { eventsApi } from '@/services/eventsApi'
@@ -22,6 +24,7 @@ export default function EventManageDetailPage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (eventId === undefined) {
@@ -31,6 +34,9 @@ export default function EventManageDetailPage() {
     let cancelled = false
 
     async function run() {
+      setIsLoading(true)
+      setError(null)
+
       try {
         const found = await eventsApi.getById(eventId as string)
         if (!cancelled) {
@@ -50,10 +56,16 @@ export default function EventManageDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [eventId])
+  }, [eventId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.state}>Cargando evento…</p>
+    return <Skeleton variant="text" count={4} label="Cargando evento…" />
   }
 
   if (event === null) {
@@ -62,9 +74,12 @@ export default function EventManageDetailPage() {
         <Link to="/app/eventos" className={styles.back}>
           ← Volver a gestión de eventos
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró el evento.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar el evento"
+          description={error ?? 'No se encontró el evento.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </section>
     )
   }

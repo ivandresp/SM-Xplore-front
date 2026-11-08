@@ -4,6 +4,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field, SelectField } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { serviceTypeLabel } from '@/config/roles'
 import { categoriesApi } from '@/services/categoriesApi'
 import { servicesApi } from '@/services/servicesApi'
@@ -37,13 +39,19 @@ export default function ServiceFormPage() {
   const [siteId, setSiteId] = useState('')
 
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoadingCatalogs, setIsLoadingCatalogs] = useState(true)
+  const [catalogError, setCatalogError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   // El formulario necesita los tres catálogos para armar un servicio válido.
   useEffect(() => {
     let cancelled = false
 
     async function load() {
+      setIsLoadingCatalogs(true)
+      setCatalogError(null)
+
       try {
         const [categoryList, zoneList, siteList] = await Promise.all([
           categoriesApi.list(),
@@ -58,8 +66,10 @@ export default function ServiceFormPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setError(describeApiError(cause))
+          setCatalogError(describeApiError(cause))
         }
+      } finally {
+        if (!cancelled) setIsLoadingCatalogs(false)
       }
     }
 
@@ -68,7 +78,13 @@ export default function ServiceFormPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadToken])
+
+  function retryCatalogs() {
+    setIsLoadingCatalogs(true)
+    setCatalogError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   // Un sitio pertenece a una zona: al cambiar de zona se ofrece solo ese subconjunto.
   const siteOptions = sites.filter(
@@ -124,6 +140,26 @@ export default function ServiceFormPage() {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  if (isLoadingCatalogs) {
+    return <Skeleton variant="text" count={6} label="Cargando formulario…" />
+  }
+
+  if (catalogError !== null) {
+    return (
+      <section>
+        <Link to="/app/mis-servicios" className={styles.back}>
+          ← Volver a mis servicios
+        </Link>
+        <StateMessage
+          title="No se pudieron cargar los catálogos"
+          description={catalogError}
+          tone="error"
+          action={<Button onClick={retryCatalogs}>Reintentar</Button>}
+        />
+      </section>
+    )
   }
 
   return (

@@ -4,6 +4,7 @@ import { Button } from '@/components/Button'
 import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   ACTIVITY_STATUS_LABELS,
@@ -22,6 +23,7 @@ export default function MyActivitiesPage() {
   const [activities, setActivities] = useState<ActivityResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   const guideId = user?.id
 
@@ -65,7 +67,13 @@ export default function MyActivitiesPage() {
     return () => {
       cancelled = true
     }
-  }, [guideId])
+  }, [guideId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   const columns: Column<ActivityResponse>[] = [
     {
@@ -132,19 +140,31 @@ export default function MyActivitiesPage() {
       />
 
       {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+        <StateMessage
+          title="No se pudieron cargar tus actividades"
+          description={error}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       )}
 
-      <DataTable
-        columns={columns}
-        rows={activities}
-        rowKey={(activity) => activity.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando tus actividades…"
-        emptyMessage="Todavía no tienes actividades. Crea la primera con “Nueva actividad”."
-      />
+      {error === null && (
+        <DataTable
+          columns={columns}
+          rows={activities}
+          rowKey={(activity) => activity.id}
+          isLoading={isLoading}
+          loadingMessage="Cargando tus actividades…"
+          emptyMessage="Todavía no tienes actividades. Crea la primera con “Nueva actividad”."
+          emptyAction={
+            <Link to="/app/mis-actividades/nueva">
+              <Button variant="outline" size="sm">
+                Nueva actividad
+              </Button>
+            </Link>
+          }
+        />
+      )}
 
       <p className={styles.notice}>
         El backend no expone actividades por guía: aquí se filtran las que

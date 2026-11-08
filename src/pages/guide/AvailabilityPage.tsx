@@ -3,6 +3,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   ACTIVITY_STATUS_LABELS,
@@ -42,6 +44,7 @@ export default function AvailabilityPage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   const guideId = user?.id
 
@@ -86,7 +89,13 @@ export default function AvailabilityPage() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guideId])
+  }, [guideId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   const selected = activities.find((activity) => activity.id === selectedId)
 
@@ -196,7 +205,11 @@ export default function AvailabilityPage() {
   }
 
   if (isLoading) {
-    return <p className={styles.state}>Cargando actividades…</p>
+    return (
+      <section>
+        <Skeleton variant="text" count={5} label="Cargando actividades…" />
+      </section>
+    )
   }
 
   return (
@@ -214,20 +227,37 @@ export default function AvailabilityPage() {
       />
 
       {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+        <StateMessage
+          title={
+            activities.length === 0
+              ? 'No se pudieron cargar tus actividades'
+              : 'No se pudo aplicar el cambio'
+          }
+          description={error}
+          tone="error"
+          action={
+            activities.length === 0 ? (
+              <Button onClick={retry}>Reintentar</Button>
+            ) : undefined
+          }
+        />
       )}
       {feedback !== null && (
         <p className={`${styles.feedback} ${styles.success}`}>{feedback}</p>
       )}
 
       {activities.length === 0 ? (
-        <p className={styles.state}>
-          No tienes actividades todavía.{' '}
-          <Link to="/app/mis-actividades/nueva">Crea la primera</Link> para
-          gestionar su disponibilidad.
-        </p>
+        error === null ? (
+          <StateMessage
+            title="No tienes actividades todavía"
+            description="Crea la primera para gestionar su disponibilidad."
+            action={
+              <Link to="/app/mis-actividades/nueva">
+                <Button variant="outline">Crear actividad</Button>
+              </Link>
+            }
+          />
+        ) : null
       ) : (
         <div className={styles.layout}>
           <div className={styles.card}>

@@ -6,6 +6,7 @@ import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
@@ -100,11 +101,7 @@ export default function MyProfilePage() {
         description="Tu información y preferencias en SM-Xplore."
       />
 
-      {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
-      )}
+      {error !== null && <StateMessage title={error} tone="error" />}
       {feedback !== null && (
         <p className={`${styles.feedback} ${styles.success}`}>{feedback}</p>
       )}

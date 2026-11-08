@@ -4,6 +4,8 @@ import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { activitiesApi } from '@/services/activitiesApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -245,12 +247,6 @@ export default function ExplorePage() {
         }
       />
 
-      {error !== null && (
-        <p className={`${styles.banner} ${styles.error}`} role="alert">
-          {error}
-        </p>
-      )}
-
       <div className={styles.layout}>
         <aside className={styles.filters}>
           <h2 className={styles.filtersTitle}>Filtros</h2>
@@ -363,37 +359,46 @@ export default function ExplorePage() {
 
         <section>
           {isLoading && (
-            <p className={styles.state}>Cargando actividades…</p>
-          )}
-
-          {!isLoading && !error && filtered.length === 0 && (
-            <div className={styles.state}>
-              <p className={styles.stateTitle}>
-                {hasActiveFilters
-                  ? 'No encontramos actividades con esos filtros'
-                  : 'Todavía no hay actividades publicadas'}
-              </p>
-              <p>
-                {hasActiveFilters
-                  ? 'Prueba con otra categoría, zona o atractivo, una fecha anterior o un precio mayor.'
-                  : 'Cuando las gestoras publiquen actividades aparecerán aquí.'}
-              </p>
-              {hasActiveFilters && (
-                <div className={styles.stateActions}>
-                  <Button variant="outline" onClick={clearFilters}>
-                    Limpiar filtros
-                  </Button>
-                </div>
-              )}
-            </div>
+            <Skeleton
+              variant="card"
+              count={6}
+              label="Cargando actividades…"
+            />
           )}
 
           {!isLoading && error !== null && (
-            <div className={styles.stateActions}>
-              <Button variant="accent" onClick={retry}>
-                Reintentar
-              </Button>
-            </div>
+            <StateMessage
+              tone="error"
+              title="No pudimos cargar las actividades"
+              description={error}
+              action={
+                <Button variant="accent" onClick={retry}>
+                  Reintentar
+                </Button>
+              }
+            />
+          )}
+
+          {!isLoading && !error && filtered.length === 0 && (
+            <StateMessage
+              title={
+                hasActiveFilters
+                  ? 'No encontramos actividades con esos filtros'
+                  : 'Todavía no hay actividades publicadas'
+              }
+              description={
+                hasActiveFilters
+                  ? 'Prueba con otra categoría, zona o atractivo, una fecha anterior o un precio mayor.'
+                  : 'Cuando las gestoras publiquen actividades aparecerán aquí.'
+              }
+              action={
+                hasActiveFilters ? (
+                  <Button variant="outline" onClick={clearFilters}>
+                    Limpiar filtros
+                  </Button>
+                ) : undefined
+              }
+            />
           )}
 
           {visible.length > 0 && (

@@ -6,6 +6,7 @@ import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   RESERVATION_STATUS_LABELS,
@@ -180,12 +181,6 @@ export default function ReceivedReservationsPage() {
         }
       />
 
-      {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
-      )}
-
       {role !== 'GUIDE' ? (
         <p className={styles.notice}>
           El API no expone un listado de reservas por prestadora: solo hay
@@ -208,14 +203,23 @@ export default function ReceivedReservationsPage() {
             ))}
           </div>
 
-          <DataTable
-            columns={columns}
-            rows={filtered}
-            rowKey={(row) => row.reservation.id}
-            isLoading={isLoading}
-            loadingMessage="Cargando reservas recibidas…"
-            emptyMessage="No tienes reservas recibidas con estos filtros."
-          />
+          {error !== null ? (
+            <StateMessage
+              title="No se pudieron cargar las reservas recibidas"
+              description={error}
+              tone="error"
+              action={<Button onClick={() => void load()}>Reintentar</Button>}
+            />
+          ) : (
+            <DataTable
+              columns={columns}
+              rows={filtered}
+              rowKey={(row) => row.reservation.id}
+              isLoading={isLoading}
+              loadingMessage="Cargando reservas recibidas…"
+              emptyMessage="No tienes reservas recibidas con estos filtros."
+            />
+          )}
 
           <p className={styles.notice}>
             Datos reales de <code>/reservations/guides/{'{id}'}</code>. La API

@@ -5,6 +5,8 @@ import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   CONTENT_STATUS_LABELS,
@@ -45,6 +47,7 @@ export default function ServiceManagePage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (serviceId === undefined) {
@@ -54,6 +57,9 @@ export default function ServiceManagePage() {
     let cancelled = false
 
     async function run() {
+      setIsLoading(true)
+      setError(null)
+
       try {
         const found = await servicesApi.getById(serviceId as string)
         if (!cancelled) {
@@ -73,10 +79,16 @@ export default function ServiceManagePage() {
     return () => {
       cancelled = true
     }
-  }, [serviceId])
+  }, [serviceId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.state}>Cargando servicio…</p>
+    return <Skeleton variant="text" count={4} label="Cargando servicio…" />
   }
 
   if (service === null) {
@@ -85,9 +97,12 @@ export default function ServiceManagePage() {
         <Link to="/app/mis-servicios" className={styles.back}>
           ← Volver a mis servicios
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró el servicio.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar el servicio"
+          description={error ?? 'No se encontró el servicio.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </section>
     )
   }

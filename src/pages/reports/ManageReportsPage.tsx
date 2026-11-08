@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { REPORT_STATUS_LABELS, REPORT_STATUS_TONES } from '@/config/roles'
 import { securityReportsApi } from '@/services/securityReportsApi'
@@ -27,8 +29,10 @@ export default function ManageReportsPage() {
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
+  const [reloadToken, setReloadToken] = useState(0)
 
-  useEffect(() => {    let cancelled = false
+  useEffect(() => {
+    let cancelled = false
 
     async function run() {
       try {
@@ -38,6 +42,11 @@ export default function ManageReportsPage() {
         )
 
         if (cancelled) return
+
+        const rejections = results.filter((result) => result.status === 'rejected')
+        if (rejections.length === results.length) {
+          throw rejections[0].reason
+        }
 
         const byId = new Map<string, SecurityReportResponse>()
         results.forEach((result) => {
@@ -67,7 +76,13 @@ export default function ManageReportsPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((value) => value + 1)
+  }
 
   const counts = useMemo(() => {
     const map: Record<SecurityReportStatus, number> = {
@@ -135,9 +150,12 @@ export default function ManageReportsPage() {
       />
 
       {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+        <StateMessage
+          title="No se pudieron cargar los reportes"
+          description={error}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       )}
       {feedback !== null && (
         <p className={`${styles.feedback} ${styles.success}`}>{feedback}</p>
@@ -186,10 +204,21 @@ export default function ManageReportsPage() {
         <article className={styles.card}>
           <h2 className={styles.cardTitle}>Reportes recientes</h2>
 
-          {isLoading && <p className={styles.helper}>Cargando reportes…</p>}
+          {isLoading && (
+            <Skeleton variant="table" count={3} label="Cargando reportes…" />
+          )}
 
-          {!isLoading && filtered.length === 0 && (
-            <p className={styles.helper}>No hay reportes en este estado.</p>
+          {!isLoading && error === null && filtered.length === 0 && (
+            <StateMessage
+              title="No hay reportes en este estado."
+              action={
+                filterIndex !== 0 ? (
+                  <Button variant="outline" onClick={() => setFilterIndex(0)}>
+                    Ver todos
+                  </Button>
+                ) : undefined
+              }
+            />
           )}
 
           <div className={styles.recent}>

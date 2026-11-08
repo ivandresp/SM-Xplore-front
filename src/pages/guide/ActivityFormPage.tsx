@@ -24,6 +24,7 @@ export default function ActivityFormPage() {
   const [siteId, setSiteId] = useState('')
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
+  const [isLoadingSites, setIsLoadingSites] = useState(true)
   const [sitesError, setSitesError] = useState<string | null>(null)
   const [price, setPrice] = useState('')
   const [maxCapacity, setMaxCapacity] = useState('')
@@ -45,6 +46,8 @@ export default function ActivityFormPage() {
       ])
 
       if (cancelled) return
+
+      setIsLoadingSites(false)
 
       if (zonesResult.status === 'fulfilled') setZones(zonesResult.value)
       if (sitesResult.status === 'fulfilled') {
@@ -193,9 +196,14 @@ export default function ActivityFormPage() {
                 className={styles.control}
                 required
                 value={siteId}
+                disabled={isLoadingSites}
                 onChange={(event) => setSiteId(event.target.value)}
               >
-                <option value="">Selecciona un atractivo…</option>
+                <option value="">
+                  {isLoadingSites
+                    ? 'Cargando atractivos…'
+                    : 'Selecciona un atractivo…'}
+                </option>
                 {groupedSites.map((group) => (
                   <optgroup key={group.label} label={group.label}>
                     {group.sites.map((site) => (
@@ -209,7 +217,7 @@ export default function ActivityFormPage() {
               {sitesError !== null && (
                 <p className={styles.muted}>{sitesError}</p>
               )}
-              {sitesError === null && sites.length === 0 && (
+              {!isLoadingSites && sitesError === null && sites.length === 0 && (
                 <p className={styles.muted}>
                   Todavía no hay atractivos registrados: una gestora debe
                   crearlos en Zonas.

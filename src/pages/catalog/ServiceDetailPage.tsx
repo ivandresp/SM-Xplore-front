@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   CONTENT_STATUS_LABELS,
@@ -22,6 +24,8 @@ export default function ServiceDetailPage() {
   const [service, setService] = useState<ServiceResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     if (serviceId === undefined) {
@@ -55,10 +59,20 @@ export default function ServiceDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [serviceId])
+  }, [serviceId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((current) => current + 1)
+  }
 
   if (isLoading) {
-    return <p className={styles.page}>Cargando servicio…</p>
+    return (
+      <div className={styles.page}>
+        <Skeleton variant="text" count={6} label="Cargando servicio…" />
+      </div>
+    )
   }
 
   if (service === null) {
@@ -67,9 +81,16 @@ export default function ServiceDetailPage() {
         <Link to="/servicios" className={styles.state}>
           ← Volver al catálogo
         </Link>
-        <p className={`${styles.banner} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró el servicio.'}
-        </p>
+        <StateMessage
+          tone="error"
+          title="No pudimos cargar el servicio"
+          description={error ?? 'No se encontró el servicio.'}
+          action={
+            <Button variant="accent" onClick={retry}>
+              Reintentar
+            </Button>
+          }
+        />
       </div>
     )
   }

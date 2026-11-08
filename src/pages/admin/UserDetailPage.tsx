@@ -5,6 +5,8 @@ import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import { Field, SelectField } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   ACCOUNT_STATUS_LABELS,
@@ -119,6 +121,7 @@ export default function UserDetailPage() {
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [reloadToken, setReloadToken] = useState(0)
 
   const [nextStatus, setNextStatus] = useState<UserStatus>('ACTIVO')
   const [statusReason, setStatusReason] = useState('')
@@ -165,7 +168,13 @@ export default function UserDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [userId])
+  }, [userId, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   async function refresh() {
     if (userId === undefined) {
@@ -197,7 +206,7 @@ export default function UserDetailPage() {
   }
 
   if (isLoading) {
-    return <p className={styles.description}>Cargando usuario…</p>
+    return <Skeleton variant="text" count={4} label="Cargando usuario…" />
   }
 
   if (user === null) {
@@ -206,9 +215,12 @@ export default function UserDetailPage() {
         <Link to="/app/usuarios" className={styles.back}>
           ← Volver al listado
         </Link>
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error ?? 'No se encontró el usuario.'}
-        </p>
+        <StateMessage
+          title="No se pudo cargar el usuario"
+          description={error ?? 'No se encontró el usuario.'}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
       </section>
     )
   }

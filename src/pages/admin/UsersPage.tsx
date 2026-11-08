@@ -8,6 +8,7 @@ import type { Column } from '@/components/DataTable/DataTable'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
+import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
   ACCOUNT_STATUS_LABELS,
@@ -80,6 +81,7 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -131,7 +133,13 @@ export default function UsersPage() {
     return () => {
       cancelled = true
     }
-  }, [role, status, providerStatus, sort, debouncedTerm, page])
+  }, [role, status, providerStatus, sort, debouncedTerm, page, reloadToken])
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
 
   const columns: Column<AdminUserSummary>[] = [
     {
@@ -270,22 +278,32 @@ export default function UsersPage() {
         </select>
       </div>
 
-      {error !== null && (
-        <p className={`${styles.feedback} ${styles.error}`} role="alert">
-          {error}
-        </p>
+      {error !== null ? (
+        <StateMessage
+          title="No se pudieron cargar los usuarios"
+          description={error}
+          tone="error"
+          action={<Button onClick={retry}>Reintentar</Button>}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          rows={users}
+          rowKey={(user) => user.id}
+          isLoading={isLoading}
+          loadingMessage="Cargando usuarios…"
+          emptyMessage="No hay usuarios que coincidan con los filtros."
+          emptyAction={
+            <Button onClick={() => navigate('/app/usuarios/nuevo')}>
+              Crear usuario
+            </Button>
+          }
+        />
       )}
 
-      <DataTable
-        columns={columns}
-        rows={users}
-        rowKey={(user) => user.id}
-        isLoading={isLoading}
-        loadingMessage="Cargando usuarios…"
-        emptyMessage="No hay usuarios que coincidan con los filtros."
-      />
-
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      {error === null && (
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      )}
     </section>
   )
 }

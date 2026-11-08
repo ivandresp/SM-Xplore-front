@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { Button } from '@/components/Button'
 import { navItemsFor } from '@/config/navigation'
 import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
@@ -9,8 +10,9 @@ import styles from './DashboardPage.module.css'
 type BackendState = 'checking' | 'up' | 'down'
 
 /** Comprueba que el backend responda (útil mientras se desarrolla en local). */
-function useBackendHealth(): BackendState {
+function useBackendHealth(): { state: BackendState; retry: () => void } {
   const [state, setState] = useState<BackendState>('checking')
+  const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -33,14 +35,19 @@ function useBackendHealth(): BackendState {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [reloadToken])
 
-  return state
+  function retry() {
+    setState('checking')
+    setReloadToken((token) => token + 1)
+  }
+
+  return { state, retry }
 }
 
 export default function DashboardPage() {
   const { user } = useAuth()
-  const backend = useBackendHealth()
+  const { state: backend, retry: retryBackend } = useBackendHealth()
 
   if (user === null) {
     return null
@@ -82,9 +89,14 @@ export default function DashboardPage() {
             <span className={styles.healthUp}>conectado</span>
           )}
           {backend === 'down' && (
-            <span className={styles.healthDown}>
-              sin conexión (http://localhost:8080)
-            </span>
+            <>
+              <span className={styles.healthDown}>
+                sin conexión (http://localhost:8080)
+              </span>{' '}
+              <Button variant="outline" size="sm" onClick={retryBackend}>
+                Reintentar
+              </Button>
+            </>
           )}
         </span>
       </div>

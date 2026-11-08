@@ -3,6 +3,13 @@ import { loadToken, notifyUnauthorized } from './authToken'
 
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? '/api/v1'
 
+/**
+ * El backend tarda hasta 60 s en la primera escritura de ms-04 o el primer
+ * listado de ms-02: el margen debe cubrir esa latencia conocida.
+ */
+const READ_TIMEOUT_MS = 45_000
+const WRITE_TIMEOUT_MS = 90_000
+
 /** Parámetros de query string; los valores vacíos se omiten. */
 export type QueryParams = Record<
   string,
@@ -12,6 +19,23 @@ export type QueryParams = Record<
 export interface RequestOptions extends Omit<RequestInit, 'body'> {
   body?: unknown
   query?: QueryParams
+  /** Milisegundos antes de abortar. Por defecto 45 s en lectura y 90 s en escritura. */
+  timeoutMs?: number
+}
+
+/** El servidor no respondió dentro del plazo: no es un fallo de red. */
+export class RequestTimeoutError extends Error {
+  readonly timeoutMs: number
+
+  constructor(timeoutMs: number) {
+    super(`La petición superó ${timeoutMs} ms`)
+    this.name = 'RequestTimeoutError'
+    this.timeoutMs = timeoutMs
+  }
+}
+
+export function isRequestTimeout(error: unknown): error is RequestTimeoutError {
+  return error instanceof RequestTimeoutError
 }
 
 /** Error de la API con el código HTTP y el `ProblemDetail` del backend. */
@@ -74,7 +98,7 @@ async function toApiError(response: Response): Promise<ApiError> {
 
 async function request<T>(
   path: string,
-  { body, query, headers: rawHeaders, ...rest }: RequestOptions = {},
+  { body, query, headers: rawHeaders, timeoutMs, ...rest }: RequestOptions = {},
 ): Promise<T> {
   const headers = new Headers(rawHeaders)
   if (body !== undefined && !headers.has('Content-Type')) {
@@ -83,6 +107,25 @@ async function request<T>(
 
   const url = `${BASE_URL}${path}${buildQuery(query)}`
   const payload = body === undefined ? undefined : JSON.stringify(body)
+  const method = (rest.method ?? 'GET').toUpperCase()
+  const effectiveTimeout =
+    timeoutMs ??
+    (method === 'GET' || method === 'HEAD'
+      ? READ_TIMEOUT_MS
+      : WRITE_TIMEOUT_MS)
+
+  const controller = new AbortController()
+  const callerSignal = rest.signal
+  if (callerSignal !== null && callerSignal !== undefined) {
+    if (callerSignal.aborted) {
+      controller.abort()
+    } else {
+      callerSignal.addEventListener('abort', () => controller.abort(), {
+        once: true,
+      })
+    }
+  }
+  const timer = setTimeout(() => controller.abort(), effectiveTimeout)
 
   function send(token: string | null): Promise<Response> {
     const attemptHeaders = new Headers(headers)
@@ -90,31 +133,46 @@ async function request<T>(
       attemptHeaders.set('Authorization', `Bearer ${token}`)
     }
 
-    return fetch(url, { ...rest, headers: attemptHeaders, body: payload })
+    return fetch(url, {
+      ...rest,
+      headers: attemptHeaders,
+      body: payload,
+      signal: controller.signal,
+    })
   }
 
-  const token = loadToken()
-  let response = await send(token)
+  try {
+    const token = loadToken()
+    let response = await send(token)
 
-  if (response.status === 401 && token !== null) {
-    // La sesión ya no sirve (expirada o revocada).
-    notifyUnauthorized()
+    if (response.status === 401 && token !== null) {
+      // La sesión ya no sirve (expirada o revocada).
+      notifyUnauthorized()
 
-    // Varios endpoints responden también sin token: se reintenta anónimo
-    // antes de dar el 401 por perdido.
-    response = await send(null)
+      // Varios endpoints responden también sin token: se reintenta anónimo
+      // antes de dar el 401 por perdido.
+      response = await send(null)
+    }
+
+    if (!response.ok) {
+      throw await toApiError(response)
+    }
+
+    if (response.status === 204) {
+      return undefined as T
+    }
+
+    const text = await response.text()
+    return text === '' ? (undefined as T) : (JSON.parse(text) as T)
+  } catch (cause) {
+    if (controller.signal.aborted && callerSignal?.aborted !== true) {
+      throw new RequestTimeoutError(effectiveTimeout)
+    }
+
+    throw cause
+  } finally {
+    clearTimeout(timer)
   }
-
-  if (!response.ok) {
-    throw await toApiError(response)
-  }
-
-  if (response.status === 204) {
-    return undefined as T
-  }
-
-  const text = await response.text()
-  return text === '' ? (undefined as T) : (JSON.parse(text) as T)
 }
 
 export const httpClient = {
