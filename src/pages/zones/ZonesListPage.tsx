@@ -37,7 +37,7 @@ export default function ZonesListPage() {
       try {
         const [zoneList, siteList] = await Promise.all([
           zonesApi.list(),
-          sitesApi.list(),
+          sitesApi.list().then((page) => page.content),
         ])
 
         if (!cancelled) {

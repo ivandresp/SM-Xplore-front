@@ -40,7 +40,9 @@ export default function MyServicesPage() {
       setError(null)
 
       try {
-        const mine = await servicesApi.list({ providerId: providerId as string })
+        const mine = await servicesApi
+          .list({ providerId: providerId as string })
+          .then((page) => page.content)
         if (!cancelled) {
           setServices(mine)
           setError(null)

@@ -57,10 +57,9 @@ export default function AvailabilityPage() {
 
     async function run() {
       try {
-        const all = await activitiesApi.list()
+        const mine = (await activitiesApi.list({ guideId })).content
         if (cancelled) return
 
-        const mine = all.filter((activity) => activity.guideId === guideId)
         setActivities(mine)
 
         const requested = searchParams.get('id')

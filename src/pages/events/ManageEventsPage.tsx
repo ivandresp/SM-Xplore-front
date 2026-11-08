@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { EVENT_STATUS_LABELS, EVENT_STATUS_TONES } from '@/config/roles'
+import { useAuth } from '@/hooks/useAuth'
 import { eventsApi } from '@/services/eventsApi'
 import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDateTime } from '@/utils/format'
@@ -14,6 +15,8 @@ import type { EventResponse } from '@/types'
 import styles from './events.module.css'
 
 export default function ManageEventsPage() {
+  const { user } = useAuth()
+  const managerId = user?.role === 'DESTINATION_MANAGER' ? user.id : undefined
   const [events, setEvents] = useState<EventResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -27,10 +30,11 @@ export default function ManageEventsPage() {
       setError(null)
 
       try {
-        const all = await eventsApi.list()
+        // La gestora ve todos sus eventos, publicados o no; el admin, los publicados.
+        const page = await eventsApi.list({ managerId })
         if (!cancelled) {
           setEvents(
-            [...all].sort(
+            [...page.content].sort(
               (a, b) =>
                 new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
             ),
@@ -52,7 +56,7 @@ export default function ManageEventsPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, managerId])
 
   function retry() {
     setIsLoading(true)

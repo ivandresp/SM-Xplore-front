@@ -44,12 +44,11 @@ export default function GuideProfilePage() {
         }
         setGuide(found)
 
-        // Las actividades del guía se filtran del listado completo:
-        // el backend no expone un endpoint por guía.
+        // El catálogo público solo recibe las publicadas de ese guía.
         try {
-          const all = await activitiesApi.list()
+          const page = await activitiesApi.list({ guideId })
           if (!cancelled) {
-            setActivities(all.filter((activity) => activity.guideId === guideId))
+            setActivities(page.content)
           }
         } catch {
           if (!cancelled) setActivities([])

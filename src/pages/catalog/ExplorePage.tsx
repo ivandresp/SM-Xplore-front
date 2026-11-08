@@ -51,9 +51,9 @@ export default function ExplorePage() {
       try {
         const [activitiesResult, zonesResult, sitesResult] =
           await Promise.allSettled([
-            activitiesApi.list(),
+            activitiesApi.list().then((page) => page.content),
             zonesApi.list(),
-            sitesApi.list(),
+            sitesApi.list().then((page) => page.content),
           ])
 
         if (activitiesResult.status === 'rejected') {

@@ -51,7 +51,8 @@ describe('servicesApi', () => {
     )
     vi.stubGlobal('fetch', fetchStub)
 
-    const [result] = await servicesApi.list({ status: 'PUBLISHED' })
+    const { content } = await servicesApi.list({ status: 'PUBLISHED' })
+    const [result] = content
 
     expect(result.id).toBe('sv1')
     expect(result.providerName).toBe('Kayak Santa Marta')

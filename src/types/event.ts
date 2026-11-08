@@ -38,3 +38,23 @@ export interface EstimateAttendanceRequest {
 export interface EventSearchFilters {
   name: string
 }
+
+/**
+ * Filtros de `GET /api/v1/events`. Los eventos no tienen `guideId`: su dueño
+ * de registro es la gestora (`managerId`).
+ */
+export interface EventListFilters {
+  search?: string
+  status?: EventStatus
+  category?: string
+  siteId?: string
+  managerId?: string
+  priceMin?: number
+  priceMax?: number
+  /** ISO-8601, límite inferior inclusivo sobre `startsAt`. */
+  startsAfter?: string
+  /** ISO-8601, límite superior inclusivo sobre `startsAt`. */
+  startsBefore?: string
+  page?: number
+  size?: number
+}

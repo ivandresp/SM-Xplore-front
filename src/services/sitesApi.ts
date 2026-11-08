@@ -2,7 +2,14 @@ import { z } from 'zod'
 import { httpClient } from './httpClient'
 import { pageSchema, parseResponse } from './validate'
 import { MAX_PAGE_SIZE } from '@/types/common'
-import type { ContentStatus, Site, SiteInput, SiteUpdateInput } from '@/types'
+import type {
+  ContentStatus,
+  PageResponse,
+  Site,
+  SiteInput,
+  SiteListFilters,
+  SiteUpdateInput,
+} from '@/types'
 
 /** Contrato de `SiteResponse` (ms-04). */
 const siteSchema = z.object({
@@ -24,6 +31,8 @@ const siteSchema = z.object({
   createdAt: z.string(),
   updatedAt: z.string(),
 })
+
+const sitePageSchema = pageSchema(siteSchema)
 
 type SiteResponse = z.infer<typeof siteSchema>
 
@@ -51,20 +60,26 @@ function toBody(input: SiteInput | SiteUpdateInput) {
 /**
  * Sitios (atractivos) turísticos - `/api/v1/sites` (ms-04).
  *
- * Cada sitio pertenece a una zona (`zoneId`). Listar requiere sesión.
+ * Cada sitio pertenece a una zona (`zoneId`). La lectura es pública.
  */
 export const sitesApi = {
-  /**
-   * `GET /api/v1/sites[?zoneId=]` - primera página de 100.
-   * shortcut: misma razón que en `activitiesApi.list`; paginar en servidor si
-   * llega a haber más de 100 atractivos.
-   */
-  list: async (zoneId?: string): Promise<Site[]> => {
+  /** `GET /api/v1/sites` con `search`, `status`, `categoryId`, `zoneId` y `managerId`. */
+  list: async (
+    filters: SiteListFilters = {},
+  ): Promise<PageResponse<Site>> => {
     const payload = await httpClient.get<unknown>('/sites', {
-      query: { zoneId, page: 0, size: MAX_PAGE_SIZE },
+      query: {
+        search: filters.search?.trim(),
+        status: filters.status,
+        categoryId: filters.categoryId,
+        zoneId: filters.zoneId,
+        managerId: filters.managerId,
+        page: filters.page ?? 0,
+        size: filters.size ?? MAX_PAGE_SIZE,
+      },
     })
-    const page = parseResponse(pageSchema(siteSchema), payload, 'GET /sites')
-    return page.content.map(toSite)
+    const page = parseResponse(sitePageSchema, payload, 'GET /sites')
+    return { ...page, content: page.content.map(toSite) }
   },
 
   /** `GET /api/v1/sites/{siteId}` */

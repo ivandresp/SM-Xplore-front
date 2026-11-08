@@ -36,17 +36,15 @@ export default function MyActivitiesPage() {
 
     async function run() {
       try {
-        // El backend no tiene endpoint por guía: se filtra el listado.
-        const all = await activitiesApi.list()
+        // El backend filtra por guía y devuelve también los borradores propios.
+        const mine = (await activitiesApi.list({ guideId })).content
         if (!cancelled) {
           setActivities(
-            all
-              .filter((activity) => activity.guideId === guideId)
-              .sort(
-                (a, b) =>
-                  new Date(a.startsAt).getTime() -
-                  new Date(b.startsAt).getTime(),
-              ),
+            [...mine].sort(
+              (a, b) =>
+                new Date(a.startsAt).getTime() -
+                new Date(b.startsAt).getTime(),
+            ),
           )
           setError(null)
         }

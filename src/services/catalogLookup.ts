@@ -16,8 +16,8 @@ export interface CatalogEntry {
  */
 export async function loadCatalogLookup(): Promise<Map<string, CatalogEntry>> {
   const [activities, events] = await Promise.allSettled([
-    activitiesApi.list(),
-    eventsApi.list(),
+    activitiesApi.list().then((page) => page.content),
+    eventsApi.list().then((page) => page.content),
   ])
 
   const lookup = new Map<string, CatalogEntry>()

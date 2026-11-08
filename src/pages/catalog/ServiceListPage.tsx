@@ -48,7 +48,9 @@ export default function ServiceListPage() {
     async function run() {
       try {
         // El catálogo público solo muestra servicios disponibles.
-        const found = await servicesApi.list({ status: 'PUBLISHED' })
+        const found = await servicesApi.list({ status: 'PUBLISHED' }).then(
+          (page) => page.content,
+        )
 
         if (!cancelled) {
           setServices(found)

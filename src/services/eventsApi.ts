@@ -5,6 +5,7 @@ import { MAX_PAGE_SIZE } from '@/types/common'
 import type {
   ChangeEventStatusRequest,
   EstimateAttendanceRequest,
+  EventListFilters,
   EventRequest,
   EventResponse,
   EventSearchFilters,
@@ -29,7 +30,9 @@ const eventSchema = z.object({
 
 const eventPageSchema = pageSchema(eventSchema)
 
-function toEvent(response: z.infer<typeof eventSchema>): EventResponse {
+type EventWire = z.infer<typeof eventSchema>
+
+function toEvent(response: EventWire): EventResponse {
   return {
     id: response.id,
     siteId: response.siteId,
@@ -46,16 +49,18 @@ function toEvent(response: z.infer<typeof eventSchema>): EventResponse {
   }
 }
 
-async function listPage(path: string, query: Record<string, string | number>) {
-  const page = await httpClient.get<unknown>(path, { query })
-
-  const parsed = parseResponse<PageResponse<z.infer<typeof eventSchema>>>(
+async function fetchPage(
+  path: string,
+  query: Record<string, string | number | undefined>,
+): Promise<PageResponse<EventResponse>> {
+  const payload = await httpClient.get<unknown>(path, { query })
+  const parsed = parseResponse<PageResponse<EventWire>>(
     eventPageSchema,
-    page,
+    payload,
     `GET ${path}`,
   )
 
-  return parsed.content.map(toEvent)
+  return { ...parsed, content: parsed.content.map(toEvent) }
 }
 
 export const eventsApi = {
@@ -66,8 +71,24 @@ export const eventsApi = {
     return toEvent(parseResponse(eventSchema, created, 'POST /events'))
   },
 
-  /** `GET /api/v1/events` — página de eventos. */
-  list: () => listPage('/events', { page: 0, size: MAX_PAGE_SIZE }),
+  /**
+   * `GET /api/v1/events` con los filtros resueltos en el backend
+   * (`search`, `status`, `category`, `siteId`, `managerId`, precio y fechas).
+   */
+  list: (filters: EventListFilters = {}) =>
+    fetchPage('/events', {
+      search: filters.search?.trim(),
+      status: filters.status,
+      category: filters.category,
+      siteId: filters.siteId,
+      managerId: filters.managerId,
+      priceMin: filters.priceMin,
+      priceMax: filters.priceMax,
+      startsAfter: filters.startsAfter,
+      startsBefore: filters.startsBefore,
+      page: filters.page ?? 0,
+      size: filters.size ?? MAX_PAGE_SIZE,
+    }),
 
   /** `GET /api/v1/events/{eventId}` */
   getById: async (eventId: string) => {
@@ -78,18 +99,15 @@ export const eventsApi = {
 
   /** `GET /api/v1/events/search` — `name` es obligatorio. */
   search: ({ name }: EventSearchFilters) =>
-    listPage('/events/search', { name, page: 0, size: MAX_PAGE_SIZE }),
+    fetchPage('/events/search', { name, page: 0, size: MAX_PAGE_SIZE }).then(
+      (page) => page.content,
+    ),
 
-  /**
-   * Eventos de un atractivo. El backend no tiene endpoint por sitio:
-   * se filtra en cliente sobre la página de eventos.
-   * shortcut: solo alcanza los primeros 100 eventos, filtrar en servidor cuando haya endpoint.
-   */
-  listBySite: async (siteId: string) => {
-    const events = await listPage('/events', { page: 0, size: MAX_PAGE_SIZE })
-
-    return events.filter((event) => event.siteId === siteId)
-  },
+  /** Eventos de un atractivo, filtrados por el backend. */
+  listBySite: (siteId: string) =>
+    fetchPage('/events', { siteId, page: 0, size: MAX_PAGE_SIZE }).then(
+      (page) => page.content,
+    ),
 
   /** `PATCH /api/v1/events/{eventId}/status` — transiciones validadas en el dominio. */
   changeStatus: async (

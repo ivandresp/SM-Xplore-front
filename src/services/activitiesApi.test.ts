@@ -42,11 +42,51 @@ describe('activitiesApi', () => {
 
     const result = await activitiesApi.list()
 
-    expect(result).toEqual([activity])
+    expect(result.content).toEqual([activity])
+    expect(result.total).toBe(1)
     const url = fetchStub.mock.calls[0][0]
     expect(url).toContain('/activities?')
     expect(url).toContain('page=0')
     expect(url).toContain('size=100')
+  })
+
+  it('manda los filtros de servidor en la query', async () => {
+    const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({
+        content: [],
+        page: 0,
+        size: 12,
+        total: 0,
+        totalPages: 0,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchStub)
+
+    await activitiesApi.list({
+      search: ' bahia ',
+      status: 'PUBLISHED',
+      category: 'Aventura',
+      siteId: 's1',
+      guideId: 'g1',
+      priceMin: 10000,
+      priceMax: 80000,
+      startsAfter: '2026-11-01T00:00:00Z',
+      startsBefore: '2026-12-01T00:00:00Z',
+      page: 2,
+      size: 12,
+    })
+
+    const url = fetchStub.mock.calls[0][0]
+    expect(url).toContain('search=bahia')
+    expect(url).toContain('status=PUBLISHED')
+    expect(url).toContain('category=Aventura')
+    expect(url).toContain('siteId=s1')
+    expect(url).toContain('guideId=g1')
+    expect(url).toContain('priceMin=10000')
+    expect(url).toContain('priceMax=80000')
+    expect(url).toContain('startsAfter=2026-11-01T00%3A00%3A00Z')
+    expect(url).toContain('page=2')
+    expect(url).toContain('size=12')
   })
 
   it('falla en voz alta si el backend deja de paginar', async () => {

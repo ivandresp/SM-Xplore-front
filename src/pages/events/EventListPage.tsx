@@ -61,9 +61,9 @@ export default function EventListPage() {
       try {
         const [eventsResult, zonesResult, sitesResult] =
           await Promise.allSettled([
-            eventsApi.list(),
+            eventsApi.list().then((page) => page.content),
             zonesApi.list(),
-            sitesApi.list(),
+            sitesApi.list().then((page) => page.content),
           ])
 
         if (eventsResult.status === 'rejected') {

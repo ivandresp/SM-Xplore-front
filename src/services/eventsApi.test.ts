@@ -42,12 +42,49 @@ describe('eventsApi', () => {
 
     const result = await eventsApi.list()
 
-    expect(result).toHaveLength(1)
-    expect(result[0].siteName).toBe('Playa El Rodadero')
+    expect(result.content).toHaveLength(1)
+    expect(result.content[0].siteName).toBe('Playa El Rodadero')
+    expect(result.total).toBe(1)
 
     const url = fetchStub.mock.calls[0][0]
     expect(url).toContain('/events?')
     expect(url).toContain('size=100')
+  })
+
+  it('manda los filtros de servidor en la query', async () => {
+    const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({
+        content: [],
+        page: 0,
+        size: 12,
+        total: 0,
+        totalPages: 0,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchStub)
+
+    await eventsApi.list({
+      search: '  bahía ',
+      status: 'PUBLISHED',
+      category: 'Música',
+      siteId: 's1',
+      managerId: 'm1',
+      priceMin: 0,
+      priceMax: 90000,
+      page: 1,
+      size: 12,
+    })
+
+    const url = fetchStub.mock.calls[0][0]
+    expect(url).toContain('search=bah%C3%ADa')
+    expect(url).toContain('status=PUBLISHED')
+    expect(url).toContain('category=M%C3%BAsica')
+    expect(url).toContain('siteId=s1')
+    expect(url).toContain('managerId=m1')
+    expect(url).toContain('priceMin=0')
+    expect(url).toContain('priceMax=90000')
+    expect(url).toContain('page=1')
+    expect(url).toContain('size=12')
   })
 
   it('crea con POST /events', async () => {
@@ -72,22 +109,21 @@ describe('eventsApi', () => {
     expect(init?.method).toBe('POST')
   })
 
-  it('filtra por atractivo en cliente porque no hay endpoint por sitio', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        jsonResponse({
-          content: [event, { ...event, id: 'e2', siteId: 's2' }],
-          page: 0,
-          size: 100,
-          total: 2,
-          totalPages: 1,
-        }),
-      ),
+  it('filtra por atractivo en el servidor', async () => {
+    const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({
+        content: [event],
+        page: 0,
+        size: 100,
+        total: 1,
+        totalPages: 1,
+      }),
     )
+    vi.stubGlobal('fetch', fetchStub)
 
     const result = await eventsApi.listBySite('s1')
 
     expect(result.map((item) => item.id)).toEqual(['e1'])
+    expect(fetchStub.mock.calls[0][0]).toContain('siteId=s1')
   })
 })

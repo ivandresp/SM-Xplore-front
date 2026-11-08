@@ -101,7 +101,7 @@ export default function ZoneFormPage() {
       try {
         const [found, foundSites, foundCategories] = await Promise.all([
           zonesApi.getById(zoneId as string),
-          sitesApi.list(zoneId as string),
+          sitesApi.list({ zoneId: zoneId as string }).then((page) => page.content),
           categoriesApi.list('SITE'),
         ])
 

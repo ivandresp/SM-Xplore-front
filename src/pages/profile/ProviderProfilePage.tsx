@@ -44,7 +44,9 @@ export default function ProviderProfilePage() {
         setProvider(found)
 
         try {
-          const offered = await servicesApi.list({ providerId: providerId as string })
+          const offered = await servicesApi
+            .list({ providerId: providerId as string })
+            .then((page) => page.content)
           if (!cancelled) setServices(offered)
         } catch {
           if (!cancelled) setServices([])

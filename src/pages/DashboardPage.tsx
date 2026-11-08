@@ -356,14 +356,12 @@ function TouristDashboard({ user }: { user: TouristUser }) {
 
 function GuideDashboard({ user }: { user: GuideUser }) {
   const activities = useLoad(`guide-activities:${user.id}`, () =>
-    // El backend no expone actividades por guía: se filtra el listado.
-    activitiesApi.list().then((all) =>
-      all
-        .filter((activity) => activity.guideId === user.id)
-        .sort(
-          (a, b) =>
-            new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
-        ),
+    // El backend ya filtra por guía y devuelve también los borradores propios.
+    activitiesApi.list({ guideId: user.id, size: MAX_PAGE_SIZE }).then((page) =>
+      [...page.content].sort(
+        (a, b) =>
+          new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+      ),
     ),
   )
 
@@ -455,7 +453,9 @@ function GuideDashboard({ user }: { user: GuideUser }) {
 
 function ProviderDashboard({ user }: { user: ProviderUser }) {
   const services = useLoad(`provider-services:${user.id}`, () =>
-    servicesApi.list({ providerId: user.id, size: MAX_PAGE_SIZE }),
+    servicesApi
+      .list({ providerId: user.id, size: MAX_PAGE_SIZE })
+      .then((page) => page.content),
   )
 
   return (
@@ -542,7 +542,7 @@ function ManagerDashboard() {
 
   const catalog = useLoad('manager-catalog', async () => {
     const [zones, sites] = await Promise.all([zonesApi.list(), sitesApi.list()])
-    return { zones: zones.length, sites: sites.length }
+    return { zones: zones.length, sites: sites.content.length }
   })
 
   return (

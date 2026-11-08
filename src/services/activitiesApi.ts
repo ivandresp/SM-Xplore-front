@@ -3,6 +3,7 @@ import { httpClient } from './httpClient'
 import { pageSchema, parseResponse } from './validate'
 import { MAX_PAGE_SIZE } from '@/types/common'
 import type {
+  ActivityListFilters,
   ActivityRequest,
   ActivityResponse,
   ActivitySearchFilters,
@@ -31,7 +32,8 @@ const activitySchema = z.object({
 
 const activityPageSchema = pageSchema(activitySchema)
 
-async function listPage(
+/** `GET /api/v1/activities` y sus variantes devuelven la página completa. */
+async function fetchPage(
   path: string,
   query: Record<string, string | number | undefined>,
   label: string,
@@ -46,14 +48,26 @@ export const activitiesApi = {
     httpClient.post<ActivityResponse>('/activities', payload),
 
   /**
-   * `GET /api/v1/activities` - primera página de 100.
-   * shortcut: el catálogo filtra por precio y fecha en cliente y el API no acepta
-   * esos filtros; se trae una sola página acotada. Paginar en servidor cuando el
-   * catálogo pase de 100 actividades.
+   * `GET /api/v1/activities` con los filtros resueltos en el backend
+   * (`search`, `status`, `category`, `siteId`, `guideId`, precio y fechas).
    */
-  list: () =>
-    listPage('/activities', { page: 0, size: MAX_PAGE_SIZE }, 'GET /activities').then(
-      (page) => page.content,
+  list: (filters: ActivityListFilters = {}) =>
+    fetchPage(
+      '/activities',
+      {
+        search: filters.search?.trim(),
+        status: filters.status,
+        category: filters.category,
+        siteId: filters.siteId,
+        guideId: filters.guideId,
+        priceMin: filters.priceMin,
+        priceMax: filters.priceMax,
+        startsAfter: filters.startsAfter,
+        startsBefore: filters.startsBefore,
+        page: filters.page ?? 0,
+        size: filters.size ?? MAX_PAGE_SIZE,
+      },
+      'GET /activities',
     ),
 
   /** `GET /api/v1/activities/{activityId}` */
@@ -62,7 +76,7 @@ export const activitiesApi = {
 
   /** `GET /api/v1/activities/search` - `category` es obligatorio. */
   search: ({ category }: ActivitySearchFilters) =>
-    listPage(
+    fetchPage(
       '/activities/search',
       { category, page: 0, size: MAX_PAGE_SIZE },
       'GET /activities/search',
@@ -70,7 +84,7 @@ export const activitiesApi = {
 
   /** `GET /api/v1/activities/site/{siteId}` */
   listBySite: (siteId: string) =>
-    listPage(
+    fetchPage(
       `/activities/site/${siteId}`,
       { page: 0, size: MAX_PAGE_SIZE },
       'GET /activities/site/{siteId}',

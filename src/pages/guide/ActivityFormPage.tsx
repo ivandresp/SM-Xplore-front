@@ -42,7 +42,7 @@ export default function ActivityFormPage() {
     async function run() {
       const [zonesResult, sitesResult] = await Promise.allSettled([
         zonesApi.list(),
-        sitesApi.list(),
+        sitesApi.list().then((page) => page.content),
       ])
 
       if (cancelled) return

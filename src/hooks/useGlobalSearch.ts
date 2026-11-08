@@ -123,12 +123,13 @@ interface SearchOutcome {
 let catalogCache: Promise<[ActivityResponse[], Site[]]> | null = null
 
 function loadCatalog(): Promise<[ActivityResponse[], Site[]]> {
-  catalogCache ??= Promise.all([activitiesApi.list(), sitesApi.list()]).catch(
-    (error: unknown) => {
-      catalogCache = null
-      throw error
-    },
-  )
+  catalogCache ??= Promise.all([
+    activitiesApi.list().then((page) => page.content),
+    sitesApi.list().then((page) => page.content),
+  ]).catch((error: unknown) => {
+    catalogCache = null
+    throw error
+  })
 
   return catalogCache
 }
@@ -142,7 +143,7 @@ async function searchEverything(
     loadCatalog().then(([activities]) => activities),
     eventsApi.search({ name: raw }),
     loadCatalog().then(([, sites]) => sites),
-    servicesApi.list({ search: raw }),
+    servicesApi.list({ search: raw }).then((page) => page.content),
   ])
 
   const [activities, events, sites, services] = settled

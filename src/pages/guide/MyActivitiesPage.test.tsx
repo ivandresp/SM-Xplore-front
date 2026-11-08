@@ -20,13 +20,6 @@ const ACTIVITY = {
   description: null,
 }
 
-const OTHER_GUIDE_ACTIVITY = {
-  ...ACTIVITY,
-  id: 'a-2',
-  guideId: 'u-9',
-  name: 'Caminata de otro guía',
-}
-
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -91,13 +84,12 @@ describe('MyActivitiesPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('lista solo las actividades del guía autenticado', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        jsonResponse(page([ACTIVITY, OTHER_GUIDE_ACTIVITY])),
-      ),
-    )
+  it('pide al servidor solo las actividades del guía autenticado', async () => {
+    const fetchStub = vi.fn(async (url: string) => {
+      expect(url).toContain('guideId=u-1')
+      return jsonResponse(page([ACTIVITY]))
+    })
+    vi.stubGlobal('fetch', fetchStub)
 
     renderActivities()
 

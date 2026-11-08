@@ -31,7 +31,7 @@ export default function SiteListPage() {
     async function run() {
       try {
         const [sitesResult, zonesResult] = await Promise.allSettled([
-          sitesApi.list(),
+          sitesApi.list().then((page) => page.content),
           zonesApi.list(),
         ])
 

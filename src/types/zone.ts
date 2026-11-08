@@ -33,6 +33,17 @@ export interface SiteInput {
   photoUrls?: string[]
 }
 
+/** Filtros de `GET /api/v1/sites` (ms-04): todos opcionales. */
+export interface SiteListFilters {
+  search?: string
+  status?: ContentStatus
+  categoryId?: string
+  zoneId?: string
+  managerId?: string
+  page?: number
+  size?: number
+}
+
 /**
  * Edición de un sitio (`PATCH /sites/{id}`): el backend valida el recurso
  * completo, así que se reenvían categoría, zona y capacidad aunque no cambien.

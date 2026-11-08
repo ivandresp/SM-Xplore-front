@@ -55,3 +55,20 @@ export interface ChangeActivityStatusRequest {
 export interface ActivitySearchFilters {
   category: string
 }
+
+/** Filtros de `GET /api/v1/activities`: todos opcionales y resueltos en servidor. */
+export interface ActivityListFilters {
+  search?: string
+  status?: ActivityStatus
+  category?: string
+  siteId?: string
+  guideId?: string
+  priceMin?: number
+  priceMax?: number
+  /** ISO-8601, límite inferior inclusivo sobre `startsAt`. */
+  startsAfter?: string
+  /** ISO-8601, límite superior inclusivo sobre `startsAt`. */
+  startsBefore?: string
+  page?: number
+  size?: number
+}

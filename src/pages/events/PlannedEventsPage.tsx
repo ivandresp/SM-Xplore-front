@@ -43,14 +43,14 @@ export default function PlannedEventsPage() {
 
     async function run() {
       try {
-        const [reservations, events] = await Promise.all([
+        const [reservations, eventsPage] = await Promise.all([
           reservationsApi.listByTourist(touristId as string, 200),
           eventsApi.list(),
         ])
 
         if (cancelled) return
 
-        const byId = new Map(events.map((event) => [event.id, event]))
+        const byId = new Map(eventsPage.content.map((event) => [event.id, event]))
         const list: PlannedEvent[] = []
 
         // La reserva guarda un solo ítem: se filtra por tipo, no se piden ítems aparte.

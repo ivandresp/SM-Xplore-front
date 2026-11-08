@@ -66,7 +66,7 @@ function toService(response: z.infer<typeof serviceSchema>): ServiceResponse {
 
 /** Servicios turísticos ofrecidos por las prestadoras (alojamiento, transporte, alimentación). */
 export const servicesApi = {
-  /** `GET /api/v1/services` — todos los filtros son opcionales. */
+  /** `GET /api/v1/services` — todos los filtros son opcionales y los aplica el backend. */
   list: async (filters: ServiceListFilters = {}) => {
     const page = await httpClient.get<unknown>('/services', {
       query: {
@@ -76,7 +76,7 @@ export const servicesApi = {
         providerId: filters.providerId,
         status: filters.status,
         type: filters.type,
-        search: filters.search,
+        search: filters.search?.trim(),
         page: filters.page ?? 0,
         size: filters.size ?? MAX_PAGE_SIZE,
       },
@@ -88,7 +88,7 @@ export const servicesApi = {
       'GET /services',
     )
 
-    return parsed.content.map(toService)
+    return { ...parsed, content: parsed.content.map(toService) }
   },
 
   /** `GET /api/v1/services/{serviceId}` */

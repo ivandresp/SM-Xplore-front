@@ -56,7 +56,7 @@ export default function ServiceFormPage() {
         const [categoryList, zoneList, siteList] = await Promise.all([
           categoriesApi.list(),
           zonesApi.list(),
-          sitesApi.list(),
+          sitesApi.list().then((page) => page.content),
         ])
 
         if (!cancelled) {
