@@ -51,6 +51,24 @@ test.describe('catálogo con filtros', () => {
   })
 })
 
+test.describe('servicios con filtro de precio', () => {
+  test('el precio máximo vive en la URL y el chip lo quita', async ({
+    page,
+  }) => {
+    await page.goto('/servicios?precioMax=100000')
+
+    await expect(page.getByRole('status').first()).toContainText('resultado')
+
+    const chip = page.getByRole('button', { name: /Quitar filtro Precio/ })
+    await expect(chip).toBeVisible()
+
+    await chip.click()
+
+    await expect(page).not.toHaveURL(/precioMax=/)
+    await expect(chip).toHaveCount(0)
+  })
+})
+
 test.describe('catálogo responsive', () => {
   for (const width of [375, 768, 1280]) {
     test(`sin desbordes horizontales a ${width}px`, async ({ page }) => {

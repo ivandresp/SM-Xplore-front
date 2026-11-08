@@ -65,6 +65,19 @@ describe('servicesApi', () => {
     expect(url).toContain('size=100')
   })
 
+  it('manda el rango de precio en la query string', async () => {
+    const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({ content: [], page: 0, size: 100, total: 0, totalPages: 0 }),
+    )
+    vi.stubGlobal('fetch', fetchStub)
+
+    await servicesApi.list({ priceMin: 50000, priceMax: 120000 })
+
+    const url = fetchStub.mock.calls[0][0]
+    expect(url).toContain('priceMin=50000')
+    expect(url).toContain('priceMax=120000')
+  })
+
   it('cambia el estado con PATCH /services/{id}/status', async () => {
     const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
       jsonResponse({ ...service, status: 'INACTIVE' }),

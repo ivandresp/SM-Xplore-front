@@ -17,6 +17,7 @@ import {
 import { servicesApi } from '@/services/servicesApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
+import { formatCurrency } from '@/utils/format'
 import type { PageResponse, ServiceResponse, Zone } from '@/types'
 import styles from './catalog.module.css'
 
@@ -25,7 +26,9 @@ const PAGE_SIZE = 12
 // El backend filtra por `type` como texto libre; estos son los que ofrece la UI.
 const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
 
-const FILTER_KEYS = ['search', 'tipo', 'zona'] as const
+const MAX_PRICE_OPTIONS = [50000, 100000, 200000, 500000]
+
+const FILTER_KEYS = ['search', 'tipo', 'zona', 'precioMax'] as const
 
 /** Catálogo público de servicios. */
 export default function ServiceListPage() {
@@ -33,6 +36,7 @@ export default function ServiceListPage() {
   const [term, setTerm] = useSearchParamTerm()
   const [type, setType] = useFilterParam('tipo')
   const [zoneId, setZoneId] = useFilterParam('zona')
+  const [maxPrice, setMaxPrice] = useFilterParam('precioMax')
 
   const page = Math.max(1, Number(params.get('pagina') ?? '1') || 1)
 
@@ -74,6 +78,7 @@ export default function ServiceListPage() {
         search: current.get('search') ?? undefined,
         type: current.get('tipo') ?? undefined,
         zoneId: current.get('zona') ?? undefined,
+        priceMax: Number(current.get('precioMax')) || undefined,
         status: 'PUBLISHED',
         page: Math.max(1, Number(current.get('pagina') ?? '1') || 1) - 1,
         size: PAGE_SIZE,
@@ -122,6 +127,13 @@ export default function ServiceListPage() {
       key: 'zona',
       label: 'Zona',
       value: zoneNameById.get(zoneId) ?? 'Seleccionada',
+    })
+  }
+  if (maxPrice !== '') {
+    activeFilters.push({
+      key: 'precioMax',
+      label: 'Precio',
+      value: `Hasta ${formatCurrency(Number(maxPrice))}`,
     })
   }
 
@@ -222,6 +234,22 @@ export default function ServiceListPage() {
             {zoneOptions.map((zone) => (
               <option key={zone.id} value={zone.id}>
                 {zone.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Precio</span>
+          <select
+            className={styles.control}
+            value={maxPrice}
+            onChange={(event) => setMaxPrice(event.target.value)}
+          >
+            <option value="">Cualquier precio</option>
+            {MAX_PRICE_OPTIONS.map((value) => (
+              <option key={value} value={value}>
+                Hasta {formatCurrency(value)}
               </option>
             ))}
           </select>

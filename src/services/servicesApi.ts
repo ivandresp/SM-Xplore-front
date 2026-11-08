@@ -77,6 +77,8 @@ export const servicesApi = {
         status: filters.status,
         type: filters.type,
         search: filters.search?.trim(),
+        priceMin: filters.priceMin,
+        priceMax: filters.priceMax,
         page: filters.page ?? 0,
         size: filters.size ?? MAX_PAGE_SIZE,
       },

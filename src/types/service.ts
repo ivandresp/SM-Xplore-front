@@ -60,6 +60,8 @@ export interface ServiceListFilters {
   status?: ContentStatus
   type?: string
   search?: string
+  priceMin?: number
+  priceMax?: number
   page?: number
   size?: number
 }
