@@ -1,234 +1,263 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { ActivityCard } from '@/components/ActivityCard/ActivityCard'
 import { Button } from '@/components/Button'
-import { Chip } from '@/components/Chip'
+import { FilterBar } from '@/components/FilterBar'
+import type { ActiveFilter } from '@/components/FilterBar'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
+import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import {
+  useFilterParam,
+  useSearchParamTerm,
+  useSearchParamText,
+} from '@/hooks/useFilterParam'
 import { activitiesApi } from '@/services/activitiesApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
-import type { ActivityResponse, Site, Zone } from '@/types'
+import { formatCurrency } from '@/utils/format'
+import type {
+  ActivityResponse,
+  ActivitySort,
+  PageResponse,
+  Site,
+  Zone,
+} from '@/types'
 import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
-const PRICE_STEP = 10000
 
-type SortOrder = 'relevance' | 'priceAsc' | 'priceDesc' | 'durationAsc'
+const SORT_OPTIONS: Array<{ value: ActivitySort; label: string }> = [
+  { value: 'name', label: 'Nombre (A–Z)' },
+  { value: 'priceAsc', label: 'Precio: menor a mayor' },
+  { value: 'priceDesc', label: 'Precio: mayor a menor' },
+  { value: 'durationAsc', label: 'Duración: menor a mayor' },
+  { value: 'dateAsc', label: 'Fecha: próximas primero' },
+]
+
+const MAX_PRICE_OPTIONS = [50000, 100000, 200000, 500000]
+
+const FILTER_KEYS = [
+  'search',
+  'categoria',
+  'sitio',
+  'precioMax',
+  'desde',
+] as const
+
+function parseSort(value: string): ActivitySort {
+  return SORT_OPTIONS.some((option) => option.value === value)
+    ? (value as ActivitySort)
+    : 'name'
+}
+
+/** Fecha local a ISO; el backend filtra sobre `startsAt` en UTC. */
+function dateToIsoStart(value: string): string | undefined {
+  return value === '' ? undefined : new Date(`${value}T00:00:00`).toISOString()
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat('es-CO', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(`${value}T00:00:00`))
+}
 
 export default function ExplorePage() {
-  const [activities, setActivities] = useState<ActivityResponse[]>([])
+  const [params, setParams] = useSearchParams()
+  const [term, setTerm] = useSearchParamTerm()
+  const [category, setCategory] = useSearchParamText('categoria')
+  const [siteId, setSiteId] = useFilterParam('sitio')
+  const [maxPrice, setMaxPrice] = useFilterParam('precioMax')
+  const [fromDate, setFromDate] = useFilterParam('desde')
+  const [sortParam, setSortParam] = useFilterParam('orden')
+
+  const page = Math.max(1, Number(params.get('pagina') ?? '1') || 1)
+  const sort = parseSort(sortParam)
+
+  const [result, setResult] = useState<PageResponse<ActivityResponse> | null>(
+    null,
+  )
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  // Filtros aplicados
-  const [categories, setCategories] = useState<string[]>([])
-  const [maxPrice, setMaxPrice] = useState<number | null>(null)
-  const [fromDate, setFromDate] = useState('')
-  const [zoneId, setZoneId] = useState('')
-  const [siteId, setSiteId] = useState('')
-
-  // Borrador: se confirma con "Aplicar", como en el mockup
-  const [draftCategories, setDraftCategories] = useState<string[]>([])
-  const [draftMaxPrice, setDraftMaxPrice] = useState<number | null>(null)
-  const [draftFromDate, setDraftFromDate] = useState('')
-  const [draftZoneId, setDraftZoneId] = useState('')
-  const [draftSiteId, setDraftSiteId] = useState('')
-
-  const [sort, setSort] = useState<SortOrder>('relevance')
-  const [page, setPage] = useState(1)
-  /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
+  const queryKey = params.toString()
 
+  // Opciones de los desplegables: catálogo pequeño y estable.
   useEffect(() => {
     let cancelled = false
 
-    async function run() {
-      try {
-        const [activitiesResult, zonesResult, sitesResult] =
-          await Promise.allSettled([
-            activitiesApi.list().then((page) => page.content),
-            zonesApi.list(),
-            sitesApi.list().then((page) => page.content),
-          ])
-
-        if (activitiesResult.status === 'rejected') {
-          throw activitiesResult.reason
-        }
-
-        if (!cancelled) {
-          // El catálogo público muestra solo actividades publicadas.
-          setActivities(
-            activitiesResult.value.filter(
-              (activity) => activity.status === 'PUBLISHED',
-            ),
-          )
-          setZones(zonesResult.status === 'fulfilled' ? zonesResult.value : [])
-          setSites(sitesResult.status === 'fulfilled' ? sitesResult.value : [])
-          setError(null)
-        }
-      } catch (cause) {
-        if (!cancelled) {
-          setActivities([])
-          setError(describeApiError(cause))
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
+    Promise.allSettled([
+      zonesApi.list(),
+      sitesApi.list({ size: 100 }),
+    ]).then(([zonesResult, sitesResult]) => {
+      if (cancelled) return
+      if (zonesResult.status === 'fulfilled') setZones(zonesResult.value)
+      if (sitesResult.status === 'fulfilled') {
+        setSites(sitesResult.value.content)
       }
-    }
-
-    void run()
+    })
 
     return () => {
       cancelled = true
     }
   }, [reloadToken])
 
-  function retry() {
+  useEffect(() => {
+    let cancelled = false
+    const current = new URLSearchParams(queryKey)
+
     setIsLoading(true)
     setError(null)
-    setReloadToken((current) => current + 1)
-  }
 
-  const availableCategories = useMemo(
-    () => [...new Set(activities.map((activity) => activity.category))].sort(),
-    [activities],
-  )
+    activitiesApi
+      .list({
+        search: current.get('search') ?? undefined,
+        category: current.get('categoria') ?? undefined,
+        siteId: current.get('sitio') ?? undefined,
+        priceMax: Number(current.get('precioMax')) || undefined,
+        startsAfter: dateToIsoStart(current.get('desde') ?? ''),
+        sort: parseSort(current.get('orden') ?? ''),
+        status: 'PUBLISHED',
+        page: Math.max(1, Number(current.get('pagina') ?? '1') || 1) - 1,
+        size: PAGE_SIZE,
+      })
+      .then((page) => {
+        if (!cancelled) setResult(page)
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          setResult(null)
+          setError(describeApiError(cause))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
 
-  const priceCeiling = useMemo(
+    return () => {
+      cancelled = true
+    }
+  }, [queryKey, reloadToken])
+
+  const siteOptions = useMemo(
     () =>
-      Math.max(
-        PRICE_STEP,
-        ...activities.map((activity) => activity.price),
-      ),
-    [activities],
+      [...sites].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+    [sites],
   )
+
+  const sitesByZone = useMemo(() => {
+    const grouped = new Map<string, Site[]>()
+    for (const site of siteOptions) {
+      const list = grouped.get(site.zoneId) ?? []
+      list.push(site)
+      grouped.set(site.zoneId, list)
+    }
+    return grouped
+  }, [siteOptions])
 
   const zoneOptions = useMemo(
     () => [...zones].sort((a, b) => a.name.localeCompare(b.name, 'es')),
     [zones],
   )
 
-  const zoneSiteIds = useMemo(() => {
-    const map = new Map<string, Set<string>>()
-    for (const site of sites) {
-      const current = map.get(site.zoneId) ?? new Set<string>()
-      current.add(site.id)
-      map.set(site.zoneId, current)
-    }
-    return map
-  }, [sites])
+  const siteNameById = useMemo(
+    () => new Map(sites.map((site) => [site.id, site.name])),
+    [sites],
+  )
 
-  /** Atractivos del borrador de zona; sin zona, todos. */
-  const siteOptions = useMemo(() => {
-    const list =
-      draftZoneId === ''
-        ? sites
-        : sites.filter((site) => site.zoneId === draftZoneId)
-
-    return [...list].sort((a, b) => a.name.localeCompare(b.name, 'es'))
-  }, [sites, draftZoneId])
-
-  const filtered = useMemo(() => {
-    const list = activities.filter((activity) => {
-      if (
-        categories.length > 0 &&
-        !categories.includes(activity.category)
-      ) {
-        return false
-      }
-
-      if (maxPrice !== null && activity.price > maxPrice) {
-        return false
-      }
-
-      if (
-        fromDate !== '' &&
-        new Date(activity.startsAt) < new Date(`${fromDate}T00:00:00`)
-      ) {
-        return false
-      }
-
-      if (zoneId !== '' && !zoneSiteIds.get(zoneId)?.has(activity.siteId)) {
-        return false
-      }
-
-      if (siteId !== '' && activity.siteId !== siteId) {
-        return false
-      }
-
-      return true
+  const activeFilters: ActiveFilter[] = []
+  if (term.trim() !== '') {
+    activeFilters.push({ key: 'search', label: 'Buscar', value: term.trim() })
+  }
+  if (category.trim() !== '') {
+    activeFilters.push({
+      key: 'categoria',
+      label: 'Categoría',
+      value: category.trim(),
     })
+  }
+  if (siteId !== '') {
+    activeFilters.push({
+      key: 'sitio',
+      label: 'Atractivo',
+      value: siteNameById.get(siteId) ?? 'Seleccionado',
+    })
+  }
+  if (maxPrice !== '') {
+    activeFilters.push({
+      key: 'precioMax',
+      label: 'Precio',
+      value: `Hasta ${formatCurrency(Number(maxPrice))}`,
+    })
+  }
+  if (fromDate !== '') {
+    activeFilters.push({
+      key: 'desde',
+      label: 'Desde',
+      value: formatDate(fromDate),
+    })
+  }
 
-    switch (sort) {
-      case 'priceAsc':
-        return [...list].sort((a, b) => a.price - b.price)
-      case 'priceDesc':
-        return [...list].sort((a, b) => b.price - a.price)
-      case 'durationAsc':
-        return [...list].sort((a, b) => a.durationMinutes - b.durationMinutes)
-      default:
-        return list
-    }
-  }, [activities, categories, maxPrice, fromDate, zoneId, siteId, zoneSiteIds, sort])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
-  function toggleDraftCategory(category: string) {
-    setDraftCategories((current) =>
-      current.includes(category)
-        ? current.filter((item) => item !== category)
-        : [...current, category],
+  function removeParam(key: string) {
+    setParams(
+      (current) => {
+        const copy = new URLSearchParams(current)
+        copy.delete(key)
+        copy.delete('pagina')
+        return copy
+      },
+      { replace: true },
     )
   }
 
-  function applyFilters() {
-    setCategories(draftCategories)
-    setMaxPrice(draftMaxPrice)
-    setFromDate(draftFromDate)
-    setZoneId(draftZoneId)
-    setSiteId(draftSiteId)
-    setPage(1)
-  }
-
   function clearFilters() {
-    setDraftCategories([])
-    setDraftMaxPrice(null)
-    setDraftFromDate('')
-    setDraftZoneId('')
-    setDraftSiteId('')
-    setCategories([])
-    setMaxPrice(null)
-    setFromDate('')
-    setZoneId('')
-    setSiteId('')
-    setPage(1)
+    setParams(
+      (current) => {
+        const copy = new URLSearchParams(current)
+        for (const key of FILTER_KEYS) copy.delete(key)
+        copy.delete('pagina')
+        return copy
+      },
+      { replace: true },
+    )
   }
 
-  const hasActiveFilters =
-    categories.length > 0 ||
-    maxPrice !== null ||
-    fromDate !== '' ||
-    zoneId !== '' ||
-    siteId !== ''
+  function goToPage(next: number) {
+    setParams((current) => {
+      const copy = new URLSearchParams(current)
+      if (next <= 1) {
+        copy.delete('pagina')
+      } else {
+        copy.set('pagina', String(next))
+      }
+      return copy
+    })
+  }
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
+
+  const total = result?.total ?? 0
+  const hasActiveFilters = activeFilters.length > 0
+  const resultSummary = isLoading
+    ? 'Buscando…'
+    : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
 
   return (
     <div className={styles.page}>
       <PageHeader
         serif
         title="Actividades turísticas en Santa Marta"
-        meta={
-          error !== null || isLoading
-            ? undefined
-            : `${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`
-        }
         actions={
           <>
             <label className="visually-hidden" htmlFor="explorar-sort">
@@ -238,185 +267,152 @@ export default function ExplorePage() {
               id="explorar-sort"
               className={styles.sort}
               value={sort}
-              onChange={(event) => {
-                setSort(event.target.value as SortOrder)
-                setPage(1)
-              }}
+              onChange={(event) => setSortParam(event.target.value)}
             >
-              <option value="relevance">Ordenar: por relevancia</option>
-              <option value="priceAsc">Ordenar: precio (menor a mayor)</option>
-              <option value="priceDesc">Ordenar: precio (mayor a menor)</option>
-              <option value="durationAsc">Ordenar: duración (menor a mayor)</option>
+              {SORT_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  Ordenar: {option.label}
+                </option>
+              ))}
             </select>
           </>
         }
       />
 
-      <div className={styles.layout}>
-        <aside className={styles.filters}>
-          <h2 className={styles.filtersTitle}>Filtros</h2>
+      <FilterBar
+        activeFilters={activeFilters}
+        onRemoveFilter={removeParam}
+        onClearFilters={clearFilters}
+        resultSummary={resultSummary}
+      >
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Buscar</span>
+          <SearchInput
+            value={term}
+            onChange={setTerm}
+            label="Buscar actividades por nombre"
+            placeholder="Nombre de la actividad…"
+            className={styles.control}
+          />
+        </label>
 
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Zona</span>
-            <select
-              className={styles.control}
-              value={draftZoneId}
-              disabled={zoneOptions.length === 0}
-              onChange={(event) => {
-                const nextZoneId = event.target.value
-                setDraftZoneId(nextZoneId)
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Categoría</span>
+          <input
+            className={styles.control}
+            type="search"
+            value={category}
+            placeholder="Aventura, cultural…"
+            onChange={(event) => setCategory(event.target.value)}
+          />
+        </label>
 
-                // El atractivo elegido debe seguir perteneciendo a la zona.
-                if (
-                  draftSiteId !== '' &&
-                  !zoneSiteIds.get(nextZoneId)?.has(draftSiteId)
-                ) {
-                  setDraftSiteId('')
-                }
-              }}
-            >
-              <option value="">Todas las zonas</option>
-              {zoneOptions.map((zone) => (
-                <option key={zone.id} value={zone.id}>
-                  {zone.name}
-                </option>
-              ))}
-            </select>
-          </label>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Atractivo</span>
+          <select
+            className={styles.control}
+            value={siteId}
+            disabled={siteOptions.length === 0}
+            onChange={(event) => setSiteId(event.target.value)}
+          >
+            <option value="">Todos los atractivos</option>
+            {zoneOptions.map((zone) => {
+              const zoneSites = sitesByZone.get(zone.id)
+              if (zoneSites === undefined || zoneSites.length === 0) return null
+              return (
+                <optgroup key={zone.id} label={zone.name}>
+                  {zoneSites.map((site) => (
+                    <option key={site.id} value={site.id}>
+                      {site.name}
+                    </option>
+                  ))}
+                </optgroup>
+              )
+            })}
+          </select>
+        </label>
 
-          <div className={styles.field}>
-            <span className={styles.fieldLabel}>Categoría</span>
-            <div className={styles.chips}>
-              {!isLoading && availableCategories.length === 0 && (
-                <span className={styles.paragraphMuted}>—</span>
-              )}
-              {availableCategories.map((category) => (
-                <Chip
-                  key={category}
-                  accent
-                  selected={draftCategories.includes(category)}
-                  onClick={() => toggleDraftCategory(category)}
-                >
-                  {category}
-                </Chip>
-              ))}
-            </div>
-          </div>
-
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Atractivo</span>
-            <select
-              className={styles.control}
-              value={draftSiteId}
-              disabled={siteOptions.length === 0}
-              onChange={(event) => setDraftSiteId(event.target.value)}
-            >
-              <option value="">
-                {draftZoneId === ''
-                  ? 'Todos los atractivos'
-                  : 'Todos los de la zona'}
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Precio</span>
+          <select
+            className={styles.control}
+            value={maxPrice}
+            onChange={(event) => setMaxPrice(event.target.value)}
+          >
+            <option value="">Cualquier precio</option>
+            {MAX_PRICE_OPTIONS.map((value) => (
+              <option key={value} value={value}>
+                Hasta {formatCurrency(value)}
               </option>
-              {siteOptions.map((site) => (
-                <option key={site.id} value={site.id}>
-                  {site.name}
-                </option>
-              ))}
-            </select>
-          </label>
+            ))}
+          </select>
+        </label>
 
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Fecha</span>
-            <input
-              className={styles.control}
-              type="date"
-              value={draftFromDate}
-              onChange={(event) => setDraftFromDate(event.target.value)}
-            />
-          </label>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Desde</span>
+          <input
+            className={styles.control}
+            type="date"
+            value={fromDate}
+            onChange={(event) => setFromDate(event.target.value)}
+          />
+        </label>
+      </FilterBar>
 
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>
-              Precio hasta{' '}
-              {draftMaxPrice === null
-                ? 'cualquiera'
-                : `$${draftMaxPrice.toLocaleString('es-CO')}`}
-            </span>
-            <input
-              className={styles.range}
-              type="range"
-              min={0}
-              max={priceCeiling}
-              step={PRICE_STEP}
-              value={draftMaxPrice ?? priceCeiling}
-              onChange={(event) => setDraftMaxPrice(Number(event.target.value))}
-            />
-          </label>
+      <section className={styles.results}>
+        {isLoading && (
+          <Skeleton variant="card" count={6} label="Cargando actividades…" />
+        )}
 
-          <div className={styles.filterActions}>
-            <Button variant="accent" onClick={applyFilters}>
-              Aplicar
-            </Button>
-            <Button variant="outline" onClick={clearFilters}>
-              Limpiar
-            </Button>
-          </div>
-        </aside>
+        {!isLoading && error !== null && (
+          <StateMessage
+            tone="error"
+            title="No pudimos cargar las actividades"
+            description={error}
+            action={
+              <Button variant="accent" onClick={retry}>
+                Reintentar
+              </Button>
+            }
+          />
+        )}
 
-        <section>
-          {isLoading && (
-            <Skeleton
-              variant="card"
-              count={6}
-              label="Cargando actividades…"
-            />
-          )}
-
-          {!isLoading && error !== null && (
-            <StateMessage
-              tone="error"
-              title="No pudimos cargar las actividades"
-              description={error}
-              action={
-                <Button variant="accent" onClick={retry}>
-                  Reintentar
+        {!isLoading && error === null && result !== null && total === 0 && (
+          <StateMessage
+            title={
+              hasActiveFilters
+                ? 'No encontramos actividades con esos filtros'
+                : 'Todavía no hay actividades publicadas'
+            }
+            description={
+              hasActiveFilters
+                ? 'Prueba con otra categoría, atractivo o fecha, o sube el precio máximo.'
+                : 'Cuando las gestoras publiquen actividades aparecerán aquí.'
+            }
+            action={
+              hasActiveFilters ? (
+                <Button variant="outline" onClick={clearFilters}>
+                  Limpiar filtros
                 </Button>
-              }
-            />
-          )}
+              ) : undefined
+            }
+          />
+        )}
 
-          {!isLoading && !error && filtered.length === 0 && (
-            <StateMessage
-              title={
-                hasActiveFilters
-                  ? 'No encontramos actividades con esos filtros'
-                  : 'Todavía no hay actividades publicadas'
-              }
-              description={
-                hasActiveFilters
-                  ? 'Prueba con otra categoría, zona o atractivo, una fecha anterior o un precio mayor.'
-                  : 'Cuando las gestoras publiquen actividades aparecerán aquí.'
-              }
-              action={
-                hasActiveFilters ? (
-                  <Button variant="outline" onClick={clearFilters}>
-                    Limpiar filtros
-                  </Button>
-                ) : undefined
-              }
-            />
-          )}
+        {!isLoading && result !== null && result.content.length > 0 && (
+          <div className={styles.cards}>
+            {result.content.map((activity) => (
+              <ActivityCard key={activity.id} activity={activity} />
+            ))}
+          </div>
+        )}
 
-          {visible.length > 0 && (
-            <div className={styles.cards}>
-              {visible.map((activity) => (
-                <ActivityCard key={activity.id} activity={activity} />
-              ))}
-            </div>
-          )}
-
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-        </section>
-      </div>
+        <Pagination
+          page={page}
+          totalPages={result?.totalPages ?? 0}
+          onChange={goToPage}
+        />
+      </section>
     </div>
   )
 }

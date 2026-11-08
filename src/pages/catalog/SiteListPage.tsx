@@ -1,73 +1,100 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
+import { FilterBar } from '@/components/FilterBar'
+import type { ActiveFilter } from '@/components/FilterBar'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
+import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { SiteCard } from '@/components/SiteCard/SiteCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import { useFilterParam, useSearchParamTerm } from '@/hooks/useFilterParam'
+import { categoriesApi } from '@/services/categoriesApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
-import type { Site, Zone } from '@/types'
+import type {
+  CategoryResponse,
+  PageResponse,
+  Site,
+  Zone,
+} from '@/types'
 import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
 
-/** Catálogo público de atractivos (sitios). Sin mockup: sigue el patrón de Explorar. */
+const FILTER_KEYS = ['search', 'zona', 'categoria'] as const
+
+/** Catálogo público de atractivos (sitios). */
 export default function SiteListPage() {
-  const [sites, setSites] = useState<Site[]>([])
+  const [params, setParams] = useSearchParams()
+  const [term, setTerm] = useSearchParamTerm()
+  const [zoneId, setZoneId] = useFilterParam('zona')
+  const [categoryId, setCategoryId] = useFilterParam('categoria')
+
+  const page = Math.max(1, Number(params.get('pagina') ?? '1') || 1)
+
+  const [result, setResult] = useState<PageResponse<Site> | null>(null)
   const [zones, setZones] = useState<Zone[]>([])
+  const [categories, setCategories] = useState<CategoryResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [term, setTerm] = useState('')
-  const [zoneId, setZoneId] = useState('')
-  const [page, setPage] = useState(1)
-  /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
+  const queryKey = params.toString()
 
   useEffect(() => {
     let cancelled = false
 
-    async function run() {
-      try {
-        const [sitesResult, zonesResult] = await Promise.allSettled([
-          sitesApi.list().then((page) => page.content),
-          zonesApi.list(),
-        ])
-
-        if (sitesResult.status === 'rejected') {
-          throw sitesResult.reason
-        }
-
-        if (!cancelled) {
-          setSites(sitesResult.value)
-          setZones(zonesResult.status === 'fulfilled' ? zonesResult.value : [])
-          setError(null)
-        }
-      } catch (cause) {
-        if (!cancelled) {
-          setSites([])
-          setError(describeApiError(cause))
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
+    Promise.allSettled([
+      zonesApi.list(),
+      categoriesApi.list('SITE'),
+    ]).then(([zonesResult, categoriesResult]) => {
+      if (cancelled) return
+      if (zonesResult.status === 'fulfilled') setZones(zonesResult.value)
+      if (categoriesResult.status === 'fulfilled') {
+        setCategories(categoriesResult.value)
       }
-    }
-
-    void run()
+    })
 
     return () => {
       cancelled = true
     }
   }, [reloadToken])
 
-  function retry() {
+  useEffect(() => {
+    let cancelled = false
+    const current = new URLSearchParams(queryKey)
+
     setIsLoading(true)
     setError(null)
-    setReloadToken((current) => current + 1)
-  }
+
+    sitesApi
+      .list({
+        search: current.get('search') ?? undefined,
+        zoneId: current.get('zona') ?? undefined,
+        categoryId: current.get('categoria') ?? undefined,
+        status: 'PUBLISHED',
+        page: Math.max(1, Number(current.get('pagina') ?? '1') || 1) - 1,
+        size: PAGE_SIZE,
+      })
+      .then((sitePage) => {
+        if (!cancelled) setResult(sitePage)
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          setResult(null)
+          setError(describeApiError(cause))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [queryKey, reloadToken])
 
   const zoneOptions = useMemo(
     () => [...zones].sort((a, b) => a.name.localeCompare(b.name, 'es')),
@@ -79,77 +106,103 @@ export default function SiteListPage() {
     [zones],
   )
 
-  const filtered = useMemo(() => {
-    const needle = term.trim().toLowerCase()
+  const activeFilters: ActiveFilter[] = []
+  if (term.trim() !== '') {
+    activeFilters.push({ key: 'search', label: 'Buscar', value: term.trim() })
+  }
+  if (zoneId !== '') {
+    activeFilters.push({
+      key: 'zona',
+      label: 'Zona',
+      value: zoneNameById.get(zoneId) ?? 'Seleccionada',
+    })
+  }
+  if (categoryId !== '') {
+    activeFilters.push({
+      key: 'categoria',
+      label: 'Categoría',
+      value:
+        categories.find((category) => category.id === categoryId)?.name ??
+        'Seleccionada',
+    })
+  }
 
-    return sites
-      .filter((site) => {
-        if (zoneId !== '' && site.zoneId !== zoneId) {
-          return false
-        }
+  function removeParam(key: string) {
+    setParams(
+      (current) => {
+        const copy = new URLSearchParams(current)
+        copy.delete(key)
+        copy.delete('pagina')
+        return copy
+      },
+      { replace: true },
+    )
+  }
 
-        if (needle === '') {
-          return true
-        }
+  function clearFilters() {
+    setParams(
+      (current) => {
+        const copy = new URLSearchParams(current)
+        for (const key of FILTER_KEYS) copy.delete(key)
+        copy.delete('pagina')
+        return copy
+      },
+      { replace: true },
+    )
+  }
 
-        const zoneName = zoneNameById.get(site.zoneId) ?? ''
-        return (
-          site.name.toLowerCase().includes(needle) ||
-          zoneName.toLowerCase().includes(needle)
-        )
-      })
-      .sort((a, b) => a.name.localeCompare(b.name, 'es'))
-  }, [sites, term, zoneId, zoneNameById])
+  function goToPage(next: number) {
+    setParams((current) => {
+      const copy = new URLSearchParams(current)
+      if (next <= 1) {
+        copy.delete('pagina')
+      } else {
+        copy.set('pagina', String(next))
+      }
+      return copy
+    })
+  }
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
+
+  const total = result?.total ?? 0
+  const hasActiveFilters = activeFilters.length > 0
+  const resultSummary = isLoading
+    ? 'Buscando…'
+    : `${total} ${total === 1 ? 'atractivo' : 'atractivos'}`
 
   return (
     <div className={styles.page}>
-      <PageHeader
-        serif
-        title="Atractivos turísticos de Santa Marta"
-        meta={`${filtered.length} ${filtered.length === 1 ? 'atractivo' : 'atractivos'}`}
-      />
+      <PageHeader serif title="Atractivos turísticos de Santa Marta" />
 
-      {error !== null && (
-        <StateMessage
-          tone="error"
-          title="No pudimos cargar los atractivos"
-          description={error}
-          action={
-            <Button variant="accent" onClick={retry}>
-              Reintentar
-            </Button>
-          }
-        />
-      )}
-
-      <div className={styles.toolbar}>
-        <label className={`${styles.field} ${styles.toolbarField}`}>
-          <span className={styles.fieldLabel}>Buscar atractivo</span>
-          <input
-            className={styles.control}
-            type="search"
-            placeholder="Nombre o zona…"
+      <FilterBar
+        activeFilters={activeFilters}
+        onRemoveFilter={removeParam}
+        onClearFilters={clearFilters}
+        resultSummary={resultSummary}
+      >
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Buscar</span>
+          <SearchInput
             value={term}
-            onChange={(event) => {
-              setTerm(event.target.value)
-              setPage(1)
-            }}
+            onChange={setTerm}
+            label="Buscar atractivos por nombre"
+            placeholder="Nombre del atractivo…"
+            className={styles.control}
           />
         </label>
 
-        <label className={`${styles.field} ${styles.toolbarField}`}>
+        <label className={styles.field}>
           <span className={styles.fieldLabel}>Zona</span>
           <select
             className={styles.control}
             value={zoneId}
             disabled={zoneOptions.length === 0}
-            onChange={(event) => {
-              setZoneId(event.target.value)
-              setPage(1)
-            }}
+            onChange={(event) => setZoneId(event.target.value)}
           >
             <option value="">Todas las zonas</option>
             {zoneOptions.map((zone) => (
@@ -159,54 +212,83 @@ export default function SiteListPage() {
             ))}
           </select>
         </label>
-      </div>
 
-      {isLoading && (
-        <Skeleton variant="card" count={6} label="Cargando atractivos…" />
-      )}
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Categoría</span>
+          <select
+            className={styles.control}
+            value={categoryId}
+            disabled={categories.length === 0}
+            onChange={(event) => setCategoryId(event.target.value)}
+          >
+            <option value="">Todas las categorías</option>
+            {categories.map((category) => (
+              <option key={category.id} value={category.id}>
+                {category.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </FilterBar>
 
-      {!isLoading && !error && filtered.length === 0 && (
-        <StateMessage
-          title={
-            term !== '' || zoneId !== ''
-              ? 'No encontramos atractivos con esos filtros'
-              : 'Todavía no hay atractivos publicados'
-          }
-          description={
-            term !== '' || zoneId !== ''
-              ? 'Prueba con otro nombre o cambia de zona.'
-              : 'Cuando las gestoras registren sitios en sus zonas aparecerán aquí.'
-          }
-          action={
-            term !== '' || zoneId !== '' ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setTerm('')
-                  setZoneId('')
-                  setPage(1)
-                }}
-              >
-                Limpiar filtros
+      <section className={styles.results}>
+        {isLoading && (
+          <Skeleton variant="card" count={6} label="Cargando atractivos…" />
+        )}
+
+        {!isLoading && error !== null && (
+          <StateMessage
+            tone="error"
+            title="No pudimos cargar los atractivos"
+            description={error}
+            action={
+              <Button variant="accent" onClick={retry}>
+                Reintentar
               </Button>
-            ) : undefined
-          }
+            }
+          />
+        )}
+
+        {!isLoading && error === null && result !== null && total === 0 && (
+          <StateMessage
+            title={
+              hasActiveFilters
+                ? 'No encontramos atractivos con esos filtros'
+                : 'Todavía no hay atractivos publicados'
+            }
+            description={
+              hasActiveFilters
+                ? 'Prueba con otro nombre, zona o categoría.'
+                : 'Cuando las gestoras registren sitios en sus zonas aparecerán aquí.'
+            }
+            action={
+              hasActiveFilters ? (
+                <Button variant="outline" onClick={clearFilters}>
+                  Limpiar filtros
+                </Button>
+              ) : undefined
+            }
+          />
+        )}
+
+        {!isLoading && result !== null && result.content.length > 0 && (
+          <div className={styles.cards}>
+            {result.content.map((site) => (
+              <SiteCard
+                key={site.id}
+                site={site}
+                zoneName={zoneNameById.get(site.zoneId)}
+              />
+            ))}
+          </div>
+        )}
+
+        <Pagination
+          page={page}
+          totalPages={result?.totalPages ?? 0}
+          onChange={goToPage}
         />
-      )}
-
-      {visible.length > 0 && (
-        <div className={styles.cards}>
-          {visible.map((site) => (
-            <SiteCard
-              key={site.id}
-              site={site}
-              zoneName={zoneNameById.get(site.zoneId)}
-            />
-          ))}
-        </div>
-      )}
-
-      <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      </section>
     </div>
   )
 }

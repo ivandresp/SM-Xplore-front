@@ -56,6 +56,15 @@ export interface ActivitySearchFilters {
   category: string
 }
 
+/** Orden que entiende `GET /activities`. */
+export type ActivitySort =
+  | 'name'
+  | 'priceAsc'
+  | 'priceDesc'
+  | 'dateAsc'
+  | 'dateDesc'
+  | 'durationAsc'
+
 /** Filtros de `GET /api/v1/activities`: todos opcionales y resueltos en servidor. */
 export interface ActivityListFilters {
   search?: string
@@ -69,6 +78,7 @@ export interface ActivityListFilters {
   startsAfter?: string
   /** ISO-8601, límite superior inclusivo sobre `startsAt`. */
   startsBefore?: string
+  sort?: ActivitySort
   page?: number
   size?: number
 }

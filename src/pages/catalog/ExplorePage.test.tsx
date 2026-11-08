@@ -26,13 +26,6 @@ const OTHER_ACTIVITY = {
   category: 'Naturaleza',
 }
 
-const DRAFT_ACTIVITY = {
-  ...ACTIVITY,
-  id: 'a-3',
-  name: 'Borrador sin publicar',
-  status: 'DRAFT',
-}
-
 function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -44,15 +37,15 @@ function page(content: unknown[]) {
   return {
     content,
     page: 0,
-    size: 100,
+    size: 12,
     total: content.length,
     totalPages: 1,
   }
 }
 
-function renderExplore() {
+function renderExplore(entry = '/explorar') {
   return render(
-    <MemoryRouter initialEntries={['/explorar']}>
+    <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/explorar" element={<ExplorePage />} />
         <Route path="/actividades/:activityId" element={<p>Detalle</p>} />
@@ -61,54 +54,81 @@ function renderExplore() {
   )
 }
 
+function activityFetch(
+  respond: (url: string) => ReturnType<typeof jsonResponse>,
+) {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes('/activities')) {
+      return respond(url)
+    }
+    return jsonResponse(page([]))
+  })
+}
+
 describe('ExplorePage', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
   })
 
-  it('pinta solo las actividades publicadas y el contador', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = String(input)
-        if (url.includes('/activities')) {
-          return jsonResponse(page([ACTIVITY, OTHER_ACTIVITY, DRAFT_ACTIVITY]))
-        }
-        return jsonResponse(page([]))
-      }),
+  it('pide solo las publicadas al servidor y muestra el total', async () => {
+    const fetchStub = activityFetch(() =>
+      jsonResponse(page([ACTIVITY, OTHER_ACTIVITY])),
     )
+    vi.stubGlobal('fetch', fetchStub)
 
     renderExplore()
 
     expect(await screen.findByText('Snorkel en Taganga')).toBeTruthy()
     expect(screen.getByText('Caminata por Tayrona')).toBeTruthy()
-    expect(screen.queryByText('Borrador sin publicar')).toBeNull()
     expect(screen.getByText('2 resultados')).toBeTruthy()
+
+    const activitiesCall = fetchStub.mock.calls
+      .map(([input]) => String(input))
+      .find((url) => url.includes('/activities?'))
+    expect(activitiesCall).toContain('status=PUBLISHED')
+    expect(activitiesCall).toContain('size=12')
   })
 
-  it('filtra en cliente al aplicar una categoría', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async (input: RequestInfo | URL) => {
-        const url = String(input)
-        if (url.includes('/activities')) {
-          return jsonResponse(page([ACTIVITY, OTHER_ACTIVITY]))
-        }
-        return jsonResponse(page([]))
-      }),
+  it('lee los filtros de la URL al entrar', async () => {
+    const fetchStub = activityFetch(() =>
+      jsonResponse(page([ACTIVITY])),
     )
+    vi.stubGlobal('fetch', fetchStub)
+
+    renderExplore('/explorar?categoria=Aventura&precioMax=150000&pagina=2')
+
+    await screen.findByText('Snorkel en Taganga')
+
+    const activitiesCall = fetchStub.mock.calls
+      .map(([input]) => String(input))
+      .find((url) => url.includes('/activities?'))
+    expect(activitiesCall).toContain('category=Aventura')
+    expect(activitiesCall).toContain('priceMax=150000')
+    expect(activitiesCall).toContain('page=1')
+    expect(screen.getByRole('button', { name: /Quitar filtro Categoría/ })).toBeTruthy()
+  })
+
+  it('escribe el texto de categoría en la URL y vuelve a consultar', async () => {
+    const fetchStub = activityFetch((url) =>
+      url.includes('category=Aventura')
+        ? jsonResponse(page([ACTIVITY]))
+        : jsonResponse(page([ACTIVITY, OTHER_ACTIVITY])),
+    )
+    vi.stubGlobal('fetch', fetchStub)
 
     const user = userEvent.setup()
     renderExplore()
 
-    await screen.findByText('Snorkel en Taganga')
-    await user.click(screen.getByRole('button', { name: 'Aventura' }))
-    await user.click(screen.getByRole('button', { name: 'Aplicar' }))
+    await screen.findByText('Caminata por Tayrona')
+    await user.type(screen.getByLabelText('Categoría'), 'Aventura')
 
     await waitFor(() => {
       expect(screen.getByText('1 resultado')).toBeTruthy()
     })
-    expect(screen.queryByText('Caminata por Tayrona')).toBeNull()
+
+    const urls = fetchStub.mock.calls.map(([input]) => String(input))
+    expect(urls.some((url) => url.includes('category=Aventura'))).toBe(true)
   })
 
   it('muestra el error y reintenta la carga', async () => {

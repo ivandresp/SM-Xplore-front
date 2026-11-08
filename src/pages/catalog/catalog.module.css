@@ -92,6 +92,12 @@
 }
 
 /* Resultados */
+.results {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+}
+
 .cards {
   display: grid;
   gap: 1rem;

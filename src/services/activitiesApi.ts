@@ -64,6 +64,7 @@ export const activitiesApi = {
         priceMax: filters.priceMax,
         startsAfter: filters.startsAfter,
         startsBefore: filters.startsBefore,
+        sort: filters.sort,
         page: filters.page ?? 0,
         size: filters.size ?? MAX_PAGE_SIZE,
       },

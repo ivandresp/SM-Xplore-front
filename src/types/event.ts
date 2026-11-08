@@ -39,6 +39,9 @@ export interface EventSearchFilters {
   name: string
 }
 
+/** Orden que entiende `GET /events`. */
+export type EventSort = 'name' | 'priceAsc' | 'priceDesc' | 'dateAsc' | 'dateDesc'
+
 /**
  * Filtros de `GET /api/v1/events`. Los eventos no tienen `guideId`: su dueño
  * de registro es la gestora (`managerId`).
@@ -55,6 +58,7 @@ export interface EventListFilters {
   startsAfter?: string
   /** ISO-8601, límite superior inclusivo sobre `startsAt`. */
   startsBefore?: string
+  sort?: EventSort
   page?: number
   size?: number
 }

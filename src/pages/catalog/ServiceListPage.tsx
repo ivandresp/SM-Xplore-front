@@ -1,281 +1,287 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
-import { Chip } from '@/components/Chip'
+import { FilterBar } from '@/components/FilterBar'
+import type { ActiveFilter } from '@/components/FilterBar'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
+import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { ServiceCard } from '@/components/ServiceCard/ServiceCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { serviceTypeLabel } from '@/config/roles'
-import { isApiError } from '@/services/httpClient'
+import {
+  useFilterParam,
+  useSearchParamTerm,
+} from '@/hooks/useFilterParam'
 import { servicesApi } from '@/services/servicesApi'
+import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
-import type { ServiceResponse } from '@/types'
+import type { PageResponse, ServiceResponse, Zone } from '@/types'
 import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
-const PRICE_STEP = 10000
 
 // El backend filtra por `type` como texto libre; estos son los que ofrece la UI.
 const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
 
-type SortOrder = 'relevance' | 'priceAsc' | 'priceDesc'
+const FILTER_KEYS = ['search', 'tipo', 'zona'] as const
 
-/** Catálogo público de servicios (sin mockup en Figma: sigue el patrón de Explorar). */
+/** Catálogo público de servicios. */
 export default function ServiceListPage() {
-  const [services, setServices] = useState<ServiceResponse[]>([])
+  const [params, setParams] = useSearchParams()
+  const [term, setTerm] = useSearchParamTerm()
+  const [type, setType] = useFilterParam('tipo')
+  const [zoneId, setZoneId] = useFilterParam('zona')
+
+  const page = Math.max(1, Number(params.get('pagina') ?? '1') || 1)
+
+  const [result, setResult] = useState<PageResponse<ServiceResponse> | null>(
+    null,
+  )
+  const [zones, setZones] = useState<Zone[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [needsLogin, setNeedsLogin] = useState(false)
-
-  // Filtros aplicados
-  const [types, setTypes] = useState<string[]>([])
-  const [maxPrice, setMaxPrice] = useState<number | null>(null)
-
-  // Borrador: se confirma con "Aplicar"
-  const [draftTypes, setDraftTypes] = useState<string[]>([])
-  const [draftMaxPrice, setDraftMaxPrice] = useState<number | null>(null)
-
-  const [sort, setSort] = useState<SortOrder>('relevance')
-  const [page, setPage] = useState(1)
-  /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
+  const queryKey = params.toString()
 
   useEffect(() => {
     let cancelled = false
 
-    async function run() {
-      try {
-        // El catálogo público solo muestra servicios disponibles.
-        const found = await servicesApi.list({ status: 'PUBLISHED' }).then(
-          (page) => page.content,
-        )
-
-        if (!cancelled) {
-          setServices(found)
-          setError(null)
-          setNeedsLogin(false)
-        }
-      } catch (cause) {
-        if (!cancelled) {
-          setServices([])
-          setError(describeApiError(cause))
-          setNeedsLogin(isApiError(cause) && cause.status === 401)
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void run()
+    zonesApi
+      .list()
+      .then((zoneList) => {
+        if (!cancelled) setZones(zoneList)
+      })
+      .catch(() => {
+        if (!cancelled) setZones([])
+      })
 
     return () => {
       cancelled = true
     }
   }, [reloadToken])
 
-  function retry() {
+  useEffect(() => {
+    let cancelled = false
+    const current = new URLSearchParams(queryKey)
+
     setIsLoading(true)
     setError(null)
-    setReloadToken((current) => current + 1)
-  }
 
-  const priceCeiling = useMemo(
-    () =>
-      Math.max(PRICE_STEP, ...services.map((service) => service.price)),
-    [services],
+    servicesApi
+      .list({
+        search: current.get('search') ?? undefined,
+        type: current.get('tipo') ?? undefined,
+        zoneId: current.get('zona') ?? undefined,
+        status: 'PUBLISHED',
+        page: Math.max(1, Number(current.get('pagina') ?? '1') || 1) - 1,
+        size: PAGE_SIZE,
+      })
+      .then((servicePage) => {
+        if (!cancelled) setResult(servicePage)
+      })
+      .catch((cause: unknown) => {
+        if (!cancelled) {
+          setResult(null)
+          setError(describeApiError(cause))
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [queryKey, reloadToken])
+
+  const zoneOptions = useMemo(
+    () => [...zones].sort((a, b) => a.name.localeCompare(b.name, 'es')),
+    [zones],
   )
 
-  const filtered = useMemo(() => {
-    const list = services.filter((service) => {
-      if (types.length > 0 && !types.includes(service.type)) {
-        return false
-      }
+  const zoneNameById = useMemo(
+    () => new Map(zones.map((zone) => [zone.id, zone.name])),
+    [zones],
+  )
 
-      if (maxPrice !== null && service.price > maxPrice) {
-        return false
-      }
-
-      return true
+  const activeFilters: ActiveFilter[] = []
+  if (term.trim() !== '') {
+    activeFilters.push({ key: 'search', label: 'Buscar', value: term.trim() })
+  }
+  if (type !== '') {
+    activeFilters.push({
+      key: 'tipo',
+      label: 'Tipo',
+      value: serviceTypeLabel(type),
     })
+  }
+  if (zoneId !== '') {
+    activeFilters.push({
+      key: 'zona',
+      label: 'Zona',
+      value: zoneNameById.get(zoneId) ?? 'Seleccionada',
+    })
+  }
 
-    switch (sort) {
-      case 'priceAsc':
-        return [...list].sort((a, b) => a.price - b.price)
-      case 'priceDesc':
-        return [...list].sort((a, b) => b.price - a.price)
-      default:
-        return list
-    }
-  }, [services, types, maxPrice, sort])
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
-  const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
-
-  function toggleDraftType(type: string) {
-    setDraftTypes((current) =>
-      current.includes(type)
-        ? current.filter((item) => item !== type)
-        : [...current, type],
+  function removeParam(key: string) {
+    setParams(
+      (current) => {
+        const copy = new URLSearchParams(current)
+        copy.delete(key)
+        copy.delete('pagina')
+        return copy
+      },
+      { replace: true },
     )
   }
 
-  function applyFilters() {
-    setTypes(draftTypes)
-    setMaxPrice(draftMaxPrice)
-    setPage(1)
-  }
-
   function clearFilters() {
-    setDraftTypes([])
-    setDraftMaxPrice(null)
-    setTypes([])
-    setMaxPrice(null)
-    setPage(1)
+    setParams(
+      (current) => {
+        const copy = new URLSearchParams(current)
+        for (const key of FILTER_KEYS) copy.delete(key)
+        copy.delete('pagina')
+        return copy
+      },
+      { replace: true },
+    )
   }
 
-  const hasActiveFilters = types.length > 0 || maxPrice !== null
+  function goToPage(next: number) {
+    setParams((current) => {
+      const copy = new URLSearchParams(current)
+      if (next <= 1) {
+        copy.delete('pagina')
+      } else {
+        copy.set('pagina', String(next))
+      }
+      return copy
+    })
+  }
+
+  function retry() {
+    setIsLoading(true)
+    setError(null)
+    setReloadToken((token) => token + 1)
+  }
+
+  const total = result?.total ?? 0
+  const hasActiveFilters = activeFilters.length > 0
+  const resultSummary = isLoading
+    ? 'Buscando…'
+    : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
 
   return (
     <div className={styles.page}>
-      <PageHeader
-        serif
-        title="Servicios turísticos en Santa Marta"
-        meta={
-          error !== null
-            ? undefined
-            : `${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`
-        }
-        actions={
-          <>
-            <label className="visually-hidden" htmlFor="servicios-sort">
-              Ordenar resultados
-            </label>
-            <select
-              id="servicios-sort"
-              className={styles.sort}
-              value={sort}
-              onChange={(event) => {
-                setSort(event.target.value as SortOrder)
-                setPage(1)
-              }}
-            >
-              <option value="relevance">Ordenar: por relevancia</option>
-              <option value="priceAsc">Ordenar: precio (menor a mayor)</option>
-              <option value="priceDesc">Ordenar: precio (mayor a menor)</option>
-            </select>
-          </>
-        }
-      />
+      <PageHeader serif title="Servicios turísticos en Santa Marta" />
 
-      <div className={styles.layout}>
-        <aside className={styles.filters}>
-          <h2 className={styles.filtersTitle}>Filtros</h2>
+      <FilterBar
+        activeFilters={activeFilters}
+        onRemoveFilter={removeParam}
+        onClearFilters={clearFilters}
+        resultSummary={resultSummary}
+      >
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Buscar</span>
+          <SearchInput
+            value={term}
+            onChange={setTerm}
+            label="Buscar servicios por nombre"
+            placeholder="Nombre del servicio…"
+            className={styles.control}
+          />
+        </label>
 
-          <div className={styles.field}>
-            <span className={styles.fieldLabel}>Tipo de servicio</span>
-            <div className={styles.chips}>
-              {SERVICE_TYPES.map((type) => (
-                <Chip
-                  key={type}
-                  accent
-                  selected={draftTypes.includes(type)}
-                  onClick={() => toggleDraftType(type)}
-                >
-                  {serviceTypeLabel(type)}
-                </Chip>
-              ))}
-            </div>
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Tipo de servicio</span>
+          <select
+            className={styles.control}
+            value={type}
+            onChange={(event) => setType(event.target.value)}
+          >
+            <option value="">Todos los tipos</option>
+            {SERVICE_TYPES.map((serviceType) => (
+              <option key={serviceType} value={serviceType}>
+                {serviceTypeLabel(serviceType)}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Zona</span>
+          <select
+            className={styles.control}
+            value={zoneId}
+            disabled={zoneOptions.length === 0}
+            onChange={(event) => setZoneId(event.target.value)}
+          >
+            <option value="">Todas las zonas</option>
+            {zoneOptions.map((zone) => (
+              <option key={zone.id} value={zone.id}>
+                {zone.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </FilterBar>
+
+      <section className={styles.results}>
+        {isLoading && (
+          <Skeleton variant="card" count={6} label="Cargando servicios…" />
+        )}
+
+        {!isLoading && error !== null && (
+          <StateMessage
+            tone="error"
+            title="No pudimos cargar los servicios"
+            description={error}
+            action={
+              <Button variant="accent" onClick={retry}>
+                Reintentar
+              </Button>
+            }
+          />
+        )}
+
+        {!isLoading && error === null && result !== null && total === 0 && (
+          <StateMessage
+            title={
+              hasActiveFilters
+                ? 'No encontramos servicios con esos filtros'
+                : 'Todavía no hay servicios publicados'
+            }
+            description={
+              hasActiveFilters
+                ? 'Prueba con otro tipo, zona o un precio mayor.'
+                : 'Cuando las prestadoras publiquen sus servicios aparecerán aquí.'
+            }
+            action={
+              hasActiveFilters ? (
+                <Button variant="outline" onClick={clearFilters}>
+                  Limpiar filtros
+                </Button>
+              ) : undefined
+            }
+          />
+        )}
+
+        {!isLoading && result !== null && result.content.length > 0 && (
+          <div className={styles.cards}>
+            {result.content.map((service) => (
+              <ServiceCard key={service.id} service={service} />
+            ))}
           </div>
+        )}
 
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>
-              Precio hasta{' '}
-              {draftMaxPrice === null
-                ? 'cualquiera'
-                : `$${draftMaxPrice.toLocaleString('es-CO')}`}
-            </span>
-            <input
-              className={styles.range}
-              type="range"
-              min={0}
-              max={priceCeiling}
-              step={PRICE_STEP}
-              value={draftMaxPrice ?? priceCeiling}
-              onChange={(event) => setDraftMaxPrice(Number(event.target.value))}
-            />
-          </label>
-
-          <div className={styles.filterActions}>
-            <Button variant="accent" onClick={applyFilters}>
-              Aplicar
-            </Button>
-            <Button variant="outline" onClick={clearFilters}>
-              Limpiar
-            </Button>
-          </div>
-        </aside>
-
-        <section>
-          {isLoading && (
-            <Skeleton variant="card" count={6} label="Cargando servicios…" />
-          )}
-
-          {!isLoading && error !== null && (
-            <StateMessage
-              tone="error"
-              title="No pudimos cargar los servicios"
-              description={error}
-              action={
-                needsLogin ? (
-                  <Link to="/login" className={styles.retryLink}>
-                    Iniciar sesión
-                  </Link>
-                ) : (
-                  <Button variant="accent" onClick={retry}>
-                    Reintentar
-                  </Button>
-                )
-              }
-            />
-          )}
-
-          {!isLoading && !error && filtered.length === 0 && (
-            <StateMessage
-              title={
-                hasActiveFilters
-                  ? 'No encontramos servicios con esos filtros'
-                  : 'Todavía no hay servicios publicados'
-              }
-              description={
-                hasActiveFilters
-                  ? 'Prueba con otro tipo de servicio o un precio mayor.'
-                  : 'Cuando las prestadoras publiquen sus servicios aparecerán aquí.'
-              }
-              action={
-                hasActiveFilters ? (
-                  <Button variant="outline" onClick={clearFilters}>
-                    Limpiar filtros
-                  </Button>
-                ) : undefined
-              }
-            />
-          )}
-
-          {visible.length > 0 && (
-            <div className={styles.cards}>
-              {visible.map((service) => (
-                <ServiceCard key={service.id} service={service} />
-              ))}
-            </div>
-          )}
-
-          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-        </section>
-      </div>
+        <Pagination
+          page={page}
+          totalPages={result?.totalPages ?? 0}
+          onChange={goToPage}
+        />
+      </section>
     </div>
   )
 }

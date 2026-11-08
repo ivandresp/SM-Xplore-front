@@ -1,0 +1,134 @@
+.bar {
+  background-color: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.count {
+  margin: 0;
+  color: var(--color-muted-strong);
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
+.toggle {
+  display: inline-flex;
+}
+
+.panelCollapsed {
+  display: none;
+}
+
+.panel {
+  display: block;
+}
+
+.group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: end;
+}
+
+/* El campo de búsqueda ocupa la fila completa. */
+.controls > :first-child {
+  grid-column: 1 / -1;
+}
+
+.chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.chip:hover {
+  border-color: var(--color-link);
+  background-color: var(--color-primary-soft);
+}
+
+.chip:active {
+  background-color: var(--color-primary-tint);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+.chipLabel {
+  color: var(--color-muted-strong);
+}
+
+.chipX {
+  color: var(--color-muted-strong);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+@media (min-width: 768px) {
+  .toggle {
+    display: none;
+  }
+
+  .panelCollapsed {
+    display: block;
+  }
+}
