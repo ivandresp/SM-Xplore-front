@@ -1,4 +1,4 @@
-import type { LocationDto, PhotosRequest, UserRefDto } from './common'
+import type { LocationDto, UserRefDto } from './common'
 
 export type SecurityReportStatus = 'ONGOING' | 'REPORTED' | 'SOLVED'
 
@@ -22,12 +22,6 @@ export interface SecurityReportRequest {
   photosUrls?: string[]
 }
 
-/** `PATCH /security-reports/{id}/content` */
-export interface ChangeReportContentRequest {
-  title: string
-  description: string
-}
-
 /** El autor lo deriva el backend del token: no se envía en el cuerpo. */
 export interface CommentRequest {
   content: string
@@ -40,8 +34,6 @@ export interface CommentResponse {
   content: string
   createdAt: string
 }
-
-export type SecurityReportPhotosRequest = PhotosRequest
 
 /** ms-02 pagina por cursor: `status` es obligatorio en el listado general. */
 export interface SecurityReportListFilters {

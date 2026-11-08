@@ -2,13 +2,11 @@ import { z } from 'zod'
 import { httpClient } from './httpClient'
 import { parseResponse } from './validate'
 import type {
-  ChangeReportContentRequest,
-  CursorPage,
   CommentRequest,
   CommentResponse,
+  CursorPage,
   SecurityReportByUserFilters,
   SecurityReportListFilters,
-  SecurityReportPhotosRequest,
   SecurityReportRequest,
   SecurityReportResponse,
 } from '@/types'
@@ -140,39 +138,6 @@ export const securityReportsApi = {
       data,
       'GET /security-reports/nearby',
     ).map(toReport)
-  },
-
-  /** `PATCH /security-reports/{id}/content` */
-  changeContent: async (
-    reportId: string,
-    payload: ChangeReportContentRequest,
-  ) => {
-    const data = await httpClient.patch<unknown>(
-      `/security-reports/${reportId}/content`,
-      payload,
-    )
-    return toReport(
-      parseResponse(
-        reportSchema,
-        data,
-        `PATCH /security-reports/${reportId}/content`,
-      ),
-    )
-  },
-
-  /** `POST /security-reports/{id}/photos` — reemplaza la lista, no la amplía. */
-  addPhotos: async (reportId: string, payload: SecurityReportPhotosRequest) => {
-    const data = await httpClient.post<unknown>(
-      `/security-reports/${reportId}/photos`,
-      payload,
-    )
-    return toReport(
-      parseResponse(
-        reportSchema,
-        data,
-        `POST /security-reports/${reportId}/photos`,
-      ),
-    )
   },
 
   /** `POST /security-reports/{id}/close` — `ONGOING` -> `REPORTED`. */
