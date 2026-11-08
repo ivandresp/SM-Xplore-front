@@ -122,9 +122,9 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
   no existe `/reservation-items`. El precio lo calcula el backend desde el catálogo
   (`total = unitPrice × numberOfPeople`): el cliente nunca lo envía.
   Solo se reservan `ACTIVITY` y `EVENT`; los servicios no son reservables.
-- **No hay listado de reservas por prestadora** (solo por guía, por turista y por ítem),
-  ni acciones `confirm`/`reject`: la reserva nace `CONFIRMED` y solo se puede cancelar,
-  marcar asistencia o marcar no-show.
+- **Reservas por prestadora**: `GET /reservations/providers/{providerId}` existe (ola 2) y la
+  prestadora ve las suyas. No hay acciones `confirm`/`reject`: la reserva nace `CONFIRMED` y solo
+  se puede cancelar, marcar asistencia o marcar no-show.
 - **Reportes de seguridad (ms-02)** usan `title` + `description` (no `text`) y el listado
   global exige `status`.
 - **El backend arma enlaces al front**: `forgot-password` envía
@@ -160,13 +160,10 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
 
 ## Deuda conocida
 
-- `usersApi` y las pantallas de admin usan endpoints que no existen (`/users/{id}`,
-  `/users/{id}/approve-*`, `/users/guides/{id}`): deben reescribirse contra
-  `/api/v1/admin/users/**`. Es el único módulo con contratos inventados.
+- `usersApi` y las pantallas de admin están reescritas contra `/api/v1/admin/users/**` (ola 2).
 - Verificados contra el backend: `authApi`, `activitiesApi`, `zonesApi`, `sitesApi`,
   `servicesApi`, `eventsApi`, `categoriesApi`, `reservationsApi`, `securityReportsApi`.
-- La prestadora no puede listar reservas recibidas (el backend no expone el endpoint) y
-  los servicios no son reservables: `ReceivedReservationsPage` lo dice en pantalla.
+- La prestadora sí puede listar reservas recibidas; los servicios siguen sin ser reservables.
 - `servicesApi` no tiene endpoint de fotos, atributos ni precio suelto: `PUT /services/{id}`
   reemplaza el recurso completo. `eventsApi` no puede editar (`PUT /events/{id}` no existe).
 - Todo ms-04 (`/categories`, `/zones`, `/sites`, `/services`) era de lectura cerrada; desde la rama
@@ -175,9 +172,13 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
 - `Site` y `Zone` (`types/zone.ts`) son modelos de vista, no el wire: los servicios mapean
   `SiteResponse`/`ZoneResponse` (`photosUrls` -> `photoUrls`, `siteId` -> `id`).
 - `UserResponse`, `UserStatus` y `RegistrationStatus` siguen con los valores antiguos.
-- El catálogo filtra en cliente sobre un máximo de 100 registros: paginar en servidor
-  cuando haya volumen.
-- El bundle pasa de 500 kB: falta `lazy()` por página.
+- El catálogo pagina y filtra en servidor: `GET /activities|events` aceptan `search`, `status`,
+  `category`, `siteId`, `priceMin/Max`, `startsAfter/Before`, `sort` y `page/size`; actividades
+  aceptan `guideId` y eventos `managerId`. `GET /sites` acepta `search`, `status`, `categoryId`,
+  `zoneId`, `managerId`. El estado en la URL y `FilterBar` son la pieza compartida.
+- Servicios no ofrece filtro de precio: `GET /services` (ms-04) aún no acepta `priceMin/Max`.
+  Añadirlo en ms-04 antes de devolver el control a la UI.
+- El bundle ya va por rutas con `lazy()`: índice ~258 kB (80 kB gzip), sin chunk mayor.
 
 ## No hacer
 

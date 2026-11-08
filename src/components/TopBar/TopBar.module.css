@@ -192,8 +192,20 @@
 
 /* En móvil el panel ocupa el ancho de la barra, no el del campo. */
 @media (max-width: 719px) {
+  .bar {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
   .searchWrap {
     position: static;
+    order: 3;
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .right {
+    order: 2;
   }
 
   .panel {
