@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { filterByName, normalizeSearchTerm } from './useGlobalSearch'
+import { groupHref, normalizeSearchTerm } from './useGlobalSearch'
 
 describe('normalizeSearchTerm', () => {
   it('pasa a minúsculas, quita tildes y recorta espacios', () => {
@@ -9,24 +9,13 @@ describe('normalizeSearchTerm', () => {
   })
 })
 
-describe('filterByName', () => {
-  const sites = [
-    { name: 'Bahía Concha' },
-    { name: 'Parque Tayrona' },
-    { name: 'Quinta de San Pedro' },
-  ]
-
-  it('encuentra sin tildes ni mayúsculas', () => {
-    expect(filterByName(sites, 'bahia').map((site) => site.name)).toEqual([
-      'Bahía Concha',
-    ])
-  })
-
-  it('devuelve todos con un término vacío', () => {
-    expect(filterByName(sites, '').length).toBe(3)
-  })
-
-  it('no inventa coincidencias', () => {
-    expect(filterByName(sites, 'ciudad perdida').length).toBe(0)
+describe('groupHref', () => {
+  it('lleva cada grupo a su catálogo con el término codificado', () => {
+    expect(groupHref('activities', 'bahía')).toBe(
+      '/explorar?search=bah%C3%ADa',
+    )
+    expect(groupHref('events', '  kayak ')).toBe('/eventos?search=kayak')
+    expect(groupHref('sites', 'playa')).toBe('/atractivos?search=playa')
+    expect(groupHref('services', 'hotel')).toBe('/servicios?search=hotel')
   })
 })

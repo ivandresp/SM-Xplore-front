@@ -9,6 +9,7 @@ import { formatCurrency } from '@/utils/format'
 import type {
   ActivityResponse,
   EventResponse,
+  PageResponse,
   ServiceResponse,
   Site,
 } from '@/types'
@@ -25,18 +26,43 @@ export interface GlobalSearchItem {
   to: string
 }
 
-export type GlobalSearchResults = Record<GlobalSearchGroup, GlobalSearchItem[]>
+export interface GlobalSearchGroupResult {
+  items: GlobalSearchItem[]
+  /** Coincidencias totales en el servidor, no solo las mostradas. */
+  total: number
+}
+
+export type GlobalSearchResults = Record<
+  GlobalSearchGroup,
+  GlobalSearchGroupResult
+>
 
 export const MIN_SEARCH_LENGTH = 2
 export const MAX_GROUP_RESULTS = 5
 
 const DEBOUNCE_MS = 300
 
+const EMPTY_GROUP: GlobalSearchGroupResult = { items: [], total: 0 }
+
 const EMPTY_RESULTS: GlobalSearchResults = {
-  activities: [],
-  events: [],
-  sites: [],
-  services: [],
+  activities: EMPTY_GROUP,
+  events: EMPTY_GROUP,
+  sites: EMPTY_GROUP,
+  services: EMPTY_GROUP,
+}
+
+/** Catálogo donde se ven todos los resultados de cada grupo. */
+const CATALOG_PATHS: Record<GlobalSearchGroup, string> = {
+  activities: '/explorar',
+  events: '/eventos',
+  sites: '/atractivos',
+  services: '/servicios',
+}
+
+/** Enlace a la sección filtrada por el término buscado. */
+export function groupHref(group: GlobalSearchGroup, term: string): string {
+  const params = new URLSearchParams({ search: term.trim() })
+  return `${CATALOG_PATHS[group]}?${params.toString()}`
 }
 
 /** Minúsculas y sin tildes: «Bahía» y «bahia» deben coincidir. */
@@ -48,27 +74,21 @@ export function normalizeSearchTerm(value: string): string {
     .toLowerCase()
 }
 
-/** Filtra por nombre comparando en minúsculas y sin tildes. */
-export function filterByName<T extends { name: string }>(
-  items: T[],
-  needle: string,
-): T[] {
-  return items.filter((item) =>
-    normalizeSearchTerm(item.name).includes(needle),
-  )
-}
-
-function settledItems<T>(
-  result: PromiseSettledResult<T[]>,
+function toGroupResult<T>(
+  result: PromiseSettledResult<PageResponse<T>>,
   group: GlobalSearchGroup,
   failed: GlobalSearchGroup[],
-): T[] {
-  if (result.status === 'fulfilled') {
-    return result.value
+  toItem: (item: T) => GlobalSearchItem,
+): GlobalSearchGroupResult {
+  if (result.status === 'rejected') {
+    failed.push(group)
+    return EMPTY_GROUP
   }
 
-  failed.push(group)
-  return []
+  return {
+    items: result.value.content.slice(0, MAX_GROUP_RESULTS).map(toItem),
+    total: result.value.total,
+  }
 }
 
 function toActivityItem(activity: ActivityResponse): GlobalSearchItem {
@@ -118,68 +138,50 @@ interface SearchOutcome {
   error: string | null
 }
 
-// Actividades y atractivos se filtran en cliente, así que su catálogo completo
-// se pide una vez por sesión en lugar de en cada tecla.
-let catalogCache: Promise<[ActivityResponse[], Site[]]> | null = null
+async function searchEverything(raw: string): Promise<SearchOutcome> {
+  const query = raw.trim()
 
-function loadCatalog(): Promise<[ActivityResponse[], Site[]]> {
-  catalogCache ??= Promise.all([
-    activitiesApi.list().then((page) => page.content),
-    sitesApi.list().then((page) => page.content),
-  ]).catch((error: unknown) => {
-    catalogCache = null
-    throw error
-  })
-
-  return catalogCache
-}
-
-async function searchEverything(
-  needle: string,
-  raw: string,
-): Promise<SearchOutcome> {
-  // Eventos y servicios sí buscan en el servidor; actividades y atractivos no.
+  // Los cuatro catálogos buscan en el servidor y comparten el mismo contrato.
   const settled = await Promise.allSettled([
-    loadCatalog().then(([activities]) => activities),
-    eventsApi.search({ name: raw }),
-    loadCatalog().then(([, sites]) => sites),
-    servicesApi.list({ search: raw }).then((page) => page.content),
+    activitiesApi.list({
+      search: query,
+      status: 'PUBLISHED',
+      sort: 'name',
+      size: MAX_GROUP_RESULTS,
+    }),
+    eventsApi.list({
+      search: query,
+      status: 'PUBLISHED',
+      size: MAX_GROUP_RESULTS,
+    }),
+    sitesApi.list({
+      search: query,
+      status: 'PUBLISHED',
+      size: MAX_GROUP_RESULTS,
+    }),
+    servicesApi.list({
+      search: query,
+      status: 'PUBLISHED',
+      size: MAX_GROUP_RESULTS,
+    }),
   ])
 
   const [activities, events, sites, services] = settled
   const failed: GlobalSearchGroup[] = []
 
-  // shortcut: filtra en cliente sobre la primera pagina de 100, paginar o buscar en servidor cuando el catalogo crezca
-  const activityItems = filterByName(
-    settledItems(activities, 'activities', failed).filter(
-      (activity) => activity.status === 'PUBLISHED',
-    ),
-    needle,
-  )
-  const siteItems = filterByName(
-    settledItems(sites, 'sites', failed).filter(
-      (site) => site.status === 'PUBLISHED',
-    ),
-    needle,
-  )
-  const eventItems = settledItems(events, 'events', failed).filter(
-    (event) => event.status === 'PUBLISHED',
-  )
-  const serviceItems = settledItems(services, 'services', failed).filter(
-    (service) => service.status === 'PUBLISHED',
-  )
+  const results: GlobalSearchResults = {
+    activities: toGroupResult(activities, 'activities', failed, toActivityItem),
+    events: toGroupResult(events, 'events', failed, toEventItem),
+    sites: toGroupResult(sites, 'sites', failed, toSiteItem),
+    services: toGroupResult(services, 'services', failed, toServiceItem),
+  }
 
   const firstFailure = settled.find(
     (result): result is PromiseRejectedResult => result.status === 'rejected',
   )
 
   return {
-    results: {
-      activities: activityItems.slice(0, MAX_GROUP_RESULTS).map(toActivityItem),
-      events: eventItems.slice(0, MAX_GROUP_RESULTS).map(toEventItem),
-      sites: siteItems.slice(0, MAX_GROUP_RESULTS).map(toSiteItem),
-      services: serviceItems.slice(0, MAX_GROUP_RESULTS).map(toServiceItem),
-    },
+    results,
     failed,
     error:
       failed.length === settled.length && firstFailure !== undefined
@@ -233,7 +235,7 @@ export function useGlobalSearch(): UseGlobalSearchResult {
     let cancelled = false
 
     const timer = window.setTimeout(() => {
-      void searchEverything(query, term.trim()).then((outcome) => {
+      void searchEverything(term).then((outcome) => {
         // Una respuesta vieja no debe pisar a la consulta más reciente.
         if (cancelled || requestRef.current !== requestId) {
           return

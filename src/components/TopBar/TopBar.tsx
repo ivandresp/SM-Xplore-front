@@ -5,6 +5,7 @@ import { Logo } from '@/components/Logo'
 import { Skeleton } from '@/components/Skeleton'
 import {
   MIN_SEARCH_LENGTH,
+  groupHref,
   normalizeSearchTerm,
   useGlobalSearch,
 } from '@/hooks/useGlobalSearch'
@@ -48,7 +49,7 @@ function GlobalSearch() {
 
   const showPanel =
     open && normalizeSearchTerm(term).length >= MIN_SEARCH_LENGTH
-  const items = SEARCH_GROUPS.flatMap((group) => results[group.key])
+  const items = SEARCH_GROUPS.flatMap((group) => results[group.key].items)
   const failedLabels = SEARCH_GROUPS.filter((group) =>
     failed.includes(group.key),
   ).map((group) => group.label)
@@ -187,7 +188,7 @@ function GlobalSearch() {
                 </p>
               ) : (
                 SEARCH_GROUPS.map((group) => {
-                  const groupItems = results[group.key]
+                  const { items: groupItems, total } = results[group.key]
 
                   if (groupItems.length === 0) {
                     return null
@@ -215,6 +216,15 @@ function GlobalSearch() {
                           </li>
                         ))}
                       </ul>
+                      <Link
+                        className={styles.seeAll}
+                        to={groupHref(group.key, term)}
+                        onClick={() => setOpen(false)}
+                      >
+                        {total > groupItems.length
+                          ? `Ver los ${total} resultados`
+                          : `Ver todos en ${group.label}`}
+                      </Link>
                     </section>
                   )
                 })
