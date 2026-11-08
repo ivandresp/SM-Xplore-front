@@ -15,6 +15,7 @@ npm run typecheck  # tsc -b
 npm run lint       # oxlint
 npm test           # vitest run
 npm run test:watch # vitest
+npm run test:e2e   # Playwright con el Chrome del sistema (dev server en :5173)
 npm run build      # typecheck + build de producción
 npm run preview    # sirve dist/
 npm run figma:sync # sincroniza tokens/wireframes

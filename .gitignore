@@ -23,6 +23,10 @@ lerna-debug.log*
 # Cobertura de tests
 coverage
 
+# Playwright
+test-results
+playwright-report
+
 # Editores y sistema operativo
 .vscode/*
 !.vscode/extensions.json
