@@ -92,4 +92,13 @@ describe('describeApiError', () => {
     expect(message).toContain('no está disponible')
     expect(message).not.toContain('error interno')
   })
+
+  it('nunca muestra el texto en ingles del backend', () => {
+    const message = describeApiError(
+      apiError(409, undefined, 'Cannot change reservation from COMPLETED to COMPLETED'),
+    )
+
+    expect(message).not.toContain('COMPLETED')
+    expect(message).toContain('conflicto')
+  })
 })

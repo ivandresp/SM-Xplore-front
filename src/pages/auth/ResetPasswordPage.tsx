@@ -5,6 +5,7 @@ import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { authApi } from '@/services/authApi'
 import { isApiError } from '@/services/httpClient'
+import { describeApiError } from '@/utils/errors'
 import { AuthShell } from './AuthShell'
 import styles from './auth.module.css'
 
@@ -45,7 +46,7 @@ export default function ResetPasswordPage() {
       if (isApiError(cause) && cause.code === 'INVALID_RESET_TOKEN') {
         setError('El enlace no es válido o ya expiró. Solicita uno nuevo.')
       } else if (isApiError(cause)) {
-        setError(cause.message)
+        setError(describeApiError(cause))
       } else {
         setError(
           'No se pudo conectar con el backend. Verifica que el gateway esté corriendo en http://127.0.0.1:8088.',

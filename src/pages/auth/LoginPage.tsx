@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { authApi } from '@/services/authApi'
 import { isApiError } from '@/services/httpClient'
 import type { AuthUser } from '@/types'
+import { describeApiError } from '@/utils/errors'
 import { AuthShell } from './AuthShell'
 import styles from './auth.module.css'
 
@@ -40,9 +41,7 @@ function describeAuthError(error: unknown): string {
         : 'Revisa los datos enviados.'
     }
     default:
-      return error.status >= 500
-        ? 'El backend respondió con un error interno.'
-        : error.message
+      return describeApiError(error)
   }
 }
 

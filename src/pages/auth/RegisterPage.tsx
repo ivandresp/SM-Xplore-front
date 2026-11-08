@@ -10,6 +10,7 @@ import type {
   RegisterTouristRequest,
   UserRole,
 } from '@/types'
+import { describeApiError } from '@/utils/errors'
 import { AuthShell } from './AuthShell'
 import styles from './auth.module.css'
 
@@ -139,7 +140,7 @@ function describeRegisterError(error: unknown): string {
       : 'Revisa los datos enviados.'
   }
 
-  return error.message
+  return describeApiError(error)
 }
 
 export default function RegisterPage() {
