@@ -176,9 +176,23 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
   `category`, `siteId`, `priceMin/Max`, `startsAfter/Before`, `sort` y `page/size`; actividades
   aceptan `guideId` y eventos `managerId`. `GET /sites` acepta `search`, `status`, `categoryId`,
   `zoneId`, `managerId`. El estado en la URL y `FilterBar` son la pieza compartida.
-- Servicios no ofrece filtro de precio: `GET /services` (ms-04) aún no acepta `priceMin/Max`.
-  Añadirlo en ms-04 antes de devolver el control a la UI.
+- `GET /services` ya acepta `priceMin/Max` (rama `feat/ms-04-service-price-filters`, PR #61): el
+  catálogo de servicios ofrece precio máximo cuando ese PR está desplegado.
+- `GET /security-reports/counts` devuelve los totales por estado de toda la colección (rama
+  `feat/ms-02-report-counts`, PR #62). Sin ese endpoint el panel muestra «—» en la leyenda.
+- ms-03 devuelve `400` con `code=INVALID_FILTER` cuando un filtro no convierte; el front lo
+  traduce en `utils/errors.ts`. Sin esa versión de ms-03 el 400 cae en el mensaje genérico.
 - El bundle ya va por rutas con `lazy()`: índice ~258 kB (80 kB gzip), sin chunk mayor.
+
+## Despliegue
+
+- **ms-03 se despliega antes que el front.** El front tolera un ms-03 viejo: manda los filtros y
+  el catálogo los ignora, así que se ve sin filtrar, pero no rompe. Al revés (front viejo contra
+  ms-03 nuevo) tampoco rompe.
+- Los filtros de precio de servicios y la leyenda real de reportes dependen de que se desplieguen
+  los PR #61 (ms-04) y #62 (ms-02); hasta entonces la UI los muestra pero el servidor los ignora.
+- La migración `V9__catalog_search_trgm.sql` de ms-03 crea `pg_trgm`; en producción la extensión
+  debe existir o el rol debe tener permiso para crearla.
 
 ## No hacer
 
