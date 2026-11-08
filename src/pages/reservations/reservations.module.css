@@ -3,11 +3,6 @@
   padding: 2rem 1.5rem 3rem;
 }
 
-.subtitle {
-  margin: 0 0 1.25rem;
-  color: var(--color-muted);
-}
-
 /* Filtros por estado */
 .filters {
   display: flex;
@@ -85,34 +80,6 @@
 }
 
 /* Estado vacío */
-.empty {
-  padding: 2.5rem;
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-lg);
-  background-color: var(--color-bg);
-}
-
-.emptyRow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-.emptyIcon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3.6rem;
-  height: 3.6rem;
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface-alt);
-  font-family: var(--font-heading);
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: var(--color-muted);
-}
-
 /* Detalle */
 .detailLayout {
   display: grid;
@@ -178,18 +145,6 @@
   font-size: 0.9rem;
 }
 
-.contact {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.contactName {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-weight: 700;
-}
-
 .contactMeta {
   margin: 0.15rem 0 0;
   color: var(--color-muted);
@@ -248,7 +203,7 @@
 
 .error {
   border: 1px solid var(--color-danger-border);
-  background-color: #fef2f2;
+  background-color: var(--color-danger-bg);
   color: var(--color-danger-text);
 }
 
@@ -256,15 +211,6 @@
   margin: 1rem 0 0;
   color: var(--color-muted);
   font-size: 0.88rem;
-}
-
-.state {
-  margin: 0;
-  padding: 2.5rem 1.5rem;
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-lg);
-  color: var(--color-muted);
-  text-align: center;
 }
 
 .back {
@@ -278,5 +224,5 @@
 }
 
 .back:hover {
-  color: var(--color-primary);
+  color: var(--color-link);
 }

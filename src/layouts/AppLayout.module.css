@@ -74,20 +74,13 @@
   background-color: var(--color-surface);
 }
 
-/* Fallback del trozo de ruta que aún se está descargando. */
-.routeLoading {
-  margin: 0;
-  color: var(--color-muted);
-  font-family: var(--font-heading);
-  font-size: 0.95rem;
-}
-
 /* Elementos de la barra superior del panel */
 .role {
   padding: 0.35rem 0.85rem;
   border-radius: 999px;
   background-color: rgba(255, 255, 255, 0.94);
-  color: var(--color-primary);
+  /* Fijo: la píldora es blanca en ambos temas, sobre la barra oscura. */
+  color: #0a6f6d;
   font-family: var(--font-heading);
   font-size: 0.85rem;
   font-weight: 700;
@@ -110,9 +103,3 @@
   background-color: rgba(255, 255, 255, 0.12);
 }
 
-.avatar {
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.35);
-}

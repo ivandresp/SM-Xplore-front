@@ -188,7 +188,7 @@
 }
 
 .radioRow input {
-  accent-color: var(--color-primary);
+  accent-color: var(--color-link);
 }
 
 .actions {
@@ -315,17 +315,8 @@
 
 .error {
   border: 1px solid var(--color-danger-border);
-  background-color: #fef2f2;
+  background-color: var(--color-danger-bg);
   color: var(--color-danger-text);
-}
-
-.state {
-  margin: 0;
-  padding: 2.5rem 1.5rem;
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-lg);
-  color: var(--color-muted);
-  text-align: center;
 }
 
 .back {
@@ -339,5 +330,5 @@
 }
 
 .back:hover {
-  color: var(--color-primary);
+  color: var(--color-link);
 }

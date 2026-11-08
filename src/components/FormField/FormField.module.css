@@ -33,7 +33,7 @@
 }
 
 .control:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-link);
   outline-offset: 1px;
 }
 
@@ -42,7 +42,7 @@
   right: 0.9rem;
   display: flex;
   align-items: center;
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .hint {

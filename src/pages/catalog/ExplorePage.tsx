@@ -225,7 +225,7 @@ export default function ExplorePage() {
         serif
         title="Actividades turísticas en Santa Marta"
         meta={
-          error !== null
+          error !== null || isLoading
             ? undefined
             : `${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`
         }
@@ -282,7 +282,7 @@ export default function ExplorePage() {
           <div className={styles.field}>
             <span className={styles.fieldLabel}>Categoría</span>
             <div className={styles.chips}>
-              {availableCategories.length === 0 && (
+              {!isLoading && availableCategories.length === 0 && (
                 <span className={styles.paragraphMuted}>—</span>
               )}
               {availableCategories.map((category) => (

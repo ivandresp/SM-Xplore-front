@@ -344,11 +344,6 @@ export default function EventListPage() {
       )}
 
       <Pagination page={page} totalPages={totalPages} onChange={setPage} />
-
-      <p className={styles.notice}>
-        Del diseño faltan: la miniatura (los eventos no guardan fotos) y el
-        toggle lista/calendario.
-      </p>
     </div>
   )
 }

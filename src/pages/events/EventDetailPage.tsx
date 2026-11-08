@@ -250,10 +250,6 @@ export default function EventDetailPage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Información del evento</h2>
             <DefList items={infoItems} />
-            <p className={styles.notice}>
-              El organizador, el contacto y la imagen del evento aparecen en el
-              diseño pero el backend todavía no los almacena.
-            </p>
           </article>
         </div>
 

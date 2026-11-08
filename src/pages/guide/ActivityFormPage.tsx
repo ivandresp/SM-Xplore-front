@@ -292,10 +292,7 @@ export default function ActivityFormPage() {
           </div>
 
           <p className={styles.notice}>
-            La zona se deduce del atractivo elegido. Del diseño faltan por
-            implementar en backend: punto de encuentro, dificultad, idioma,
-            cupos por turno, días disponibles (la API guarda una sola fecha) y
-            fotos.
+            La zona se deduce del atractivo elegido.
           </p>
         </form>
 

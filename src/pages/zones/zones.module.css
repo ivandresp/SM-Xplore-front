@@ -57,17 +57,6 @@
   font-weight: 700;
 }
 
-.control {
-  width: 100%;
-  padding: 0.65rem 0.95rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface-alt);
-  color: var(--color-text);
-  font: inherit;
-  font-size: 0.95rem;
-}
-
 .textarea {
   width: 100%;
   min-height: 6.5rem;
@@ -209,7 +198,7 @@
 
 .error {
   border: 1px solid var(--color-danger-border);
-  background-color: #fef2f2;
+  background-color: var(--color-danger-bg);
   color: var(--color-danger-text);
 }
 
@@ -223,15 +212,6 @@
   font-size: 0.9rem;
 }
 
-.state {
-  margin: 0;
-  padding: 2.5rem 1.5rem;
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-lg);
-  color: var(--color-muted);
-  text-align: center;
-}
-
 .back {
   display: inline-flex;
   align-items: center;
@@ -243,5 +223,5 @@
 }
 
 .back:hover {
-  color: var(--color-primary);
+  color: var(--color-link);
 }

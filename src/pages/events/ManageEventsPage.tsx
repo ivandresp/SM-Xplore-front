@@ -141,10 +141,6 @@ export default function ManageEventsPage() {
         />
       )}
 
-      <p className={styles.notice}>
-        El backend no tiene endpoint para editar un evento: solo se cambian el
-        estado y la afluencia esperada desde "Gestionar".
-      </p>
     </section>
   )
 }

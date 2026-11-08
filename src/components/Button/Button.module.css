@@ -16,7 +16,7 @@
 }
 
 .button:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-link);
   outline-offset: 2px;
 }
 
@@ -43,12 +43,12 @@
 
 /* Variantes */
 .primary {
-  background-color: var(--color-ink);
-  color: #ffffff;
+  background-color: var(--color-action);
+  color: var(--color-on-action);
 }
 
 .primary:hover:not(:disabled) {
-  background-color: var(--color-ink-hover);
+  background-color: var(--color-action-hover);
 }
 
 .accent {
@@ -62,8 +62,8 @@
 
 .outline {
   background-color: var(--color-bg);
-  border-color: var(--color-ink);
-  color: var(--color-ink);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
 }
 
 .outline:hover:not(:disabled) {
@@ -72,8 +72,8 @@
 
 .outlineAccent {
   background-color: var(--color-bg);
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--color-link);
+  color: var(--color-link);
 }
 
 .outlineAccent:hover:not(:disabled) {

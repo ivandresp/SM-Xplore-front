@@ -58,7 +58,7 @@
 
 .range {
   width: 100%;
-  accent-color: var(--color-ink);
+  accent-color: var(--color-primary);
 }
 
 .chips {
@@ -87,15 +87,11 @@
 }
 
 .sort:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-link);
   outline-offset: 1px;
 }
 
 /* Resultados */
-.resultsHead {
-  display: none;
-}
-
 .cards {
   display: grid;
   gap: 1rem;
@@ -111,30 +107,9 @@
   text-align: center;
 }
 
-.stateTitle {
-  margin: 0 0 0.4rem;
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.stateActions {
-  display: flex;
-  justify-content: center;
-  margin-top: 1rem;
-}
-
-.banner {
-  margin: 0 0 1.25rem;
-  padding: 0.9rem 1.1rem;
-  border-radius: var(--radius-md);
-  font-size: 0.95rem;
-}
-
 .error {
   border: 1px solid var(--color-danger-border);
-  background-color: #fef2f2;
+  background-color: var(--color-danger-bg);
   color: var(--color-danger-text);
 }
 
@@ -164,7 +139,7 @@
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-lg);
   background-color: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-link);
   font-size: 0.95rem;
   overflow: hidden;
 }
@@ -234,13 +209,15 @@
 
 .map {
   display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
   align-items: center;
   justify-content: center;
   min-height: 14rem;
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-md);
   background-color: var(--color-primary-soft);
-  color: var(--color-primary);
+  color: var(--color-text);
   font-size: 0.95rem;
   text-align: center;
 }
@@ -333,10 +310,12 @@
 }
 
 .totalTag {
-  padding: 0.2rem 0.6rem;
-  border: 1px solid var(--color-text);
-  border-radius: 999px;
-  font-size: 0.85rem;
+  padding: 0.2rem 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-muted-strong);
 }
 
 .feedback {
@@ -352,26 +331,8 @@
   color: var(--color-success-text);
 }
 
-.review {
-  padding: 0.85rem 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
 .review:last-of-type {
   border-bottom: none;
-}
-
-.reviewAuthor {
-  margin: 0;
-  font-family: var(--font-heading);
-  font-weight: 700;
-  font-size: 0.95rem;
-}
-
-.reviewText {
-  margin: 0.2rem 0 0;
-  color: var(--color-text-soft);
-  font-size: 0.92rem;
 }
 
 .retryLink {
@@ -390,6 +351,6 @@
 }
 
 .retryLink:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-link);
   outline-offset: 2px;
 }

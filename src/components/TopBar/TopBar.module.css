@@ -25,8 +25,8 @@
 }
 
 .search:focus-within {
-  border-color: var(--color-primary);
-  outline: 2px solid var(--color-primary);
+  border-color: var(--color-link);
+  outline: 2px solid var(--color-link);
   outline-offset: 2px;
 }
 
@@ -116,7 +116,7 @@
 }
 
 .result:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-link);
   outline-offset: -2px;
 }
 
@@ -151,7 +151,7 @@
   border: 1px solid var(--color-primary);
   border-radius: 999px;
   background-color: var(--color-bg);
-  color: var(--color-primary-hover);
+  color: var(--color-link-hover);
   font-family: var(--font-heading);
   font-size: 0.85rem;
   font-weight: 600;
@@ -167,7 +167,7 @@
 }
 
 .retry:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-link);
   outline-offset: 2px;
 }
 
@@ -205,7 +205,7 @@
 }
 
 .link:hover {
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .right {
@@ -219,14 +219,8 @@
   margin-left: 0;
 }
 
-.avatar {
-  width: 2.4rem;
-  height: 2.4rem;
-  border-radius: 50%;
-  background-color: var(--color-border-strong);
-}
-
-/* Variante oscura (barra navy) */
+/* Variante oscura (barra navy). La barra es oscura en ambos temas, así que
+   estos colores son fijos: los tokens de superficie cambiarían con el tema. */
 .dark {
   border-bottom: none;
   background-color: var(--color-ink);
@@ -234,21 +228,24 @@
 
 .dark .search {
   border-color: transparent;
-  background-color: var(--color-primary);
+  background-color: #0a6f6d;
 }
 
-.dark .search input,
-.dark .search input::placeholder {
+.dark .search input {
   color: #ffffff;
 }
 
+.dark .search input::placeholder {
+  color: rgba(255, 255, 255, 0.88);
+}
+
 .dark .searchIcon {
-  color: var(--color-bg);
+  color: #e6fffb;
 }
 
 .dark .search:focus-within {
-  border-color: var(--color-primary-soft);
-  outline-color: var(--color-primary-soft);
+  border-color: #c9f2ec;
+  outline-color: #c9f2ec;
 }
 
 .dark .link {
@@ -256,7 +253,7 @@
 }
 
 .dark .link:hover {
-  color: var(--color-primary-soft);
+  color: #c9f2ec;
 }
 
 .badge {

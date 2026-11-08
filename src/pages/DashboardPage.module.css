@@ -63,7 +63,7 @@
 .panelLink {
   padding: 0.15rem 0;
   border-radius: var(--radius-sm);
-  color: var(--color-primary-hover);
+  color: var(--color-link-hover);
   font-size: 0.85rem;
   font-weight: 600;
   text-decoration: underline;
@@ -72,15 +72,15 @@
 }
 
 .panelLink:hover {
-  color: var(--color-ink);
+  color: var(--color-text);
 }
 
 .panelLink:active {
-  color: var(--color-ink-soft);
+  color: var(--color-muted-strong);
 }
 
 .panelLink:focus-visible {
-  outline: 2px solid var(--color-primary-hover);
+  outline: 2px solid var(--color-link-hover);
   outline-offset: 2px;
 }
 
@@ -122,7 +122,7 @@
 
 .itemLink {
   border-radius: var(--radius-sm);
-  color: var(--color-primary-hover);
+  color: var(--color-link-hover);
   font-size: 0.95rem;
   font-weight: 600;
   text-decoration: underline;
@@ -132,15 +132,15 @@
 }
 
 .itemLink:hover {
-  color: var(--color-ink);
+  color: var(--color-text);
 }
 
 .itemLink:active {
-  color: var(--color-ink-soft);
+  color: var(--color-muted-strong);
 }
 
 .itemLink:focus-visible {
-  outline: 2px solid var(--color-primary-hover);
+  outline: 2px solid var(--color-link-hover);
   outline-offset: 2px;
 }
 
@@ -216,7 +216,7 @@
   font-size: 1.6rem;
   font-weight: 700;
   line-height: 1.1;
-  color: var(--color-ink);
+  color: var(--color-text);
 }
 
 .statLabel {
@@ -245,7 +245,7 @@
   border: 1px solid var(--color-border-strong);
   border-radius: 999px;
   background-color: var(--color-bg);
-  color: var(--color-ink);
+  color: var(--color-text);
   font-family: var(--font-heading);
   font-size: 0.82rem;
   font-weight: 600;
@@ -253,9 +253,9 @@
 }
 
 .action:hover {
-  border-color: var(--color-primary-hover);
+  border-color: var(--color-link-hover);
   background-color: var(--color-primary-tint);
-  color: var(--color-primary-hover);
+  color: var(--color-link-hover);
 }
 
 .action:active {
@@ -263,6 +263,6 @@
 }
 
 .action:focus-visible {
-  outline: 2px solid var(--color-primary-hover);
+  outline: 2px solid var(--color-link-hover);
   outline-offset: 2px;
 }

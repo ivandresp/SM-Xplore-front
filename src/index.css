@@ -10,10 +10,19 @@
   --color-primary-tint: #f8fbfa;
   --color-accent-warm: #f47c5a;
 
+  /* Enlaces y trazos: más oscuros que la marca para llegar a AA sobre blanco
+     (la marca se queda para rellenos). */
+  --color-link: #0a7a78;
+  --color-link-hover: #085e5c;
+
+  /* Botón primario (relleno oscuro con texto claro) */
+  --color-action: #12212b;
+  --color-action-hover: #1d3140;
+  --color-on-action: #ffffff;
+
   /* Oscuros (barras, botones primarios) */
   --color-ink: #12212b;
   --color-ink-hover: #1d3140;
-  --color-ink-soft: #12304a;
 
   /* Texto */
   --color-text: #111827;
@@ -53,7 +62,7 @@
   --radius-xl: 24px;
   --shadow-card: 0 8px 24px rgba(17, 24, 39, 0.06);
 
-  color-scheme: light;
+  color-scheme: light dark;
   font-family: var(--font-sans);
   color: var(--color-text);
   background-color: var(--color-bg);
@@ -61,6 +70,58 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/*
+ * Modo oscuro por preferencia del sistema. Solo se redefinen los tokens:
+ * ningún componente tiene colores propios, así que heredan el tema.
+ * Los `--color-ink` bajan un escalón para que las barras sigan separadas
+ * del fondo, y los estados usan fondos propios (los claros no dan contraste).
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* La marca se queda oscura: es relleno con texto blanco. El texto en
+       color de marca usa `--color-link`, que sí se aclara. */
+    --color-primary: #0f7370;
+    --color-primary-hover: #128a86;
+    --color-primary-soft: #12332f;
+    --color-primary-tint: #0f1a1e;
+
+    --color-link: #3ecfc7;
+    --color-link-hover: #6fe0d9;
+
+    --color-action: #2b3d4a;
+    --color-action-hover: #354959;
+    --color-on-action: #eef4f8;
+
+    --color-ink: #0a1116;
+    --color-ink-hover: #12202a;
+
+    --color-text: #e8edf1;
+    --color-text-soft: #cbd5dd;
+    --color-muted-strong: #a4b1bd;
+    --color-muted: #8b98a5;
+    --color-placeholder: #6b7783;
+
+    --color-bg: #0d1519;
+    --color-surface: #111b22;
+    --color-surface-alt: #16212a;
+    --color-surface-soft: #0f1920;
+    --color-border: #24323d;
+    --color-border-strong: #33424f;
+
+    --color-success-bg: #10331f;
+    --color-success-text: #86efac;
+    --color-warning-bg: #3a2a0c;
+    --color-warning-text: #fcd34d;
+    --color-danger-bg: #3a1618;
+    --color-danger-text: #fca5a5;
+    --color-danger-border: #ef4444;
+    --color-info-bg: #12203a;
+    --color-info-text: #93c5fd;
+
+    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.45);
+  }
 }
 
 *,
@@ -88,9 +149,15 @@ h4 {
 }
 
 a {
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 button {
   font-family: inherit;
+}
+
+/* Red de seguridad: los componentes afinan su foco, pero nada queda sin él. */
+:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
 }

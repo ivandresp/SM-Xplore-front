@@ -14,11 +14,11 @@
 }
 
 .mark {
-  color: var(--color-ink);
+  color: var(--color-text);
 }
 
 .accent {
-  color: var(--color-primary);
+  color: var(--color-link);
 }
 
 .inverse .mark,

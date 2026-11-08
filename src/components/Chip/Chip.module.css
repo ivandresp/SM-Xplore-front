@@ -19,29 +19,29 @@
 }
 
 .chip:hover {
-  border-color: var(--color-ink);
+  border-color: var(--color-border-strong);
 }
 
 .chip:focus-visible {
-  outline: 2px solid var(--color-primary);
+  outline: 2px solid var(--color-link);
   outline-offset: 2px;
 }
 
 .selected {
-  background-color: var(--color-ink);
-  border-color: var(--color-ink);
+  background-color: var(--color-action);
+  border-color: var(--color-action);
   color: #ffffff;
 }
 
 .selected:hover {
-  background-color: var(--color-ink-hover);
-  border-color: var(--color-ink-hover);
+  background-color: var(--color-action-hover);
+  border-color: var(--color-action-hover);
 }
 
 /* Sin seleccionar pero con acento teal (filtros del catálogo). */
 .accent {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+  border-color: var(--color-link);
+  color: var(--color-link);
 }
 
 .accent:hover {

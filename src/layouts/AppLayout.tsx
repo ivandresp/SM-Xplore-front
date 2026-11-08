@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import { Skeleton } from '@/components/Skeleton'
 import { TopBar } from '@/components/TopBar'
 import { navItemsFor } from '@/config/navigation'
 import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
@@ -33,7 +34,6 @@ export function AppLayout() {
             >
               Salir
             </button>
-            <span className={styles.avatar} aria-hidden="true" />
           </>
         }
       />
@@ -61,11 +61,7 @@ export function AppLayout() {
 
         <main className={styles.content}>
           <Suspense
-            fallback={
-              <p className={styles.routeLoading} role="status">
-                Cargando…
-              </p>
-            }
+            fallback={<Skeleton variant="card" count={3} label="Cargando la pagina" />}
           >
             <Outlet />
           </Suspense>

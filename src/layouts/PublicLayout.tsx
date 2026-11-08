@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Footer } from '@/components/Footer'
+import { Skeleton } from '@/components/Skeleton'
 import { TopBar } from '@/components/TopBar'
 import { PUBLIC_NAV } from '@/config/navigation'
 import { useAuth } from '@/hooks/useAuth'
@@ -61,7 +62,9 @@ export function PublicLayout() {
                 className={styles.avatarLink}
                 aria-label="Mi perfil"
               >
-                <span className={styles.avatar} aria-hidden="true" />
+                <span className={styles.avatar} aria-hidden="true">
+                  {user?.fullName.charAt(0).toUpperCase() ?? '?'}
+                </span>
               </Link>
             </>
           ) : isCatalog ? (
@@ -78,11 +81,7 @@ export function PublicLayout() {
 
       <main className={styles.main}>
         <Suspense
-          fallback={
-            <p className={styles.routeLoading} role="status">
-              Cargando…
-            </p>
-          }
+          fallback={<Skeleton variant="card" count={3} label="Cargando la pagina" />}
         >
           <Outlet />
         </Suspense>

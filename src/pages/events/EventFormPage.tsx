@@ -316,9 +316,7 @@ export default function EventFormPage() {
           </div>
 
           <p className={styles.notice}>
-            El lugar se guarda como sitio (atractivo). La imagen, el
-            organizador y el contacto del diseño todavía no los almacena el
-            backend.
+            El lugar se guarda como sitio (atractivo).
           </p>
         </form>
 

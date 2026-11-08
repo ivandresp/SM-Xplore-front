@@ -280,7 +280,6 @@ export default function ActivityDetailPage() {
               ) : (
                 <>
                   <strong>{site.name}</strong>
-                  <br />
                   {zone !== null ? `${zone.name} · ` : ''}
                   {site.latitude.toFixed(5)}, {site.longitude.toFixed(5)}
                 </>
