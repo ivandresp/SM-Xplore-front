@@ -43,8 +43,14 @@ export default function ManageReportsPage() {
     async function run() {
       try {
         // Los totales vienen del servidor: no dependen de la página cargada.
-        const totals = await securityReportsApi.counts().catch(() => null)
-        if (!cancelled) setCounts(totals)
+        void securityReportsApi
+          .counts()
+          .then((totals) => {
+            if (!cancelled) setCounts(totals)
+          })
+          .catch(() => {
+            if (!cancelled) setCounts(null)
+          })
 
         // El listado global exige estado; se piden los tres y se combinan.
         const results = await Promise.allSettled(
