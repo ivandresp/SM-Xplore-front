@@ -51,6 +51,33 @@ describe('securityReportsApi', () => {
     ).rejects.toThrow(/Respuesta inesperada de GET \/security-reports/)
   })
 
+  it('counts devuelve los totales por estado', async () => {
+    const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({ ONGOING: 150, REPORTED: 3, SOLVED: 2 }),
+    )
+    vi.stubGlobal('fetch', fetchStub)
+
+    const totals = await securityReportsApi.counts()
+
+    expect(totals).toEqual({ ONGOING: 150, REPORTED: 3, SOLVED: 2 })
+    expect(String(fetchStub.mock.calls[0][0])).toContain(
+      '/security-reports/counts',
+    )
+  })
+
+  it('rechaza totales incompletos', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, _init?: RequestInit) =>
+        jsonResponse({ ONGOING: 1 }),
+      ),
+    )
+
+    await expect(securityReportsApi.counts()).rejects.toThrow(
+      /Respuesta inesperada de GET \/security-reports\/counts/,
+    )
+  })
+
   it('listComments desenvuelve la página', async () => {
     vi.stubGlobal(
       'fetch',

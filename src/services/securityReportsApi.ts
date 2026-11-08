@@ -53,6 +53,12 @@ function cursorPageSchema<T extends z.ZodTypeAny>(item: T) {
 const reportPageSchema = cursorPageSchema(reportSchema)
 const commentPageSchema = cursorPageSchema(commentSchema)
 
+const countsSchema = z.object({
+  ONGOING: z.number(),
+  REPORTED: z.number(),
+  SOLVED: z.number(),
+})
+
 function toReport(value: z.infer<typeof reportSchema>): SecurityReportResponse {
   return {
     ...value,
@@ -138,6 +144,12 @@ export const securityReportsApi = {
       data,
       'GET /security-reports/nearby',
     ).map(toReport)
+  },
+
+  /** `GET /security-reports/counts` — totales por estado de toda la colección (staff). */
+  counts: async () => {
+    const data = await httpClient.get<unknown>('/security-reports/counts')
+    return parseResponse(countsSchema, data, 'GET /security-reports/counts')
   },
 
   /** `POST /security-reports/{id}/close` — `ONGOING` -> `REPORTED`. */

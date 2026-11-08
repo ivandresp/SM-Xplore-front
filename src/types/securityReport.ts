@@ -53,3 +53,6 @@ export interface CursorPage<T> {
   nextCursor: string | null
   hasNext: boolean
 }
+
+/** `GET /security-reports/counts`: totales de toda la colección, no de una página. */
+export type SecurityReportCounts = Record<SecurityReportStatus, number>

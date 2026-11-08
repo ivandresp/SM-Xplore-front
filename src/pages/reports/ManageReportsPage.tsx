@@ -11,7 +11,11 @@ import { securityReportsApi } from '@/services/securityReportsApi'
 import { describeApiError } from '@/utils/errors'
 import { formatRelativeTime } from '@/utils/format'
 import { MAX_PAGE_SIZE } from '@/types/common'
-import type { SecurityReportResponse, SecurityReportStatus } from '@/types'
+import type {
+  SecurityReportCounts,
+  SecurityReportResponse,
+  SecurityReportStatus,
+} from '@/types'
 import styles from './reports.module.css'
 
 const STATUSES: SecurityReportStatus[] = ['ONGOING', 'REPORTED', 'SOLVED']
@@ -31,15 +35,17 @@ export default function ManageReportsPage() {
   const [feedback, setFeedback] = useState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [reloadToken, setReloadToken] = useState(0)
-  const [truncated, setTruncated] = useState<Record<SecurityReportStatus, boolean>>(
-    { ONGOING: false, REPORTED: false, SOLVED: false },
-  )
+  const [counts, setCounts] = useState<SecurityReportCounts | null>(null)
 
   useEffect(() => {
     let cancelled = false
 
     async function run() {
       try {
+        // Los totales vienen del servidor: no dependen de la página cargada.
+        const totals = await securityReportsApi.counts().catch(() => null)
+        if (!cancelled) setCounts(totals)
+
         // El listado global exige estado; se piden los tres y se combinan.
         const results = await Promise.allSettled(
           STATUSES.map((status) =>
@@ -55,24 +61,14 @@ export default function ManageReportsPage() {
         }
 
         const byId = new Map<string, SecurityReportResponse>()
-        const overflow: Record<SecurityReportStatus, boolean> = {
-          ONGOING: false,
-          REPORTED: false,
-          SOLVED: false,
-        }
 
-        results.forEach((result, index) => {
+        results.forEach((result) => {
           if (result.status === 'fulfilled') {
             for (const report of result.value.content) {
               byId.set(report.id, report)
             }
-
-            const status = STATUSES[index]
-            if (status !== undefined) overflow[status] = result.value.hasNext
           }
         })
-
-        setTruncated(overflow)
 
         setReports(
           [...byId.values()].sort(
@@ -101,20 +97,6 @@ export default function ManageReportsPage() {
     setReloadToken((value) => value + 1)
   }
 
-  const counts = useMemo(() => {
-    const map: Record<SecurityReportStatus, number> = {
-      ONGOING: 0,
-      REPORTED: 0,
-      SOLVED: 0,
-    }
-
-    for (const report of reports) {
-      map[report.status] += 1
-    }
-
-    return map
-  }, [reports])
-
   const filtered = useMemo(() => {
     const status = FILTERS[filterIndex]?.status
     return reports.filter(
@@ -131,6 +113,15 @@ export default function ManageReportsPage() {
       const updated = await securityReportsApi.close(reportId)
       setReports((current) =>
         current.map((report) => (report.id === updated.id ? updated : report)),
+      )
+      setCounts((current) =>
+        current === null
+          ? current
+          : {
+              ...current,
+              ONGOING: Math.max(0, current.ONGOING - 1),
+              REPORTED: current.REPORTED + 1,
+            },
       )
       setFeedback('Reporte cerrado y marcado como reportado.')
     } catch (cause) {
@@ -149,6 +140,15 @@ export default function ManageReportsPage() {
       const updated = await securityReportsApi.solve(reportId)
       setReports((current) =>
         current.map((report) => (report.id === updated.id ? updated : report)),
+      )
+      setCounts((current) =>
+        current === null
+          ? current
+          : {
+              ...current,
+              REPORTED: Math.max(0, current.REPORTED - 1),
+              SOLVED: current.SOLVED + 1,
+            },
       )
       setFeedback('Reporte marcado como resuelto.')
     } catch (cause) {
@@ -194,18 +194,15 @@ export default function ManageReportsPage() {
         <ul className={styles.legend}>
           <li className={styles.legendItem}>
             <span className={`${styles.dot} ${styles.dotWarning}`} />
-            En curso ({counts.ONGOING}
-            {truncated.ONGOING ? '+' : ''})
+            En curso ({counts?.ONGOING ?? '—'})
           </li>
           <li className={styles.legendItem}>
             <span className={`${styles.dot} ${styles.dotInfo}`} />
-            Reportados ({counts.REPORTED}
-            {truncated.REPORTED ? '+' : ''})
+            Reportados ({counts?.REPORTED ?? '—'})
           </li>
           <li className={styles.legendItem}>
             <span className={`${styles.dot} ${styles.dotSuccess}`} />
-            Resueltos ({counts.SOLVED}
-            {truncated.SOLVED ? '+' : ''})
+            Resueltos ({counts?.SOLVED ?? '—'})
           </li>
         </ul>
       </div>
