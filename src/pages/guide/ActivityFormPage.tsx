@@ -322,8 +322,7 @@ export default function ActivityFormPage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Fotos de la actividad</h2>
             <p className={styles.muted}>
-              El backend no permite subir archivos ni guarda fotos de
-              actividades: solo acepta URLs, y para servicios.
+              Las actividades no admiten fotos por ahora.
             </p>
           </article>
         </div>

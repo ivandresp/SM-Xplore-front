@@ -204,8 +204,7 @@ export default function ServiceDetailPage() {
           <article className={styles.booking}>
             <h2 className={styles.sectionTitle}>Reseñas</h2>
             <p className={styles.paragraphMuted}>
-              Todavía no hay reseñas: el backend aún no expone el módulo de
-              reseñas.
+              Todavía no hay reseñas de este servicio.
             </p>
           </article>
         </div>

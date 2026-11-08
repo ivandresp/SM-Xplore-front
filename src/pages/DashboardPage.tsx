@@ -702,8 +702,7 @@ function AdminDashboard() {
         </Loadable>
 
         <p className={styles.note}>
-          El listado no devuelve totales por rol: el desglose se consulta con
-          los filtros del panel de usuarios.
+          Consulta el desglose por rol con los filtros del panel de usuarios.
         </p>
       </Panel>
     </div>

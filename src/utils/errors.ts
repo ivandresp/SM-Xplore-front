@@ -1,7 +1,7 @@
 import { isApiError, isRequestTimeout } from '@/services/httpClient'
 
 const CONNECTION_ERROR =
-  'No se pudo conectar con el backend. Verifica que el gateway esté corriendo en http://127.0.0.1:8088.'
+  'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.'
 
 /**
  * El `detail` del backend llega en inglés y sin salida: aquí se traduce por

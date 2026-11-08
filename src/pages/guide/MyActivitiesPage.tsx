@@ -165,8 +165,8 @@ export default function MyActivitiesPage() {
       )}
 
       <p className={styles.notice}>
-        El backend no expone actividades por guía: aquí se filtran las que
-        tienen tu id como guía.
+        Aquí ves todas tus actividades, incluidas las que aún no están
+        publicadas.
       </p>
     </section>
   )

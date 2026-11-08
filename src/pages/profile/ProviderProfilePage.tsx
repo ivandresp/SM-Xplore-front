@@ -150,8 +150,8 @@ export default function ProviderProfilePage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Sobre la empresa</h2>
             <p className={styles.notice}>
-              El backend no publica la descripción de la empresa ni sus
-              especialidades.
+              La descripción y las especialidades de la empresa aún no están
+              disponibles.
             </p>
           </article>
 
@@ -187,16 +187,14 @@ export default function ProviderProfilePage() {
             <h2 className={styles.cardTitle}>Ficha de la prestadora</h2>
             <DefList items={details} columns={1} />
             <p className={styles.notice}>
-              El backend no expone el teléfono ni el correo de la prestadora: el
-              contacto se coordina al confirmar una reserva.
+              El contacto se coordina al confirmar una reserva.
             </p>
           </article>
 
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Reseñas recientes</h2>
             <p className={styles.empty}>
-              Todavía no hay reseñas que mostrar: el backend aún no expone el
-              módulo de reseñas.
+              Todavía no hay reseñas de esta prestadora.
             </p>
           </article>
         </div>

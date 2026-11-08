@@ -18,7 +18,7 @@ interface FromState {
 /** Mensajes por `code` del `ProblemDetail`; el status queda de respaldo. */
 function describeAuthError(error: unknown): string {
   if (!isApiError(error)) {
-    return 'No se pudo conectar con el backend. Verifica que el gateway esté corriendo en http://127.0.0.1:8088.'
+    return 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.'
   }
 
   switch (error.code) {

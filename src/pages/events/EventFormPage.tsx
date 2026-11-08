@@ -346,8 +346,7 @@ export default function EventFormPage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Imagen del evento</h2>
             <p className={styles.helper}>
-              El backend no permite subir archivos ni guarda imágenes de
-              eventos.
+              Los eventos no admiten imágenes por ahora.
             </p>
           </article>
         </div>

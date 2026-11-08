@@ -299,7 +299,7 @@ export default function ItineraryPage() {
               <p className={styles.note}>
                 {pending.length === 0
                   ? 'Puedes reservar ahora o más tarde'
-                  : `Se reservan para 1 persona con pago con tarjeta; el backend no guarda el itinerario.`}
+                  : 'Se reservan para 1 persona con pago con tarjeta.'}
               </p>
             </div>
           </article>

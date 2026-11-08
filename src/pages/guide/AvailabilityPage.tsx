@@ -391,8 +391,7 @@ export default function AvailabilityPage() {
                 </span>
               </div>
               <p className={styles.muted}>
-                "Cupos por turno" es la misma capacidad: el backend no distingue
-                turnos.
+                "Cupos por turno" es la misma capacidad de la actividad.
               </p>
             </article>
 

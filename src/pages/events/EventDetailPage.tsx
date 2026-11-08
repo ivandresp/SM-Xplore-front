@@ -235,7 +235,7 @@ export default function EventDetailPage() {
       <div className={styles.detailLayout}>
         <div className={styles.column}>
           <div className={styles.thumb} style={{ width: '100%', aspectRatio: '16 / 9' }}>
-            Sin fotos: el backend no almacena imágenes de eventos
+            Sin fotos disponibles
           </div>
 
           <article className={styles.card}>

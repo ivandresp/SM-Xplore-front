@@ -104,7 +104,7 @@ export default function ServiceFormPage() {
             : null
 
     if (missing !== null) {
-      setError(`Selecciona ${missing}: el backend lo exige.`)
+      setError(`Selecciona ${missing}.`)
       return
     }
 
@@ -316,7 +316,7 @@ export default function ServiceFormPage() {
                 onChange={(changeEvent) => setPhotos(changeEvent.target.value)}
               />
               <span className={styles.helper}>
-                El backend no sube archivos: solo guarda URLs.
+                Pega la URL de la foto; los archivos no se suben.
               </span>
             </label>
           </div>

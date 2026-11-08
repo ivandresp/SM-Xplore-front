@@ -153,10 +153,7 @@ export default function MyServicesPage() {
       )}
 
       <p className={styles.notice}>
-        Este módulo no tiene mockup en Figma: se construyó con el sistema de
-        diseño del panel. El backend solo acepta URLs de fotos (no sube
-        archivos) y no permite editar nombre, tipo ni ubicación después de
-        crear el servicio.
+        Las fotos se añaden desde el detalle del servicio pegando su URL.
       </p>
     </section>
   )

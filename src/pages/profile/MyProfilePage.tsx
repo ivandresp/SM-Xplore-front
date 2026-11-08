@@ -193,8 +193,8 @@ export default function MyProfilePage() {
             <h2 className={styles.cardTitle}>Preferencias</h2>
             <DefList items={preferenceItems} />
             <p className={styles.note}>
-              Ciudad, última sesión y preferencias aparecen vacías porque el
-              backend todavía no las devuelve en el usuario.
+              Completa tu ciudad y tus preferencias desde la sección de
+              recomendaciones.
             </p>
           </article>
         </div>

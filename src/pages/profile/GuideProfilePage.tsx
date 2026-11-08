@@ -143,8 +143,8 @@ export default function GuideProfilePage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Sobre mí</h2>
             <p className={styles.notice}>
-              El backend no publica la descripción, los idiomas ni las
-              certificaciones adicionales del guía.
+              La descripción, los idiomas y las certificaciones del guía aún no
+              están disponibles.
             </p>
           </article>
 
@@ -196,16 +196,14 @@ export default function GuideProfilePage() {
             <h2 className={styles.cardTitle}>Ficha del guía</h2>
             <DefList items={details} columns={1} />
             <p className={styles.notice}>
-              El backend no expone el teléfono ni el correo del guía: el contacto
-              se coordina al confirmar una reserva.
+              El contacto se coordina al confirmar una reserva.
             </p>
           </article>
 
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Reseñas recientes</h2>
             <p className={styles.empty}>
-              Todavía no hay reseñas que mostrar: el backend aún no expone el
-              módulo de reseñas.
+              Todavía no hay reseñas de este guía.
             </p>
           </article>
         </div>

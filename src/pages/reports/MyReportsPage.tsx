@@ -205,8 +205,7 @@ export default function MyReportsPage() {
             {report.photosUrls.length > 0 && (
               <div className={styles.photo}>
                 {report.photosUrls.length}{' '}
-                {report.photosUrls.length === 1 ? 'foto' : 'fotos'}: el
-                navegador no muestra las URLs, el backend no aloja archivos
+                {report.photosUrls.length === 1 ? 'foto adjunta' : 'fotos adjuntas'}
               </div>
             )}
 

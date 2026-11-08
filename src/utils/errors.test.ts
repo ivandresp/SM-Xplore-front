@@ -14,7 +14,7 @@ function apiError(status: number, code?: string, detail = 'English detail') {
 describe('describeApiError', () => {
   it('solo culpa a la red cuando el fallo es de red', () => {
     expect(describeApiError(new TypeError('Failed to fetch'))).toContain(
-      'No se pudo conectar con el backend',
+      'No pudimos conectar con el servidor',
     )
   })
 
@@ -23,7 +23,7 @@ describe('describeApiError', () => {
       new TypeError('activities.filter is not a function'),
     )
 
-    expect(message).not.toContain('No se pudo conectar')
+    expect(message).not.toContain('No pudimos conectar')
     expect(message).toContain('error inesperado')
   })
 
@@ -58,7 +58,7 @@ describe('describeApiError', () => {
     const message = describeApiError(new RequestTimeoutError(45_000))
 
     expect(message).toContain('45 s')
-    expect(message).not.toContain('No se pudo conectar')
+    expect(message).not.toContain('No pudimos conectar')
   })
 
   it('explica un 405 sin mostrar el detalle crudo', () => {

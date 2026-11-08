@@ -209,8 +209,7 @@ export default function ReceivedReservationDetailPage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Turista</h2>
             <p className={styles.contactMeta}>
-              El backend solo entrega el identificador del turista, sin nombre ni
-              contacto: {current.touristId}
+              Identificador del turista: {current.touristId}
             </p>
           </article>
         </div>

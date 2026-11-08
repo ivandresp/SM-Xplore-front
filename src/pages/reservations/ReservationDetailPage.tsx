@@ -197,8 +197,8 @@ export default function ReservationDetailPage() {
             <h2 className={styles.cardTitle}>Información de la reserva</h2>
             <DefList items={infoItems} />
             <p className={styles.notice}>
-              "Punto de encuentro" e "Itinerario" aparecen vacíos porque el
-              backend todavía no los almacena.
+              El punto de encuentro y el itinerario se confirman con el guía o
+              la prestadora.
             </p>
           </article>
         </div>
@@ -237,10 +237,6 @@ export default function ReservationDetailPage() {
                 {canRequestCancellation
                   ? 'La reserva nace confirmada: solo puedes cancelarla, y el guía o la prestadora ven el cambio en su panel.'
                   : 'Con el estado actual ya no se puede cancelar.'}
-              </p>
-              <p className={styles.actionsNote}>
-                "Modificar reserva" estará disponible cuando el backend exponga
-                el cambio de ítems y fechas.
               </p>
             </div>
           </article>

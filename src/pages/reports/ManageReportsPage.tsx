@@ -161,9 +161,9 @@ export default function ManageReportsPage() {
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Reportes' }, { label: 'Mapa de incidentes' }]}
-        title="Mapa de incidentes"
-        description="Distribución de reportes de seguridad por zona."
+        breadcrumb={[{ label: 'Reportes' }, { label: 'Reportes de seguridad' }]}
+        title="Reportes de seguridad"
+        description="Estado de los reportes de la ciudad y los más recientes."
       />
 
       {error !== null && (
@@ -190,29 +190,28 @@ export default function ManageReportsPage() {
         ))}
       </div>
 
-      <div className={styles.layout}>
-        <article className={styles.card}>
-          <ul className={styles.legend}>
-            <li className={styles.legendItem}>
-              <span className={`${styles.dot} ${styles.dotWarning}`} />
-              En curso ({counts.ONGOING}
-              {truncated.ONGOING ? '+' : ''})
-            </li>
-            <li className={styles.legendItem}>
-              <span className={`${styles.dot} ${styles.dotInfo}`} />
-              Reportados ({counts.REPORTED}
-              {truncated.REPORTED ? '+' : ''})
-            </li>
-            <li className={styles.legendItem}>
-              <span className={`${styles.dot} ${styles.dotSuccess}`} />
-              Resueltos ({counts.SOLVED}
-              {truncated.SOLVED ? '+' : ''})
-            </li>
-          </ul>
-        </article>
+      <div className={styles.summary}>
+        <ul className={styles.legend}>
+          <li className={styles.legendItem}>
+            <span className={`${styles.dot} ${styles.dotWarning}`} />
+            En curso ({counts.ONGOING}
+            {truncated.ONGOING ? '+' : ''})
+          </li>
+          <li className={styles.legendItem}>
+            <span className={`${styles.dot} ${styles.dotInfo}`} />
+            Reportados ({counts.REPORTED}
+            {truncated.REPORTED ? '+' : ''})
+          </li>
+          <li className={styles.legendItem}>
+            <span className={`${styles.dot} ${styles.dotSuccess}`} />
+            Resueltos ({counts.SOLVED}
+            {truncated.SOLVED ? '+' : ''})
+          </li>
+        </ul>
+      </div>
 
-        <article className={styles.card}>
-          <h2 className={styles.cardTitle}>Reportes recientes</h2>
+      <article className={styles.card}>
+        <h2 className={styles.cardTitle}>Reportes recientes</h2>
 
           {isLoading && (
             <Skeleton variant="table" count={3} label="Cargando reportes…" />
@@ -277,7 +276,6 @@ export default function ManageReportsPage() {
             ))}
           </div>
         </article>
-      </div>
     </section>
   )
 }

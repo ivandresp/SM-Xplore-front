@@ -172,8 +172,7 @@ export default function EventManageDetailPage() {
               <p className={styles.meta}>{current.description}</p>
             )}
             <p className={styles.helper}>
-              El backend no expone un endpoint para editar un evento: nombre,
-              fechas y aforo se definen al crearlo.
+              El nombre, las fechas y el aforo se definen al crear el evento.
             </p>
           </article>
         </div>

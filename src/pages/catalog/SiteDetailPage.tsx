@@ -246,8 +246,7 @@ export default function SiteDetailPage() {
           <article className={styles.booking}>
             <h2 className={styles.sectionTitle}>¿Cómo llegar?</h2>
             <p className={styles.paragraphMuted}>
-              El backend no tiene servicio de mapas: usa las coordenadas del
-              atractivo en tu aplicación preferida.
+              Abre estas coordenadas en tu aplicación de mapas preferida.
             </p>
           </article>
         </div>

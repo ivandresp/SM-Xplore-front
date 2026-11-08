@@ -49,7 +49,7 @@ export default function ResetPasswordPage() {
         setError(describeApiError(cause))
       } else {
         setError(
-          'No se pudo conectar con el backend. Verifica que el gateway esté corriendo en http://127.0.0.1:8088.',
+          'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.',
         )
       }
     } finally {

@@ -310,8 +310,8 @@ export default function UserDetailPage() {
         <article className={styles.card}>
           <h2 className={styles.cardTitle}>Cuenta eliminada</h2>
           <p className={`${styles.feedback} ${styles.warning}`}>
-            La cuenta fue anonimizada y no puede reactivarse. El backend rechaza
-            cualquier cambio de estado, rol o contraseña sobre ella.
+            La cuenta fue anonimizada y no puede reactivarse: no admite cambios
+            de estado, rol ni contraseña.
           </p>
         </article>
       )}
@@ -449,8 +449,8 @@ export default function UserDetailPage() {
         <article className={styles.card}>
           <h2 className={styles.cardTitle}>Restablecer contraseña</h2>
           <p className={styles.description}>
-            El backend envía un enlace de recuperación al correo del usuario. Nunca
-            se escribe una contraseña desde aquí.
+            Se envía un enlace de recuperación al correo del usuario. Nunca se
+            escribe una contraseña desde aquí.
           </p>
           <div className={styles.actions}>
             <Button
@@ -474,7 +474,7 @@ export default function UserDetailPage() {
           <h2 className={styles.cardTitle}>Eliminar cuenta</h2>
           <p className={`${styles.feedback} ${styles.warning}`}>
             La eliminación anonimiza el correo y los datos de la cuenta. No se
-            puede deshacer y el backend rechaza reactivarla.
+            puede deshacer.
           </p>
           <label className={styles.actionsNote}>
             <input

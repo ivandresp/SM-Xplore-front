@@ -230,9 +230,7 @@ export default function ActivityDetailPage() {
 
       <div className={styles.detailLayout}>
         <div className={styles.column}>
-          <div className={styles.hero}>
-            Sin fotos: el backend todavía no almacena imágenes de actividades
-          </div>
+          <div className={styles.hero}>Sin fotos disponibles</div>
 
           <section>
             <h2 className={styles.sectionTitle}>Descripción</h2>
@@ -432,8 +430,7 @@ export default function ActivityDetailPage() {
           <article className={styles.booking}>
             <h2 className={styles.sectionTitle}>Reseñas</h2>
             <p className={styles.paragraphMuted}>
-              Todavía no hay reseñas: el backend aún no expone el módulo de
-              reseñas.
+              Todavía no hay reseñas de esta actividad.
             </p>
           </article>
         </div>
