@@ -331,10 +331,6 @@
   color: var(--color-success-text);
 }
 
-.review:last-of-type {
-  border-bottom: none;
-}
-
 .retryLink {
   display: inline-flex;
   align-items: center;

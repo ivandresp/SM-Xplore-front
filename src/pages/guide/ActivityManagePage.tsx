@@ -268,10 +268,8 @@ export default function ActivityManagePage() {
           </div>
 
           <p className={styles.notice}>
-            Duración, capacidad y fechas se editan en "Disponibilidad"
-            (endpoints aparte). "Eliminar actividad" no borra: el backend solo
-            permite cancelarla. El historial de cambios del diseño no existe:
-            la API no guarda fechas de creación ni de actualización.
+            Duración, capacidad y fechas se editan en «Disponibilidad». Cancelar
+            una actividad no la borra: deja de mostrarse en el catálogo.
           </p>
         </form>
 

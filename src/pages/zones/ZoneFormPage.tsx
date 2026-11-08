@@ -654,22 +654,6 @@ export default function ZoneFormPage() {
         </div>
 
         <div className={styles.column}>
-          <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Qué guarda la API</h2>
-            <ul className={styles.bullets}>
-              <li>Nombre de la zona (se puede renombrar).</li>
-              <li>
-                Sitios de la zona: nombre, latitud, longitud y fotos por URL.
-              </li>
-            </ul>
-            <p className={styles.helper}>
-              El diseño pide además descripción, capacidad recomendada, umbral
-              de congestión, delimitación en el mapa y estado de afluencia: la
-              API todavía no los almacena. Tampoco hay endpoint para eliminar
-              sitios (sí para editarlos o moverlos de zona).
-            </p>
-          </article>
-
           {zone !== null && (
             <article className={styles.card}>
               <h2 className={styles.cardTitle}>Resumen</h2>

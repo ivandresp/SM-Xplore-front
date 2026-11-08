@@ -38,7 +38,7 @@ const SEARCH_GROUPS: Array<{ key: GlobalSearchGroup; label: string }> = [
 
 /** Buscador global: panel con los resultados agrupados por tipo. */
 function GlobalSearch() {
-  const { term, setTerm, isLoading, results, error, failed, retry, clear } =
+  const { term, setTerm, isLoading, results, error, failed, retry } =
     useGlobalSearch()
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -75,7 +75,6 @@ function GlobalSearch() {
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'Escape') {
       setOpen(false)
-      clear()
       inputRef.current?.focus()
       return
     }
@@ -148,9 +147,10 @@ function GlobalSearch() {
           }}
           onClick={() => setOpen(true)}
           placeholder="Buscar actividades, atractivos, eventos…"
+          role="combobox"
           aria-label="Buscar en el catálogo"
+          aria-autocomplete="list"
           aria-expanded={showPanel}
-          aria-controls={showPanel ? panelId : undefined}
           autoComplete="off"
         />
       </div>
@@ -236,7 +236,7 @@ export function TopBar({
 }: TopBarProps) {
   return (
     <header className={classNames(styles.bar, tone === 'dark' && styles.dark)}>
-      <Link to="/" aria-label="Ir al inicio">
+      <Link to="/" aria-label="SM-Xplore, ir al inicio">
         <Logo tone={tone === 'dark' ? 'inverse' : 'default'} />
       </Link>
 

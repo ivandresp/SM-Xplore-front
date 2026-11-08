@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { Skeleton } from '@/components/Skeleton'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { recommendationsApi } from '@/services/recommendationsApi'
 import { categoriesApi } from '@/services/categoriesApi'
@@ -244,11 +245,7 @@ export default function RecommendationsPage() {
       )}
 
       {isLoading && (
-        <div className={styles.cards} aria-hidden="true">
-          {[0, 1, 2, 3].map((key) => (
-            <div key={key} className={styles.skeleton} />
-          ))}
-        </div>
+        <Skeleton variant="card" count={4} label="Cargando recomendaciones" />
       )}
 
       {!isLoading && error === null && data !== null && data.items.length === 0 && (

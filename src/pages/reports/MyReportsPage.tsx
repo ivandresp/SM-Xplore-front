@@ -222,15 +222,6 @@ export default function MyReportsPage() {
           </article>
         ))}
       </div>
-
-      <div className={styles.feed}>
-        <p className={styles.notice}>
-          El diseño muestra "Reportes de la comunidad" con tipo (incidente /
-          avistamiento) y confirmaciones. El backend no tiene tipo de reporte,
-          confirmaciones ni feed comunitario: esta pantalla lista tus propios
-          reportes.
-        </p>
-      </div>
     </div>
   )
 }

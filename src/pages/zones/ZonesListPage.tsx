@@ -73,14 +73,20 @@ export default function ZonesListPage() {
     )
   }, [zones, term])
 
-  const rows: ZoneRow[] = useMemo(
-    () =>
-      filtered.map((zone) => ({
-        zone,
-        sites: sites.filter((site) => site.zoneId === zone.id),
-      })),
-    [filtered, sites],
-  )
+  const rows: ZoneRow[] = useMemo(() => {
+    const byZone = new Map<string, Site[]>()
+
+    for (const site of sites) {
+      const bucket = byZone.get(site.zoneId)
+      if (bucket === undefined) {
+        byZone.set(site.zoneId, [site])
+      } else {
+        bucket.push(site)
+      }
+    }
+
+    return filtered.map((zone) => ({ zone, sites: byZone.get(zone.id) ?? [] }))
+  }, [filtered, sites])
 
   const withoutSites = useMemo(() => {
     const zonesWithSites = new Set(sites.map((site) => site.zoneId))
@@ -184,10 +190,8 @@ export default function ZonesListPage() {
       </div>
 
       <p className={styles.notice}>
-        Datos reales de <code>/zones</code> y <code>/sites</code>: la zona solo
-        guarda su nombre y cada sitio pertenece a una zona con coordenadas y
-        fotos por URL. La capacidad recomendada, el umbral de congestión, el
-        estado y la afluencia del diseño todavía no existen en la API.
+        Cada zona agrupa sus atractivos; el atractivo guarda nombre, coordenadas
+        y fotos. La zona solo tiene nombre.
       </p>
     </section>
   )

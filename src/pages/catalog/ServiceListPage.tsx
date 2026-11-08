@@ -148,19 +148,24 @@ export default function ServiceListPage() {
             : `${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`
         }
         actions={
-          <select
-            className={styles.sort}
-            value={sort}
-            onChange={(event) => {
-              setSort(event.target.value as SortOrder)
-              setPage(1)
-            }}
-            aria-label="Ordenar resultados"
-          >
-            <option value="relevance">Ordenar: por relevancia</option>
-            <option value="priceAsc">Ordenar: precio (menor a mayor)</option>
-            <option value="priceDesc">Ordenar: precio (mayor a menor)</option>
-          </select>
+          <>
+            <label className="visually-hidden" htmlFor="servicios-sort">
+              Ordenar resultados
+            </label>
+            <select
+              id="servicios-sort"
+              className={styles.sort}
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value as SortOrder)
+                setPage(1)
+              }}
+            >
+              <option value="relevance">Ordenar: por relevancia</option>
+              <option value="priceAsc">Ordenar: precio (menor a mayor)</option>
+              <option value="priceDesc">Ordenar: precio (mayor a menor)</option>
+            </select>
+          </>
         }
       />
 

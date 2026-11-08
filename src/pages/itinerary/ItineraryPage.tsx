@@ -84,6 +84,8 @@ export default function ItineraryPage() {
     setError(null)
     setFeedback(null)
 
+    let created = 0
+
     try {
       // Una reserva por entrada: el backend guarda un solo ítem por reserva.
       for (const entry of entries) {
@@ -97,11 +99,16 @@ export default function ItineraryPage() {
         })
 
         patchEntry(entry.itemId, { reservationId: reservation.id })
+        created += 1
       }
 
       setFeedback('Reservas creadas. Puedes verlas en "Mis reservas".')
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(
+        created === 0
+          ? describeApiError(cause)
+          : `${created} de ${entries.length} reservas creadas. Las demás fallaron: ${describeApiError(cause)}`,
+      )
     } finally {
       setIsReserving(false)
     }

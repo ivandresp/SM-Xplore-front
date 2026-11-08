@@ -10,6 +10,7 @@ import { REPORT_STATUS_LABELS, REPORT_STATUS_TONES } from '@/config/roles'
 import { securityReportsApi } from '@/services/securityReportsApi'
 import { describeApiError } from '@/utils/errors'
 import { formatRelativeTime } from '@/utils/format'
+import { MAX_PAGE_SIZE } from '@/types/common'
 import type { SecurityReportResponse, SecurityReportStatus } from '@/types'
 import styles from './reports.module.css'
 
@@ -30,6 +31,9 @@ export default function ManageReportsPage() {
   const [feedback, setFeedback] = useState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [reloadToken, setReloadToken] = useState(0)
+  const [truncated, setTruncated] = useState<Record<SecurityReportStatus, boolean>>(
+    { ONGOING: false, REPORTED: false, SOLVED: false },
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -38,7 +42,9 @@ export default function ManageReportsPage() {
       try {
         // El listado global exige estado; se piden los tres y se combinan.
         const results = await Promise.allSettled(
-          STATUSES.map((status) => securityReportsApi.list({ status })),
+          STATUSES.map((status) =>
+            securityReportsApi.list({ status, size: MAX_PAGE_SIZE }),
+          ),
         )
 
         if (cancelled) return
@@ -49,13 +55,24 @@ export default function ManageReportsPage() {
         }
 
         const byId = new Map<string, SecurityReportResponse>()
-        results.forEach((result) => {
+        const overflow: Record<SecurityReportStatus, boolean> = {
+          ONGOING: false,
+          REPORTED: false,
+          SOLVED: false,
+        }
+
+        results.forEach((result, index) => {
           if (result.status === 'fulfilled') {
             for (const report of result.value.content) {
               byId.set(report.id, report)
             }
+
+            const status = STATUSES[index]
+            if (status !== undefined) overflow[status] = result.value.hasNext
           }
         })
+
+        setTruncated(overflow)
 
         setReports(
           [...byId.values()].sort(
@@ -175,30 +192,23 @@ export default function ManageReportsPage() {
 
       <div className={styles.layout}>
         <article className={styles.card}>
-          <div className={styles.map}>
-            Mapa de Santa Marta — el diseño usa este marcador y el backend no
-            tiene consultas por zona ni servicio de mapas
-          </div>
-
           <ul className={styles.legend}>
             <li className={styles.legendItem}>
               <span className={`${styles.dot} ${styles.dotWarning}`} />
-              En curso ({counts.ONGOING})
+              En curso ({counts.ONGOING}
+              {truncated.ONGOING ? '+' : ''})
             </li>
             <li className={styles.legendItem}>
               <span className={`${styles.dot} ${styles.dotInfo}`} />
-              Reportados ({counts.REPORTED})
+              Reportados ({counts.REPORTED}
+              {truncated.REPORTED ? '+' : ''})
             </li>
             <li className={styles.legendItem}>
               <span className={`${styles.dot} ${styles.dotSuccess}`} />
-              Resueltos ({counts.SOLVED})
+              Resueltos ({counts.SOLVED}
+              {truncated.SOLVED ? '+' : ''})
             </li>
           </ul>
-
-          <p className={styles.notice}>
-            El diseño separa "Incidentes" y "Avistamientos": el backend no tiene
-            tipo de reporte, solo estado (en curso → reportado → resuelto).
-          </p>
         </article>
 
         <article className={styles.card}>

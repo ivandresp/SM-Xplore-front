@@ -177,6 +177,15 @@ export default function AvailabilityPage() {
       return
     }
 
+    const capacity = Number(maxCapacity)
+
+    if (date === '' || startTime === '' || endTime === '' || capacity < 1) {
+      setError(
+        'Elige la fecha, la hora de inicio y de fin, y un cupo de al menos 1 persona.',
+      )
+      return
+    }
+
     setIsWorking(true)
     setError(null)
     setFeedback(null)
@@ -188,7 +197,7 @@ export default function AvailabilityPage() {
       })
 
       const updated = await activitiesApi.setSlots(selected.id, {
-        maxCapacity: Number(maxCapacity),
+        maxCapacity: capacity,
       })
 
       setActivities((current) =>
@@ -356,12 +365,8 @@ export default function AvailabilityPage() {
             </div>
 
             <p className={styles.notice}>
-              El diseño tiene un calendario por día con turnos y estado
-              (disponible / agotado / cerrado) y un botón "Bloquear fecha". El
-              backend guarda **una sola** fecha de inicio y fin por actividad y
-              no tiene turnos ni cierres por día, así que aquí se editan esos
-              dos instantes y la capacidad; "Cerrar temporalmente" pausa la
-              actividad completa.
+              La actividad tiene una sola fecha de inicio y fin, sin turnos ni
+              cierres por día. «Cerrar temporalmente» la pausa entera.
             </p>
           </div>
 

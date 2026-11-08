@@ -118,15 +118,30 @@ interface SearchOutcome {
   error: string | null
 }
 
+// Actividades y atractivos se filtran en cliente, así que su catálogo completo
+// se pide una vez por sesión en lugar de en cada tecla.
+let catalogCache: Promise<[ActivityResponse[], Site[]]> | null = null
+
+function loadCatalog(): Promise<[ActivityResponse[], Site[]]> {
+  catalogCache ??= Promise.all([activitiesApi.list(), sitesApi.list()]).catch(
+    (error: unknown) => {
+      catalogCache = null
+      throw error
+    },
+  )
+
+  return catalogCache
+}
+
 async function searchEverything(
   needle: string,
   raw: string,
 ): Promise<SearchOutcome> {
   // Eventos y servicios sí buscan en el servidor; actividades y atractivos no.
   const settled = await Promise.allSettled([
-    activitiesApi.list(),
+    loadCatalog().then(([activities]) => activities),
     eventsApi.search({ name: raw }),
-    sitesApi.list(),
+    loadCatalog().then(([, sites]) => sites),
     servicesApi.list({ search: raw }),
   ])
 

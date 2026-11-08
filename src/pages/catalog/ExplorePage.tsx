@@ -230,20 +230,25 @@ export default function ExplorePage() {
             : `${filtered.length} ${filtered.length === 1 ? 'resultado' : 'resultados'}`
         }
         actions={
-          <select
-            className={styles.sort}
-            value={sort}
-            onChange={(event) => {
-              setSort(event.target.value as SortOrder)
-              setPage(1)
-            }}
-            aria-label="Ordenar resultados"
-          >
-            <option value="relevance">Ordenar: por relevancia</option>
-            <option value="priceAsc">Ordenar: precio (menor a mayor)</option>
-            <option value="priceDesc">Ordenar: precio (mayor a menor)</option>
-            <option value="durationAsc">Ordenar: duración (menor a mayor)</option>
-          </select>
+          <>
+            <label className="visually-hidden" htmlFor="explorar-sort">
+              Ordenar resultados
+            </label>
+            <select
+              id="explorar-sort"
+              className={styles.sort}
+              value={sort}
+              onChange={(event) => {
+                setSort(event.target.value as SortOrder)
+                setPage(1)
+              }}
+            >
+              <option value="relevance">Ordenar: por relevancia</option>
+              <option value="priceAsc">Ordenar: precio (menor a mayor)</option>
+              <option value="priceDesc">Ordenar: precio (mayor a menor)</option>
+              <option value="durationAsc">Ordenar: duración (menor a mayor)</option>
+            </select>
+          </>
         }
       />
 

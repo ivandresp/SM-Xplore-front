@@ -60,7 +60,7 @@ export function PublicLayout() {
               <Link
                 to="/perfil"
                 className={styles.avatarLink}
-                aria-label="Mi perfil"
+                aria-label={`Mi perfil: ${user?.fullName ?? 'tu cuenta'}`}
               >
                 <span className={styles.avatar} aria-hidden="true">
                   {user?.fullName.charAt(0).toUpperCase() ?? '?'}

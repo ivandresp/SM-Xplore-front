@@ -90,9 +90,16 @@ export default function ReportDetailPage() {
       setError(null)
 
       if (commentsResult.status === 'fulfilled') {
-        setComments(commentsResult.value.content)
-        setCommentCursor(commentsResult.value.nextCursor)
-        setHasMoreComments(commentsResult.value.hasNext)
+        const page = commentsResult.value
+
+        // Una recarga trae solo la primera página: se fusiona para no perder
+        // las que el usuario ya había traído con «Ver más».
+        setComments((previous) => {
+          const loaded = new Set(page.content.map((comment) => comment.id))
+          return [...page.content, ...previous.filter((c) => !loaded.has(c.id))]
+        })
+        setCommentCursor(page.nextCursor)
+        setHasMoreComments(page.hasNext)
         setCommentsError(null)
       } else {
         setCommentsError(describeApiError(commentsResult.reason))
@@ -479,11 +486,6 @@ export default function ReportDetailPage() {
                 </li>
               )}
             </ol>
-            <p className={styles.helper}>
-              El servicio solo expone la fecha de creación y la última
-              actualización del reporte; no hay fecha de cierre ni de
-              resolución.
-            </p>
           </article>
         </div>
       </div>

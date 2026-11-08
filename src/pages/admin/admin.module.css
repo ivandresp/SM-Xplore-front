@@ -72,9 +72,6 @@
 }
 
 @media (min-width: 720px) {
-  .defList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 .actions {
@@ -127,10 +124,6 @@
   border: 1px solid var(--color-warning-text);
   background-color: var(--color-warning-bg);
   color: var(--color-warning-text);
-}
-
-.docRow:last-child {
-  border-bottom: none;
 }
 
 .back {
