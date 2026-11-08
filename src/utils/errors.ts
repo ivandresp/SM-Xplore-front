@@ -6,10 +6,12 @@ const CONNECTION_ERROR =
 /**
  * El `detail` del backend llega en inglés y sin salida: aquí se traduce por
  * código estable y nunca se muestra el texto crudo.
- * Solo ms-01 emite `code`; ms-02..ms-05 caen en las ramas por status.
+ * ms-01 y ms-03 emiten `code`; ms-02, ms-04 y ms-05 caen en las ramas por status.
  */
 const CODE_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: 'El correo o la contraseña no son correctos.',
+  INVALID_FILTER:
+    'Alguno de los filtros no es válido. Revísalos e inténtalo de nuevo.',
   UNAUTHORIZED: 'La sesión no es válida. Inicia sesión de nuevo.',
   ACCESS_DENIED: 'Tu cuenta no tiene permiso para realizar esta acción.',
   MFA_ENROLLMENT_REQUIRED:

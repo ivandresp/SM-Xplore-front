@@ -42,6 +42,15 @@ describe('describeApiError', () => {
     ).toContain('no es válida con el estado actual')
   })
 
+  it('traduce un filtro inválido sin mostrar el detalle del backend', () => {
+    const message = describeApiError(
+      apiError(400, 'INVALID_FILTER', 'Failed to convert status=BASURA'),
+    )
+
+    expect(message).toContain('filtros no es válido')
+    expect(message).not.toContain('BASURA')
+  })
+
   it('dice cuánto esperar en un 429', () => {
     const error = new ApiError('Too many', 429, {
       title: 'Too Many Requests',
