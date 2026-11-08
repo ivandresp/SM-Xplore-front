@@ -47,6 +47,7 @@ export default function ReceivedReservationsPage() {
 
   const userId = user?.id
   const role = user?.role
+  const canList = role === 'GUIDE' || role === 'SERVICE_PROVIDER'
 
   async function load() {
     if (userId === undefined || role === undefined) {
@@ -56,9 +57,8 @@ export default function ReceivedReservationsPage() {
     setIsLoading(true)
     setError(null)
 
-    // El backend solo expone reservas por guía, por turista o por ítem. No hay
-    // listado por prestadora, y los servicios no son reservables.
-    if (role !== 'GUIDE') {
+    // Guías y prestadoras ven sus reservas recibidas; cada uno tiene su ruta.
+    if (!canList) {
       setRows([])
       setIsLoading(false)
       return
@@ -66,7 +66,9 @@ export default function ReceivedReservationsPage() {
 
     try {
       const [received, catalog] = await Promise.all([
-        reservationsApi.listByGuide(userId, { limit: 200 }),
+        role === 'GUIDE'
+          ? reservationsApi.listByGuide(userId, { limit: 200 })
+          : reservationsApi.listByProvider(userId, { limit: 200 }),
         loadCatalogLookup(),
       ])
 
@@ -181,12 +183,11 @@ export default function ReceivedReservationsPage() {
         }
       />
 
-      {role !== 'GUIDE' ? (
+      {!canList ? (
         <p className={styles.notice}>
-          El API no expone un listado de reservas por prestadora: solo hay
-          consultas por guía, por turista y por ítem. Además, los servicios no
-          son reservables, así que una prestadora no recibe reservas por esta
-          vía.{' '}
+          Las reservas recibidas son para guías y prestadoras. Además, los
+          servicios no son reservables, así que una prestadora solo recibe
+          reservas de sus actividades.{' '}
           <Link to="/app/mis-servicios">Ver mis servicios</Link>
         </p>
       ) : (
@@ -222,8 +223,14 @@ export default function ReceivedReservationsPage() {
           )}
 
           <p className={styles.notice}>
-            Datos reales de <code>/reservations/guides/{'{id}'}</code>. La API
-            solo permite confirmar asistencia o marcar no-show desde el detalle.
+            Datos reales de{' '}
+            <code>
+              {role === 'GUIDE'
+                ? '/reservations/guides/{id}'
+                : '/reservations/providers/{id}'}
+            </code>
+            . Solo se puede confirmar asistencia o marcar no-show desde el
+            detalle.
           </p>
         </>
       )}

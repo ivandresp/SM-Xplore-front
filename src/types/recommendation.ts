@@ -34,6 +34,17 @@ export interface RecommendationResponse {
   items: RecommendationItem[]
 }
 
+export type PreferenceSource = 'EXPLICIT' | 'INFERRED'
+
+/** `GET|POST /preferences` — las que el turista marca a mano pesan 1.0 y son `EXPLICIT`. */
+export interface PreferenceResponse {
+  touristId: string
+  categoryId: string
+  weight: number
+  source: PreferenceSource
+  updatedAt: string
+}
+
 export interface RecommendationQuery {
   siteId?: string
   lat?: number

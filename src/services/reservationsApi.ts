@@ -104,6 +104,22 @@ export const reservationsApi = {
     ).map(toSummary)
   },
 
+  /** `GET /reservations/providers/{providerId}?status=&limit=` — devuelve un array. */
+  listByProvider: async (
+    providerId: string,
+    { status, limit = 50 }: { status?: ReservationStatus; limit?: number } = {},
+  ) => {
+    const data = await httpClient.get<unknown>(
+      `/reservations/providers/${providerId}`,
+      { query: { status, limit } },
+    )
+    return parseResponse(
+      z.array(reservationSchema),
+      data,
+      `GET /reservations/providers/${providerId}`,
+    ).map(toSummary)
+  },
+
   /** `GET /reservations/by-item?itemType=&itemId=&limit=` — devuelve un array. */
   listByItem: async ({
     itemType,

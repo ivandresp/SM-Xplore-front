@@ -92,4 +92,20 @@ describe('reservationsApi', () => {
     expect(item.type).toBe('ACTIVITY')
     expect(item.price).toBe(50000)
   })
+
+  it('listByProvider apunta a la ruta de la prestadora y filtra por estado', async () => {
+    const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse([{ ...reservation, providerId: 'p1', guideId: null }]),
+    )
+    vi.stubGlobal('fetch', fetchStub)
+
+    const list = await reservationsApi.listByProvider('p1', { status: 'CONFIRMED' })
+
+    expect(list).toHaveLength(1)
+    expect(list[0].providerId).toBe('p1')
+
+    const url = String(fetchStub.mock.calls[0][0])
+    expect(url).toContain('/reservations/providers/p1')
+    expect(url).toContain('status=CONFIRMED')
+  })
 })

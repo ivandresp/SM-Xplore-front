@@ -66,4 +66,49 @@ describe('recommendationsApi', () => {
       expect.objectContaining({ method: 'POST' }),
     )
   })
+
+  it('lista las preferencias del turista', async () => {
+    const fetchMock = stubFetch([
+      {
+        touristId: 't1',
+        categoryId: 'c1',
+        weight: 1,
+        source: 'EXPLICIT',
+        updatedAt: '2026-11-07T12:00:00Z',
+      },
+    ])
+
+    const preferences = await recommendationsApi.listPreferences()
+
+    expect(preferences).toHaveLength(1)
+    expect(preferences[0].categoryId).toBe('c1')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/preferences',
+      expect.objectContaining({ method: 'GET' }),
+    )
+  })
+
+  it('añade y quita una preferencia por categoria', async () => {
+    const fetchMock = stubFetch(
+      {
+        touristId: 't1',
+        categoryId: 'c1',
+        weight: 1,
+        source: 'EXPLICIT',
+        updatedAt: '2026-11-07T12:00:00Z',
+      },
+      201,
+    )
+
+    const added = await recommendationsApi.addPreference('c1')
+
+    expect(added.source).toBe('EXPLICIT')
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/v1/preferences',
+      expect.objectContaining({ method: 'POST' }),
+    )
+
+    stubFetch(null, 204)
+    await recommendationsApi.removePreference('c1')
+  })
 })

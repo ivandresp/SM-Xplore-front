@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { httpClient } from './httpClient'
 import { parseResponse } from './validate'
 import type {
+  PreferenceResponse,
   RecommendationItemType,
   RecommendationQuery,
   RecommendationResponse,
@@ -43,6 +44,14 @@ const toRecommendations = (
   })),
 })
 
+const preferenceSchema = z.object({
+  touristId: z.string(),
+  categoryId: z.string(),
+  weight: z.number(),
+  source: z.enum(['EXPLICIT', 'INFERRED']),
+  updatedAt: z.string(),
+})
+
 export const recommendationsApi = {
   /** `GET /api/v1/recommendations` — TOURIST con su id del JWT; ADMIN puede pedir otro. */
   list: async (query: RecommendationQuery = {}) => {
@@ -66,4 +75,24 @@ export const recommendationsApi = {
     itemType: RecommendationItemType,
     itemId: string,
   ): Promise<void> => httpClient.post<void>(`/interactions/view/${itemType}/${itemId}`),
+
+  /** `GET /api/v1/preferences` — preferencias del turista autenticado. */
+  listPreferences: async (): Promise<PreferenceResponse[]> => {
+    const payload = await httpClient.get<unknown>('/preferences')
+    return parseResponse(
+      z.array(preferenceSchema),
+      payload,
+      'GET /preferences',
+    )
+  },
+
+  /** `POST /api/v1/preferences` — 201. */
+  addPreference: async (categoryId: string): Promise<PreferenceResponse> => {
+    const payload = await httpClient.post<unknown>('/preferences', { categoryId })
+    return parseResponse(preferenceSchema, payload, 'POST /preferences')
+  },
+
+  /** `DELETE /api/v1/preferences/{categoryId}` — 204. */
+  removePreference: (categoryId: string): Promise<void> =>
+    httpClient.delete<void>(`/preferences/${categoryId}`),
 }
