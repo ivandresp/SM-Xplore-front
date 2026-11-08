@@ -13,25 +13,42 @@ lazy routes, ms-05, modo oscuro, estados de carga/error/vacío y tests de pantal
 # REPOSITORIOS Y ESTADO REAL (verificado, no redescubrir)
 
 - Front: `C:\Users\USUARIO\Documents\Mis GitProyectos\SM-Xplore-front`
-  Rama `develop`, HEAD **f1fad16**, **21 commits por delante** de `origin/develop`, árbol limpio.
+  `develop` = **2e83dec**, idéntico a `origin/develop`, árbol limpio, 22 commits sobre la base `a16b7f9`.
   `typecheck`, `lint` y `build` limpios; **79 tests vitest en 24 ficheros**; 2 tests E2E de humo.
   Bundle: índice **257,23 kB (80,34 gzip)**, con `lazy()` por página y chunk `jsx-runtime` propio.
 - Backend: `C:\Users\USUARIO\Documents\Mis GitProyectos\SM-Xplore`
-  Rama `develop`, HEAD **7d6a80f**, 2 commits por delante de `origin/develop`.
-  Suites: ms-01 143, ms-02 sin contar, ms-03 339, ms-04 133, ms-05 152. Todas en verde.
-- PR abiertos: front `ivandresp/SM-Xplore-front#1`, backend `ivandresp/SM-Xplore#58`.
-  **No hagas rebase sobre `origin/develop`**: se trabaja sobre el `develop` local.
-- La cuenta de GitHub activa (TheRudas) es de solo lectura sobre el front: los push los hace el dueño.
-  **Nunca hagas push.**
+  `develop` = **e2c9076**, idéntico a `origin/develop`, árbol limpio.
+  Suites: ms-01 143, ms-03 339, ms-04 133, ms-05 152. Todas en verde.
+- **No hagas rebase sobre `origin/develop`**: se trabaja sobre el `develop` local.
+
+## Remotos: `origin` es el repositorio real, no el fork
+
+- **Front**: `origin` = `ivandresp/SM-Xplore-front` (**el bueno**, ahí se publica) y
+  `fork` = `TheRudas/SM-Xplore-front` (copia espejo). Trabaja y pushea contra `origin`; el fork no se usa.
+- **Backend**: un único remoto, `origin` = `ivandresp/SM-Xplore`.
+- La cuenta de `gh` es **TheRudas** y **sí tiene escritura sobre `origin`** en los dos repos
+  (en la ola 2 no la tenía). Los push a ramas normales funcionan.
+- **`develop` del backend está protegido**: un push directo se rechaza con
+  `GH006: Protected branch update failed` porque exige *1 approving review*. Flujo:
+  rama → push → PR → revisión de otra persona → merge. No puedes autoaprobar (la cuenta es la autora).
+  **`develop` del front no está protegido**: se pushea directo.
+- **No hay PRs abiertos** en ninguno de los dos repos: los de la ola 2 (#58, #59) están mergeados.
+- **La rama por defecto de los dos repos es `main`**, que sigue en el commit inicial. GitHub abre esa
+  vista vacía; el trabajo real está en `develop`.
+- Ramas existentes: front sólo `main` y `develop`; backend `main`, `develop`, `docs`,
+  `microservicios`, `Wireframe-Mockups`. Las tres últimas no son de estas olas: no las toques.
+- Para que un push falle rápido en vez de colgarse pidiendo credenciales: `$env:GIT_TERMINAL_PROMPT='0'`.
 
 # REGLA DE RAMAS (no negociable)
 
 - Front: `git checkout -b feat/<tema> develop`. **Prohibido commitear sobre `develop`.**
 - Una rama por bloque, creada desde `develop` o desde otra rama de feature ya cerrada.
-- Cierre de bloque: `git checkout develop && git merge --ff-only feat/<tema>`.
-- Backend: mismo criterio, ramas desde `develop` del backend.
+- Cierre de bloque: `git checkout develop && git merge --ff-only feat/<tema>` y después
+  `git push origin develop`. La rama del bloque se puede borrar en local y en `origin`
+  (sólo si `git rev-list --count origin/develop..<rama>` da 0).
+- Backend: mismo criterio de ramas, pero `develop` está protegido: se pushea la rama y se abre PR.
 - Un commit por bloque cerrado y verde. Conventional Commits **en español y sin tildes en el asunto**.
-- Antes de commitear, comprueba en qué rama estás: en la ola anterior se commiteó un bloque entero
+- Antes de commitear, comprueba en qué rama estás: en la ola 2 se commiteó un bloque entero
   sobre `develop` y hubo que rehacerlo.
 
 # ENTORNO QUE YA ESTÁ ARRIBA
