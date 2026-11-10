@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field, SelectField } from '@/components/FormField'
+import { ImageUploader } from '@/components/ImageUploader'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -14,14 +15,6 @@ import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
 import type { CategoryResponse, Site, Zone } from '@/types'
 import styles from './zones.module.css'
-
-/** Separa las URLs de fotos escritas una por línea. */
-function parsePhotoUrls(value: string): string[] {
-  return value
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line !== '')
-}
 
 function parseCoordinate(raw: string): number | null {
   if (raw.trim() === '') {
@@ -70,7 +63,8 @@ export default function ZoneFormPage() {
   const [newMaxCapacity, setNewMaxCapacity] = useState('10')
   const [newLatitude, setNewLatitude] = useState('')
   const [newLongitude, setNewLongitude] = useState('')
-  const [newPhotoUrls, setNewPhotoUrls] = useState('')
+  const [newPhotoUrls, setNewPhotoUrls] = useState<string[]>([])
+  const [newPhotosUploading, setNewPhotosUploading] = useState(false)
 
   const [editingSiteId, setEditingSiteId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
@@ -78,7 +72,8 @@ export default function ZoneFormPage() {
   const [editMaxCapacity, setEditMaxCapacity] = useState('')
   const [editLatitude, setEditLatitude] = useState('')
   const [editLongitude, setEditLongitude] = useState('')
-  const [editPhotoUrls, setEditPhotoUrls] = useState('')
+  const [editPhotoUrls, setEditPhotoUrls] = useState<string[]>([])
+  const [editPhotosUploading, setEditPhotosUploading] = useState(false)
   const [isSavingSite, setIsSavingSite] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
   const [sitesError, setSitesError] = useState<string | null>(null)
@@ -171,6 +166,11 @@ export default function ZoneFormPage() {
       return
     }
 
+    if (newPhotosUploading) {
+      setAddError('Espera a que terminen de subirse las fotos.')
+      return
+    }
+
     const trimmedName = newSiteName.trim()
     if (trimmedName === '') {
       setAddError('Escribe el nombre del sitio.')
@@ -207,14 +207,14 @@ export default function ZoneFormPage() {
         latitude: latitude as number,
         longitude: longitude as number,
         maxCapacity: capacity,
-        photoUrls: parsePhotoUrls(newPhotoUrls),
+        photoUrls: newPhotoUrls,
       })
 
       setSites((current) => [...current, created])
       setNewSiteName('')
       setNewLatitude('')
       setNewLongitude('')
-      setNewPhotoUrls('')
+      setNewPhotoUrls([])
     } catch (cause) {
       setAddError(describeApiError(cause))
     } finally {
@@ -229,7 +229,7 @@ export default function ZoneFormPage() {
     setEditMaxCapacity(String(site.maxCapacity))
     setEditLatitude(String(site.latitude))
     setEditLongitude(String(site.longitude))
-    setEditPhotoUrls(site.photoUrls.join('\n'))
+    setEditPhotoUrls([...site.photoUrls])
     setEditError(null)
   }
 
@@ -253,6 +253,11 @@ export default function ZoneFormPage() {
   }
 
   async function saveSite(site: Site) {
+    if (editPhotosUploading) {
+      setEditError('Espera a que terminen de subirse las fotos.')
+      return
+    }
+
     const trimmedName = editName.trim()
     if (trimmedName === '') {
       setEditError('Escribe el nombre del sitio.')
@@ -289,7 +294,7 @@ export default function ZoneFormPage() {
         latitude: latitude as number,
         longitude: longitude as number,
         maxCapacity: capacity,
-        photoUrls: parsePhotoUrls(editPhotoUrls),
+        photoUrls: editPhotoUrls,
       })
 
       setSites((current) =>
@@ -457,19 +462,15 @@ export default function ZoneFormPage() {
                           />
                         </div>
 
-                        <label className={styles.full}>
-                          <span className={styles.fieldLabel}>
-                            Fotos por URL (una por línea, opcional)
-                          </span>
-                          <textarea
-                            className={styles.textarea}
-                            placeholder="https://…"
-                            value={editPhotoUrls}
-                            onChange={(changeEvent) =>
-                              setEditPhotoUrls(changeEvent.target.value)
-                            }
-                          />
-                        </label>
+                        <ImageUploader
+                          className={styles.full}
+                          label="Fotos del atractivo"
+                          folder="sm-xplore/sites"
+                          value={editPhotoUrls}
+                          onChange={setEditPhotoUrls}
+                          onUploadingChange={setEditPhotosUploading}
+                          hint="Las fotos se suben a Cloudinary. La primera será la portada."
+                        />
 
                         {editError !== null && (
                           <p
@@ -484,7 +485,7 @@ export default function ZoneFormPage() {
                           <Button
                             variant="primary"
                             size="sm"
-                            disabled={isSavingSite}
+                            disabled={isSavingSite || editPhotosUploading}
                             onClick={() => void saveSite(site)}
                           >
                             {isSavingSite ? 'Guardando…' : 'Guardar sitio'}
@@ -619,19 +620,15 @@ export default function ZoneFormPage() {
                   />
                 </div>
 
-                <label className={styles.full}>
-                  <span className={styles.fieldLabel}>
-                    Fotos por URL (una por línea, opcional)
-                  </span>
-                  <textarea
-                    className={styles.textarea}
-                    placeholder="https://…"
-                    value={newPhotoUrls}
-                    onChange={(changeEvent) =>
-                      setNewPhotoUrls(changeEvent.target.value)
-                    }
-                  />
-                </label>
+                <ImageUploader
+                  className={styles.full}
+                  label="Fotos del atractivo"
+                  folder="sm-xplore/sites"
+                  value={newPhotoUrls}
+                  onChange={setNewPhotoUrls}
+                  onUploadingChange={setNewPhotosUploading}
+                  hint="Las fotos se suben a Cloudinary. La primera será la portada."
+                />
 
                 {addError !== null && (
                   <p className={`${styles.feedback} ${styles.error}`} role="alert">
@@ -643,7 +640,7 @@ export default function ZoneFormPage() {
                   <Button
                     variant="outline"
                     type="submit"
-                    disabled={isAddingSite}
+                    disabled={isAddingSite || newPhotosUploading}
                   >
                     {isAddingSite ? 'Añadiendo…' : '+ Añadir sitio'}
                   </Button>

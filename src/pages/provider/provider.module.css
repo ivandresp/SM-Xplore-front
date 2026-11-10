@@ -62,12 +62,6 @@
   resize: vertical;
 }
 
-.helper {
-  margin: 0.35rem 0 0;
-  color: var(--color-muted);
-  font-size: 0.85rem;
-}
-
 .actions {
   display: flex;
   flex-wrap: wrap;
