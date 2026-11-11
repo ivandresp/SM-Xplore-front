@@ -4,6 +4,7 @@ import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { Field } from '@/components/FormField'
+import { ImageUploader } from '@/components/ImageUploader'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -42,7 +43,8 @@ export default function ServiceManagePage() {
 
   const [service, setService] = useState<ServiceResponse | null>(null)
   const [price, setPrice] = useState('')
-  const [photos, setPhotos] = useState('')
+  const [newPhotoUrls, setNewPhotoUrls] = useState<string[]>([])
+  const [photosUploading, setPhotosUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -147,12 +149,12 @@ export default function ServiceManagePage() {
   }
 
   async function addPhotos() {
-    const photosUrls = photos
-      .split('\n')
-      .map((url) => url.trim())
-      .filter((url) => url !== '')
+    if (photosUploading) {
+      setError('Espera a que terminen de subirse las fotos.')
+      return
+    }
 
-    if (photosUrls.length === 0) {
+    if (newPhotoUrls.length === 0) {
       return
     }
 
@@ -160,9 +162,9 @@ export default function ServiceManagePage() {
     await runAction(async () => {
       const updated = await servicesApi.update(current.id, {
         ...toUpdateBody(current),
-        photosUrls: [...current.photosUrls, ...photosUrls],
+        photosUrls: [...current.photosUrls, ...newPhotoUrls],
       })
-      setPhotos('')
+      setNewPhotoUrls([])
       return updated
     }, 'Fotos añadidas.')
   }
@@ -292,20 +294,25 @@ export default function ServiceManagePage() {
 
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Añadir fotos</h2>
-            <textarea
-              className={styles.textarea}
-              placeholder={'https://…/foto-1.jpg\nhttps://…/foto-2.jpg'}
-              value={photos}
-              onChange={(changeEvent) => setPhotos(changeEvent.target.value)}
+            <ImageUploader
+              label="Nuevas fotos"
+              folder="sm-xplore/services"
+              value={newPhotoUrls}
+              onChange={setNewPhotoUrls}
+              onUploadingChange={setPhotosUploading}
+              hint="Se suben a Cloudinary y se añaden al servicio al guardar."
             />
-            <p className={styles.helper}>Una URL por línea.</p>
             <div className={styles.actions}>
               <Button
                 variant="outline"
-                disabled={isWorking || photos.trim() === ''}
+                disabled={
+                  isWorking ||
+                  photosUploading ||
+                  newPhotoUrls.length === 0
+                }
                 onClick={() => void addPhotos()}
               >
-                Añadir fotos
+                {isWorking ? 'Guardando…' : 'Guardar fotos'}
               </Button>
             </div>
           </article>

@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field, SelectField } from '@/components/FormField'
+import { ImageUploader } from '@/components/ImageUploader'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -28,7 +29,8 @@ export default function ServiceFormPage() {
   const [maxCapacity, setMaxCapacity] = useState('')
   const [latitude, setLatitude] = useState('')
   const [longitude, setLongitude] = useState('')
-  const [photos, setPhotos] = useState('')
+  const [photoUrls, setPhotoUrls] = useState<string[]>([])
+  const [photosUploading, setPhotosUploading] = useState(false)
   const [cancellationPolicy, setCancellationPolicy] = useState('')
 
   const [categories, setCategories] = useState<CategoryResponse[]>([])
@@ -94,6 +96,11 @@ export default function ServiceFormPage() {
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
 
+    if (photosUploading) {
+      setError('Espera a que terminen de subirse las fotos.')
+      return
+    }
+
     const missing =
       categoryId === ''
         ? 'la categoría'
@@ -112,11 +119,6 @@ export default function ServiceFormPage() {
     setError(null)
 
     try {
-      const photosUrls = photos
-        .split('\n')
-        .map((url) => url.trim())
-        .filter((url) => url !== '')
-
       await servicesApi.create({
         name: name.trim(),
         description: description.trim() || undefined,
@@ -128,7 +130,7 @@ export default function ServiceFormPage() {
         longitude: Number(longitude),
         price: Number(price),
         maxCapacity: Number(maxCapacity),
-        photosUrls: photosUrls.length > 0 ? photosUrls : undefined,
+        photosUrls: photoUrls.length > 0 ? photoUrls : undefined,
         cancellationPolicy: cancellationPolicy.trim() || undefined,
         // Un servicio nuevo sale publicado: sin esto nace en DRAFT y no aparece en el catálogo.
         status: 'PUBLISHED',
@@ -307,22 +309,24 @@ export default function ServiceFormPage() {
               />
             </label>
 
-            <label className={styles.full}>
-              <span className={styles.names}>Fotos (una URL por línea)</span>
-              <textarea
-                className={styles.textarea}
-                placeholder={'https://…/foto-1.jpg\nhttps://…/foto-2.jpg'}
-                value={photos}
-                onChange={(changeEvent) => setPhotos(changeEvent.target.value)}
-              />
-              <span className={styles.helper}>
-                Pega la URL de la foto; los archivos no se suben.
-              </span>
-            </label>
+            <ImageUploader
+              className={styles.full}
+              label="Fotos del servicio"
+              folder="sm-xplore/services"
+              value={photoUrls}
+              onChange={setPhotoUrls}
+              onUploadingChange={setPhotosUploading}
+              hint="Se suben a Cloudinary y se guardan como URLs del servicio. La primera será la portada."
+            />
           </div>
 
           <div className={styles.actions}>
-            <Button variant="accent" size="lg" type="submit" disabled={isSaving}>
+            <Button
+              variant="accent"
+              size="lg"
+              type="submit"
+              disabled={isSaving || photosUploading}
+            >
               {isSaving ? 'Guardando…' : 'Crear servicio'}
             </Button>
             <Link to="/app/mis-servicios">

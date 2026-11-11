@@ -59,6 +59,39 @@ peticiones a otro origen. Para evitarlo, Vite reenvía `/api` y `/actuator` a
 
 Cuando el backend agregue CORS, basta con apuntar `VITE_API_URL` a la URL absoluta del backend.
 
+## Carga de imágenes (Cloudinary)
+
+Los formularios de **sitios turísticos** y **servicios** suben las fotos directamente a
+[Cloudinary](https://cloudinary.com/) desde el navegador y guardan en el backend las URLs HTTPS
+que devuelve el servicio (`photosUrls`).
+
+### Configuración
+
+1. Crea una cuenta y anota el **cloud name** (visible en el dashboard).
+2. En **Settings → Upload → Upload presets**, crea un preset con:
+   - **Signing mode:** `Unsigned`.
+   - **Folder:** `sm-xplore` (o deja que el front envíe `sm-xplore/sites` y
+     `sm-xplore/services`).
+   - **Allowed formats:** `jpg,png,webp`.
+   - **Maximum image file size:** 10 MB.
+   - Opcional: moderación automática y límite de cargas.
+3. Copia `.env.example` y rellena las dos variables:
+
+```bash
+VITE_CLOUDINARY_CLOUD_NAME=tu-cloud-name
+VITE_CLOUDINARY_UPLOAD_PRESET=sm-xplore-unsigned
+```
+
+4. Reinicia `npm run dev` (Vite lee las variables al arrancar).
+
+> **Seguridad:** usa siempre un preset *unsigned* restringido. El **API secret** de Cloudinary
+> no debe estar en el frontend ni en una variable `VITE_*`: cualquiera puede leerlas. Si más
+> adelante necesitas borrar imágenes, la firma debe generarla el backend.
+
+La lógica vive en `src/services/cloudinaryApi.ts` y el selector reutilizable en
+`src/components/ImageUploader/`. El backend no cambia: sigue recibiendo la lista de URLs en
+`photosUrls` (`photoUrls` en el modelo de vista de los sitios).
+
 ## Diseño (Figma)
 
 El diseño vive en el archivo de Figma **WireFrames** y está sincronizado en `docs/wireframes/`:
@@ -196,6 +229,7 @@ Cada dominio del backend tiene su módulo tipado:
 | `services/sitesApi.ts`       | `/sites/**` (sitios/atractivos de cada zona)                     |
 | `services/reservationsApi.ts`| `/reservations/**` y `/reservation-items/**`                     |
 | `services/securityReportsApi.ts` | `/security-reports/**` (incluye comentarios y fotos)         |
+| `services/cloudinaryApi.ts`  | subida directa de imágenes a Cloudinary (multipart, no JSON)     |
 
 ```ts
 import { eventsApi } from '@/services/eventsApi'
