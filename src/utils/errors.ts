@@ -54,11 +54,12 @@ const CODE_MESSAGES: Record<string, string> = {
 const RESPONSE_CONTRACT_PREFIX = 'Respuesta inesperada de '
 
 /**
- * Mensaje de un contrato roto: dice qué pasó, qué hacer y dónde mirar. El `detail` del
- * backend nunca se usa aquí porque no es la causa del fallo.
+ * Mensaje de un contrato roto: dice qué pasó, qué hacer y dónde mirar. Es neutro a
+ * propósito: hay pantallas sin botón de reintento (preferencias, guardado del perfil).
+ * El `detail` del backend nunca se usa aquí porque no es la causa del fallo.
  */
 const RESPONSE_CONTRACT_MESSAGE =
-  'El servicio devolvió datos en un formato que no reconocemos. Pulsa «Reintentar»; si persiste, envía a soporte la hora del fallo y el detalle de la consola del navegador.'
+  'El servicio devolvió datos en un formato que no reconocemos. Vuelve a intentarlo; si persiste, envía a soporte la hora del fallo y el detalle de la consola del navegador.'
 
 interface ContractDetails {
   label: string
@@ -166,6 +167,7 @@ export function describeApiError(error: unknown): string {
 /** Lo que se escribe en consola: diagnóstico, nunca el `detail` crudo del backend. */
 export type ApiErrorLogDetail =
   | { kind: 'timeout'; timeoutMs: number }
+  | { kind: 'network'; error: unknown }
   | { kind: 'api'; status: number; code: string | undefined; fieldErrors: Record<string, string> | undefined }
   | { kind: 'contract'; label: string; issues: string; error: Error }
   | { kind: 'unexpected'; error: unknown }
@@ -190,12 +192,18 @@ function toLogDetail(error: unknown): ApiErrorLogDetail {
     return { kind: 'contract', label, issues, error }
   }
 
+  // Mismo criterio que `describeApiError`: un fallo de red no es un bug nuestro.
+  if (isNetworkFailure(error)) {
+    return { kind: 'network', error }
+  }
+
   return { kind: 'unexpected', error }
 }
 
 /**
- * Deja rastro del fallo real en la consola. Se llama desde cada `catch` que muestra
- * `describeApiError`: sin esto, «Revisa la consola del navegador» apunta a una consola vacía.
+ * Deja rastro del fallo real en la consola. Se llama desde los `catch` de este bloque
+ * (recomendaciones, preferencias y guardado del perfil): sin esto, «Revisa la consola del
+ * navegador» apunta a una consola vacía. El resto de pantallas todavía no lo usan.
  */
 export function logApiError(error: unknown, context: string): void {
   console.error(`[api] ${context}`, toLogDetail(error))

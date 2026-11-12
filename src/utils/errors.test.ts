@@ -128,7 +128,7 @@ describe('contrato roto', () => {
 
     expect(message).toContain('formato que no reconocemos')
     expect(message).not.toContain('error inesperado')
-    expect(message).toContain('Reintentar')
+    expect(message).toContain('Vuelve a intentarlo')
   })
 
   it('deja el cause en consola con la etiqueta del endpoint y los issues', () => {
@@ -155,6 +155,15 @@ describe('contrato roto', () => {
     expect(printed).not.toContain('Cypher')
     expect(printed).not.toContain('Neo4jQueries')
     expect(printed).toContain('500')
+  })
+
+  it('registra un fallo de red como red, no como bug', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    logApiError(new TypeError('Failed to fetch'), 'recomendaciones')
+
+    const detail = spy.mock.calls[0][1] as { kind: string }
+    expect(detail.kind).toBe('network')
   })
 
   it('registra el error desconocido tal cual para conservar el stack', () => {
