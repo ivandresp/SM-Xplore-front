@@ -32,7 +32,7 @@ const CODE_MESSAGES: Record<string, string> = {
   CONCURRENT_UPDATE:
     'Otra persona modificó este registro. Recarga la página y vuelve a intentarlo.',
   DATA_CONFLICT:
-    'El teléfono, el documento o el NIT ya están registrados. Inicia sesión o usa otros datos.',
+    'El correo, el teléfono, el documento o el NIT ya están registrados. Inicia sesión o usa otros datos.',
   VALIDATION_ERROR: 'Revisa los datos: hay campos con valores no válidos.',
   INVALID_BODY:
     'La solicitud no es válida. Recarga la página y vuelve a intentarlo.',

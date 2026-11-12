@@ -82,8 +82,13 @@ export function Field({
         </p>
       )}
       {error !== undefined && (
-        // role="alert": el mensaje se anuncia al aparecer, sin depender del foco.
-        <p className={styles.error} id={`${fieldId}-error`} role="alert">
+        // aria-live="polite": el error se anuncia sin competir con el resumen
+        // del formulario, que es el único role="alert".
+        <p
+          className={styles.error}
+          id={`${fieldId}-error`}
+          aria-live="polite"
+        >
           {error}
         </p>
       )}
@@ -142,8 +147,13 @@ export function SelectField({
         </p>
       )}
       {error !== undefined && (
-        // role="alert": el mensaje se anuncia al aparecer, sin depender del foco.
-        <p className={styles.error} id={`${fieldId}-error`} role="alert">
+        // aria-live="polite": el error se anuncia sin competir con el resumen
+        // del formulario, que es el único role="alert".
+        <p
+          className={styles.error}
+          id={`${fieldId}-error`}
+          aria-live="polite"
+        >
           {error}
         </p>
       )}

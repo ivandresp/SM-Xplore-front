@@ -408,12 +408,13 @@ describe('RegisterPage', () => {
       .join(' ')
     expect(described).toContain('Escribe tu nombre completo.')
 
-    const warns = screen
-      .getAllByRole('alert')
-      .map((node) => node.textContent ?? '')
-    expect(warns.some((text) => text.includes('Escribe tu nombre completo.'))).toBe(
-      true,
-    )
+    // Un solo alert (el resumen); el error del campo se anuncia en polite.
+    const alerts = screen.getAllByRole('alert')
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0].textContent).toContain('Revisa los datos')
+
+    const fieldError = screen.getByText('Escribe tu nombre completo.')
+    expect(fieldError.getAttribute('aria-live')).toBe('polite')
   })
 
   it('explica el DATA_CONFLICT sin hablar de campos no válidos', async () => {

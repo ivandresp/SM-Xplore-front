@@ -144,15 +144,8 @@ export default function RegisterPage() {
     }
   }
 
-  /**
-   * El error de blur se pinta en la tarea siguiente: si apareciera durante el
-   * mousedown del botón, el reflujo movería el botón y el mouseup caería fuera,
-   * perdiendo el clic (habría que pulsar dos veces).
-   */
   function markTouched(key: RegisterFieldKey) {
-    window.setTimeout(() => {
-      setTouched((current) => ({ ...current, [key]: true }))
-    }, 0)
+    setTouched((current) => ({ ...current, [key]: true }))
   }
 
   /**
@@ -521,6 +514,10 @@ export default function RegisterPage() {
           className={styles.submit}
           type="submit"
           disabled={isSubmitting}
+          // Evita que el botón se lleve el foco al pulsar: si el campo con
+          // error pierde el foco, el mensaje refluye y el mouseup cae fuera
+          // (el primer clic se perdía). El teclado sigue enfocando por Tab.
+          onMouseDown={(event) => event.preventDefault()}
         >
           {isSubmitting ? 'Creando cuenta…' : 'Crear cuenta'}
         </Button>
