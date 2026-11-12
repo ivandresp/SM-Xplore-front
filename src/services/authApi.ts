@@ -7,6 +7,7 @@ import type {
   ForgotPasswordRequest,
   LoginRequest,
   LoginResult,
+  RegisterGuideRequest,
   RegisterProviderRequest,
   RegisterTouristRequest,
   ResetPasswordRequest,
@@ -56,6 +57,17 @@ export const authApi = {
       .post<unknown>('/auth/register/turista', payload)
       .then((response) =>
         parseCreatedUser(response, 'POST /auth/register/turista'),
+      ),
+
+  /**
+   * 201 con el alta creada y `registrationStatus: PENDIENTE`; la cuenta no
+   * puede iniciar sesión hasta que una gestora la apruebe.
+   */
+  registerGuide: (payload: RegisterGuideRequest) =>
+    httpClient
+      .post<unknown>('/auth/register/guia', payload)
+      .then((response) =>
+        parseCreatedUser(response, 'POST /auth/register/guia'),
       ),
 
   /** 201 con la prestadora creada; queda pendiente de revisión del admin. */

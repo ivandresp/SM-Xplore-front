@@ -66,6 +66,9 @@ export const ManageReportsPage = lazy(() => import('@/pages/reports/ManageReport
 export const MyReportsPage = lazy(() => import('@/pages/reports/MyReportsPage'))
 export const ReportDetailPage = lazy(() => import('@/pages/reports/ReportDetailPage'))
 export const ReportFormPage = lazy(() => import('@/pages/reports/ReportFormPage'))
+export const RegistrationsQueuePage = lazy(
+  () => import('@/pages/registrations/RegistrationsQueuePage'),
+)
 export const ZoneFormPage = lazy(() => import('@/pages/zones/ZoneFormPage'))
 export const ZonesListPage = lazy(() => import('@/pages/zones/ZonesListPage'))
 

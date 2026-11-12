@@ -67,6 +67,7 @@ const AUTH: AuthContextValue = {
   cancelMfa: vi.fn(),
   registerTourist: vi.fn(),
   registerProvider: vi.fn(),
+  registerGuide: vi.fn(),
   logout: vi.fn(),
   updateSessionUser: vi.fn(),
 }

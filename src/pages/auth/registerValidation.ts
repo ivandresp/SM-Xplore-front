@@ -1,6 +1,9 @@
 import type { UserRole } from '@/types'
 
-export type AccountKind = Extract<UserRole, 'TOURIST' | 'SERVICE_PROVIDER'>
+export type AccountKind = Extract<
+  UserRole,
+  'TOURIST' | 'SERVICE_PROVIDER' | 'GUIDE'
+>
 
 /** Mismos valores que `PasswordPolicy.java:16-18`; si cambian allí, cambian aquí. */
 export const PASSWORD_MIN_LENGTH = 12
@@ -32,6 +35,7 @@ export interface RegisterFormValues {
   password: string
   dniType: string
   dniNumber: string
+  license: string
   nationality: string
   preferredLanguage: string
   birthDate: string
@@ -55,6 +59,7 @@ export const FIELD_ORDER: readonly RegisterFieldKey[] = [
   'password',
   'dniType',
   'dniNumber',
+  'license',
   'nationality',
   'preferredLanguage',
   'birthDate',
@@ -73,6 +78,7 @@ const FIELD_LABELS: Record<RegisterFieldKey, string> = {
   password: 'contraseña',
   dniType: 'tipo de documento',
   dniNumber: 'número de documento',
+  license: 'licencia de guía',
   nationality: 'nacionalidad',
   preferredLanguage: 'idioma preferido',
   birthDate: 'fecha de nacimiento',
@@ -234,7 +240,7 @@ export function validateRegisterForm(
     errors.password = 'La contraseña no cumple los requisitos de seguridad.'
   }
 
-  if (kind === 'TOURIST') {
+  if (kind !== 'SERVICE_PROVIDER') {
     if (values.dniType.trim() === '') {
       errors.dniType = 'Elige el tipo de documento.'
     } else if (values.dniType.trim().length > 20) {
@@ -247,7 +253,27 @@ export function validateRegisterForm(
     } else if (dniNumber.length > 30) {
       errors.dniNumber = 'El número de documento no puede superar los 30 caracteres.'
     }
+  }
 
+  if (kind === 'GUIDE') {
+    // `RegisterGuideRequest.java:20`: licencia obligatoria, máximo 50.
+    const license = values.license.trim()
+    if (license === '') {
+      errors.license = 'Escribe el número de la licencia de guía.'
+    } else if (license.length > 50) {
+      errors.license = 'La licencia no puede superar los 50 caracteres.'
+    }
+
+    if (
+      values.startOperationDate !== '' &&
+      values.startOperationDate > todayIso()
+    ) {
+      errors.startOperationDate =
+        'La fecha de inicio no puede estar en el futuro.'
+    }
+  }
+
+  if (kind === 'TOURIST') {
     if (values.nationality.trim().length > 80) {
       errors.nationality = 'La nacionalidad no puede superar los 80 caracteres.'
     }
@@ -260,7 +286,9 @@ export function validateRegisterForm(
     if (values.birthDate !== '' && values.birthDate >= todayIso()) {
       errors.birthDate = 'La fecha de nacimiento debe ser anterior a hoy.'
     }
-  } else {
+  }
+
+  if (kind === 'SERVICE_PROVIDER') {
     const nit = values.nit.trim()
     if (nit === '') {
       errors.nit = 'Escribe el NIT de la empresa.'
@@ -316,6 +344,7 @@ const SERVER_FIELD_MESSAGES: Partial<Record<RegisterFieldKey, string>> = {
   password: 'La contraseña no cumple la política de seguridad.',
   dniType: 'El tipo de documento no es válido.',
   dniNumber: 'El número de documento no es válido.',
+  license: 'La licencia no es válida según el servidor.',
   nit: 'El NIT no es válido según el servidor.',
 }
 

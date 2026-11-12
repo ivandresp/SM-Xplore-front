@@ -26,6 +26,7 @@ const TOURIST_FORM: RegisterFormValues = {
   password: 'ContraseñaSegura1!',
   dniType: 'CC',
   dniNumber: '1020304050',
+  license: '',
   nationality: '',
   preferredLanguage: '',
   birthDate: '',

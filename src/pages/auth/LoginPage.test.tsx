@@ -129,4 +129,43 @@ describe('LoginPage', () => {
     const alert = await screen.findByRole('alert')
     expect(alert.textContent).toContain('Correo o contraseña incorrectos')
   })
+
+  async function submitWith403(code: string) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse(
+          {
+            status: 403,
+            code,
+            detail: 'Forbidden',
+          },
+          403,
+        ),
+      ),
+    )
+
+    const user = userEvent.setup()
+    renderLogin()
+
+    await user.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com')
+    await user.type(screen.getByLabelText('Contraseña'), 'ContraseñaSegura1!')
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+
+    return screen.findByRole('alert')
+  }
+
+  it('avisa en el formulario de que la solicitud de guía sigue en revisión', async () => {
+    const alert = await submitWith403('ACCOUNT_PENDING_REVIEW')
+
+    expect(alert.textContent).toContain('Tu solicitud como guía está en revisión')
+    expect(screen.queryByText('Panel')).toBeNull()
+  })
+
+  it('avisa en el formulario de que la solicitud fue rechazada y del motivo', async () => {
+    const alert = await submitWith403('ACCOUNT_REGISTRATION_REJECTED')
+
+    expect(alert.textContent).toContain('fue rechazada')
+    expect(alert.textContent).toContain('motivo')
+  })
 })
