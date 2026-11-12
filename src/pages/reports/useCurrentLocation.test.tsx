@@ -136,6 +136,36 @@ describe('useCurrentLocation', () => {
     expect(result.current.status).toBe('ready')
   })
 
+  it('conserva la ubicación válida si la nueva consulta falla', () => {
+    const calls = stubGeolocation()
+    const { result } = renderHook(() => useCurrentLocation())
+
+    act(() => result.current.request())
+    act(() => calls[0].success(POSITION))
+    expect(result.current.location).not.toBeNull()
+
+    act(() => result.current.request())
+    act(() => calls[1].failure(permissionError(1)))
+
+    expect(result.current.status).toBe('denied')
+    expect(result.current.location).toEqual({
+      latitude: 11.2404,
+      longitude: -74.199,
+    })
+  })
+
+  it('olvida la ubicación solo cuando se pide explícitamente', () => {
+    const calls = stubGeolocation()
+    const { result } = renderHook(() => useCurrentLocation())
+
+    act(() => result.current.request())
+    act(() => calls[0].success(POSITION))
+    act(() => result.current.clear())
+
+    expect(result.current.status).toBe('idle')
+    expect(result.current.location).toBeNull()
+  })
+
   it('descarta la respuesta de una consulta anterior al reiniciar', () => {
     const calls = stubGeolocation()
     const { result } = renderHook(() => useCurrentLocation())

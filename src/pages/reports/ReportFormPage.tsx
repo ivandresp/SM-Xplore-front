@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
@@ -14,6 +14,16 @@ import styles from './reports.module.css'
 
 /** El contrato acepta como máximo 10 fotos por reporte (`@Size(max = 10)`). */
 const MAX_PHOTOS = 10
+
+/** Fallos de lectura cuando ya había una ubicación válida: se conserva. */
+const KEPT_LOCATION_MESSAGES: Record<'denied' | 'error' | 'unsupported', string> = {
+  denied:
+    'No diste permiso de ubicación. Mantendremos la ubicación anterior.',
+  error:
+    'No pudimos actualizar la ubicación. Mantendremos la ubicación anterior.',
+  unsupported:
+    'Este navegador no expone la ubicación. Mantendremos la ubicación anterior.',
+}
 
 /** Lo que se lee mientras no hay coordenadas. `idle` y `ready` tienen su propio texto. */
 const LOCATION_MESSAGES: Record<
@@ -58,12 +68,32 @@ export default function ReportFormPage() {
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** Fuerza el foco aunque el mismo mensaje se repita. */
+  const [errorNonce, setErrorNonce] = useState(0)
+  const errorRef = useRef<HTMLDivElement | null>(null)
+
+  // Un fallo de envío o de validación puede quedar fuera de pantalla: se lleva
+  // el scroll y el foco al mensaje para que se anuncie y se vea.
+  useEffect(() => {
+    if (error === null) return
+
+    const node = errorRef.current
+    if (node === null) return
+
+    node.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
+    node.focus()
+  }, [error, errorNonce])
+
+  function failWith(message: string) {
+    setError(message)
+    setErrorNonce((nonce) => nonce + 1)
+  }
 
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
 
     if (title.trim() === '') {
-      setError('El título es obligatorio.')
+      failWith('El título es obligatorio.')
       return
     }
 
@@ -82,19 +112,25 @@ export default function ReportFormPage() {
 
       navigate('/reportes')
     } catch (cause) {
-      setError(describeApiError(cause))
+      failWith(describeApiError(cause))
     } finally {
       setIsSaving(false)
     }
   }
 
-  const canRetryLocation =
-    locationStatus === 'denied' || locationStatus === 'error'
   const isLocating = locationStatus === 'locating'
+  const hasLocation = location !== null
   const statusMessage =
     locationStatus === 'idle' || locationStatus === 'ready'
       ? null
-      : LOCATION_MESSAGES[locationStatus]
+      : locationStatus === 'locating'
+        ? LOCATION_MESSAGES.locating
+        : hasLocation
+          ? {
+              text: KEPT_LOCATION_MESSAGES[locationStatus],
+              tone: 'error' as const,
+            }
+          : LOCATION_MESSAGES[locationStatus]
 
   return (
     <div className={styles.page}>
@@ -107,7 +143,11 @@ export default function ReportFormPage() {
         description="Cuéntanos qué pasó y dónde. Las gestoras de destino recibirán el aviso."
       />
 
-      {error !== null && <StateMessage title={error} tone="error" />}
+      {error !== null && (
+        <div ref={errorRef} className={styles.errorAnchor} tabIndex={-1}>
+          <StateMessage title={error} tone="error" />
+        </div>
+      )}
 
       <form className={styles.card} onSubmit={handleSubmit} noValidate>
         <div className={styles.grid}>
@@ -150,7 +190,7 @@ export default function ReportFormPage() {
               )}
 
               <div className={styles.locationActions}>
-                {location === null && (
+                {!hasLocation && (
                   <Button
                     variant="outline"
                     disabled={isLocating}
@@ -159,7 +199,7 @@ export default function ReportFormPage() {
                   >
                     {isLocating
                       ? 'Consultando…'
-                      : canRetryLocation
+                      : locationStatus === 'denied' || locationStatus === 'error'
                         ? 'Reintentar'
                         : 'Usar mi ubicación actual'}
                   </Button>
@@ -191,7 +231,7 @@ export default function ReportFormPage() {
                 </p>
               )}
 
-              {location !== null && (
+              {hasLocation && locationStatus === 'ready' && (
                 <p className={styles.locationStatus} role="status">
                   Ubicación lista: se adjuntará al enviar el reporte.
                 </p>
@@ -217,7 +257,7 @@ export default function ReportFormPage() {
             variant="accent"
             size="lg"
             type="submit"
-            disabled={isSaving || isUploadingPhotos}
+            disabled={isSaving || isUploadingPhotos || isLocating}
           >
             {isSaving ? 'Enviando…' : 'Enviar reporte'}
           </Button>

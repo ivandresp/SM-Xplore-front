@@ -73,8 +73,8 @@ export function useCurrentLocation(): UseCurrentLocationResult {
     const geolocation: Geolocation | undefined =
       typeof navigator === 'undefined' ? undefined : navigator.geolocation
 
-    setLocation(null)
-
+    // Una lectura anterior sigue siendo válida mientras se pide la nueva: solo
+    // se reemplaza al resolver. Un fallo no deja el reporte sin ubicación.
     if (geolocation === undefined || geolocation === null) {
       setStatus('unsupported')
       return
@@ -94,14 +94,12 @@ export function useCurrentLocation(): UseCurrentLocationResult {
         },
         (error) => {
           if (!isCurrent()) return
-          setLocation(null)
           setStatus(error.code === PERMISSION_DENIED ? 'denied' : 'error')
         },
         GEOLOCATION_OPTIONS,
       )
     } catch {
       if (!isCurrent()) return
-      setLocation(null)
       setStatus('error')
     }
   }, [])

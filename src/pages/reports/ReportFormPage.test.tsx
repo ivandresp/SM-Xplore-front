@@ -329,6 +329,64 @@ describe('ReportFormPage', () => {
     expect(submittedBody(fetchMock)).not.toHaveProperty('photosUrls')
   })
 
+  it('no deja enviar mientras se está consultando la ubicación', async () => {
+    const calls = stubGeolocation()
+    stubFetch()
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.type(screen.getByLabelText('Título'), 'Incidente')
+    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación actual' }))
+
+    const submit = screen.getByRole('button', {
+      name: 'Enviar reporte',
+    }) as HTMLButtonElement
+    expect(submit.disabled).toBe(true)
+
+    acceptLocation(calls)
+    await screen.findByText(/11\.240400, -74\.199000/)
+
+    expect(submit.disabled).toBe(false)
+  })
+
+  it('conserva la ubicación anterior si la nueva consulta falla', async () => {
+    const calls = stubGeolocation()
+    const fetchMock = stubFetch()
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.type(screen.getByLabelText('Título'), 'Incidente')
+    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación actual' }))
+    acceptLocation(calls)
+    await screen.findByText(/11\.240400, -74\.199000/)
+
+    await user.click(screen.getByRole('button', { name: 'Volver a consultar' }))
+    denyLocation(calls)
+
+    expect(
+      await screen.findByText(/mantendremos la ubicación anterior/i),
+    ).toBeTruthy()
+    expect(screen.getByText(/11\.240400, -74\.199000/)).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
+    await screen.findByText('Mis reportes')
+    expect(submittedBody(fetchMock).location).toEqual({
+      latitude: 11.2404,
+      longitude: -74.199,
+    })
+  })
+
+  it('lleva el foco al mensaje de error cuando falta el título', async () => {
+    stubFetch()
+    const user = userEvent.setup()
+    renderForm()
+
+    await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(document.activeElement?.contains(alert)).toBe(true)
+  })
+
   it('mantiene la ubicación elegida aunque el texto cambie', async () => {
     const calls = stubGeolocation()
     const fetchMock = stubFetch()

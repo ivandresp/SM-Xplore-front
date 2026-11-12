@@ -333,6 +333,17 @@
   color: var(--color-danger-text);
 }
 
+/* Ancla del primer error: recibe foco y scroll al fallar el envío. */
+.errorAnchor {
+  scroll-margin-top: 1rem;
+  border-radius: var(--radius-lg);
+}
+
+.errorAnchor:focus-visible {
+  outline: 3px solid var(--color-danger-text);
+  outline-offset: 3px;
+}
+
 .back {
   display: inline-flex;
   align-items: center;
