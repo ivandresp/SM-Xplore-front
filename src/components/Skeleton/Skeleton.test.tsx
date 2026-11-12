@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { Skeleton } from './Skeleton'
 
 describe('Skeleton', () => {
-  it('anuncia la carga con un texto por defecto', () => {
+  it('anuncia la carga con un texto por defecto cuando no es decorativo', () => {
     render(<Skeleton />)
     expect(screen.getByRole('status').getAttribute('aria-label')).toBe('Cargando')
   })
@@ -13,5 +13,43 @@ describe('Skeleton', () => {
     const status = screen.getByRole('status')
     expect(status.getAttribute('aria-label')).toBe('Cargando reservas')
     expect(status.children.length).toBe(5)
+  })
+
+  it('la tarjeta con dos lineas de metadatos dibuja media, meta, precio y accion', () => {
+    render(<Skeleton variant="card" metaLines={2} count={2} label="Cargando actividades" />)
+    const status = screen.getByRole('status')
+    expect(status.children.length).toBe(2)
+    expect(status.firstElementChild?.children.length).toBe(5)
+  })
+
+  it('la tarjeta sin precio dibuja media, meta y accion', () => {
+    render(<Skeleton variant="card" showPrice={false} count={2} label="Cargando atractivos" />)
+    const status = screen.getByRole('status')
+    expect(status.firstElementChild?.children.length).toBe(4)
+  })
+
+  it('la variante row replica la fila del listado de eventos', () => {
+    render(<Skeleton variant="row" count={3} label="Cargando eventos" />)
+    const status = screen.getByRole('status')
+    expect(status.children.length).toBe(3)
+    expect(status.firstElementChild?.children.length).toBe(4)
+  })
+
+  it('decorative no crea region viva ni se anuncia', () => {
+    const { container } = render(
+      <Skeleton decorative variant="card" metaLines={2} count={4} />,
+    )
+    expect(screen.queryByRole('status')).toBeNull()
+    const root = container.querySelector('[data-skeleton="visible"]')
+    expect(root).not.toBeNull()
+    expect(root?.getAttribute('aria-hidden')).toBe('true')
+    expect(root?.children.length).toBe(4)
+  })
+
+  it('sin visible se reserva la caja pero no se anuncia', () => {
+    const { container } = render(<Skeleton visible={false} count={4} />)
+    expect(screen.queryByRole('status')).toBeNull()
+    const root = container.querySelector('[data-skeleton="hidden"]')
+    expect(root?.getAttribute('aria-hidden')).toBe('true')
   })
 })

@@ -1,19 +1,44 @@
-.lines,
-.rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
+/* Rejilla y caja de las tarjetas del catálogo (ActivityCard, SiteCard, ServiceCard). */
 .cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+  gap: 1rem;
 }
 
-.line,
-.row,
 .card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg);
+}
+
+/* Filas del listado de eventos (.row de events.module.css). */
+.listRows {
+  display: grid;
+  gap: 1rem;
+}
+
+.listRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg);
+}
+
+/* Se pinta solo cuando la carga pasa del retardo, pero ocupa su caja desde el primer render. */
+.hidden {
+  visibility: hidden;
+}
+
+/* Bloque animado base: cada pieza solo define tamaño y radio. */
+.block {
   border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
@@ -23,6 +48,13 @@
   );
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
+}
+
+.lines,
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .line {
@@ -35,9 +67,73 @@
   border-radius: var(--radius-md);
 }
 
-.card {
-  height: 16rem;
-  border-radius: var(--radius-lg);
+.cardMedia {
+  aspect-ratio: 4 / 3;
+  margin-bottom: 0.35rem;
+  border-radius: var(--radius-md);
+}
+
+.cardTitle {
+  width: 72%;
+  height: 1.25rem;
+}
+
+.cardMeta {
+  width: 56%;
+  height: 1.0625rem;
+}
+
+/* El metadato de ActivityCard ocupa dos líneas. */
+.cardMetaWide {
+  width: 64%;
+  height: 2.125rem;
+}
+
+.cardPrice {
+  width: 34%;
+  height: 1.375rem;
+}
+
+.cardAction {
+  width: 100%;
+  height: 2.75rem;
+  border-radius: 999px;
+}
+
+.rowBadge {
+  width: 3.6rem;
+  height: 3.8rem;
+  border-radius: var(--radius-md);
+}
+
+.rowThumb {
+  width: 7rem;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+}
+
+.rowBody {
+  flex: 1 1 16rem;
+  min-width: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.rowTitle {
+  width: 45%;
+  height: 1.32rem;
+}
+
+.rowMeta {
+  width: 62%;
+  height: 1.1rem;
+}
+
+.rowPrice {
+  width: 5.5rem;
+  height: 2.1rem;
+  margin-left: auto;
+  border-radius: 999px;
 }
 
 @keyframes shimmer {
@@ -50,9 +146,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .line,
-  .row,
-  .card {
+  .block {
     animation: none;
   }
 }

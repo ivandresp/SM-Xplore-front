@@ -9,12 +9,13 @@ import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { ServiceCard } from '@/components/ServiceCard/ServiceCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
-import { MAX_PRICE_OPTIONS } from '@/config/catalog'
+import { CATALOG_SKELETON_COUNT, MAX_PRICE_OPTIONS } from '@/config/catalog'
 import { serviceTypeLabel } from '@/config/roles'
 import {
   useFilterParam,
   useSearchParamTerm,
 } from '@/hooks/useFilterParam'
+import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { servicesApi } from '@/services/servicesApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
@@ -23,6 +24,7 @@ import type { PageResponse, ServiceResponse, Zone } from '@/types'
 import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
+
 
 // El backend filtra por `type` como texto libre; estos son los que ofrece la UI.
 const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
@@ -47,6 +49,12 @@ export default function ServiceListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
+  const isFirstLoad = result === null
+  // El retardo y el minimo visible solo aplican a la primera carga. En recargas
+  // la lista anterior se queda en pantalla y no se desmonta.
+  const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
+  const holdSkeleton = showSkeleton || (isLoading && isFirstLoad)
+  const isBusy = isLoading || showSkeleton
 
   useEffect(() => {
     let cancelled = false
@@ -70,7 +78,6 @@ export default function ServiceListPage() {
     const current = new URLSearchParams(queryKey)
 
     setIsLoading(true)
-    setError(null)
 
     servicesApi
       .list({
@@ -84,6 +91,7 @@ export default function ServiceListPage() {
       })
       .then((servicePage) => {
         if (!cancelled) setResult(servicePage)
+        if (!cancelled) setError(null)
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
@@ -174,13 +182,12 @@ export default function ServiceListPage() {
 
   function retry() {
     setIsLoading(true)
-    setError(null)
     setReloadToken((token) => token + 1)
   }
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isLoading
+  const resultSummary = isBusy
     ? 'Buscando…'
     : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
 
@@ -255,12 +262,17 @@ export default function ServiceListPage() {
         </label>
       </FilterBar>
 
-      <section className={styles.results}>
-        {isLoading && (
-          <Skeleton variant="card" count={6} label="Cargando servicios…" />
+      <section className={styles.results} aria-busy={isBusy}>
+        {holdSkeleton && (
+          <Skeleton
+            decorative
+            visible={showSkeleton}
+            variant="card"
+            count={CATALOG_SKELETON_COUNT}
+          />
         )}
 
-        {!isLoading && error !== null && (
+        {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los servicios"
@@ -273,7 +285,7 @@ export default function ServiceListPage() {
           />
         )}
 
-        {!isLoading && error === null && result !== null && total === 0 && (
+        {!isLoading && error === null && result !== null && total === 0 && !holdSkeleton && (
           <StateMessage
             title={
               hasActiveFilters
@@ -295,7 +307,7 @@ export default function ServiceListPage() {
           />
         )}
 
-        {!isLoading && result !== null && result.content.length > 0 && (
+        {result !== null && error === null && result.content.length > 0 && !holdSkeleton && (
           <div className={styles.cards}>
             {result.content.map((service) => (
               <ServiceCard key={service.id} service={service} />
@@ -303,11 +315,13 @@ export default function ServiceListPage() {
           </div>
         )}
 
-        <Pagination
-          page={page}
-          totalPages={result?.totalPages ?? 0}
-          onChange={goToPage}
-        />
+        {!holdSkeleton && (
+          <Pagination
+            page={page}
+            totalPages={result?.totalPages ?? 0}
+            onChange={goToPage}
+          />
+        )}
       </section>
     </div>
   )

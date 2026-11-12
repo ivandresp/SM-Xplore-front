@@ -8,13 +8,14 @@ import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
-import { MAX_PRICE_OPTIONS } from '@/config/catalog'
+import { CATALOG_SKELETON_COUNT, MAX_PRICE_OPTIONS } from '@/config/catalog'
 import { useAuth } from '@/hooks/useAuth'
 import {
   useFilterParam,
   useSearchParamTerm,
   useSearchParamText,
 } from '@/hooks/useFilterParam'
+import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { eventsApi } from '@/services/eventsApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -30,6 +31,7 @@ import type {
 import styles from './events.module.css'
 
 const PAGE_SIZE = 10
+
 
 const SORT_OPTIONS: Array<{ value: EventSort; label: string }> = [
   { value: 'dateAsc', label: 'Fecha: próximos primero' },
@@ -103,6 +105,12 @@ export default function EventListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
+  const isFirstLoad = result === null
+  // El retardo y el minimo visible solo aplican a la primera carga. En recargas
+  // la lista anterior se queda en pantalla y no se desmonta.
+  const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
+  const holdSkeleton = showSkeleton || (isLoading && isFirstLoad)
+  const isBusy = isLoading || showSkeleton
 
   useEffect(() => {
     let cancelled = false
@@ -128,7 +136,6 @@ export default function EventListPage() {
     const current = new URLSearchParams(queryKey)
 
     setIsLoading(true)
-    setError(null)
 
     eventsApi
       .list({
@@ -145,6 +152,7 @@ export default function EventListPage() {
       })
       .then((eventPage) => {
         if (!cancelled) setResult(eventPage)
+        if (!cancelled) setError(null)
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
@@ -260,13 +268,12 @@ export default function EventListPage() {
 
   function retry() {
     setIsLoading(true)
-    setError(null)
     setReloadToken((token) => token + 1)
   }
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isLoading
+  const resultSummary = isBusy
     ? 'Buscando…'
     : `${total} ${total === 1 ? 'evento' : 'eventos'}`
 
@@ -391,12 +398,17 @@ export default function EventListPage() {
         </label>
       </FilterBar>
 
-      <section className={styles.results}>
-        {isLoading && (
-          <Skeleton variant="table" count={5} label="Cargando eventos…" />
+      <section className={styles.results} aria-busy={isBusy}>
+        {holdSkeleton && (
+          <Skeleton
+            decorative
+            visible={showSkeleton}
+            variant="row"
+            count={CATALOG_SKELETON_COUNT}
+          />
         )}
 
-        {!isLoading && error !== null && (
+        {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los eventos"
@@ -409,7 +421,7 @@ export default function EventListPage() {
           />
         )}
 
-        {!isLoading && error === null && result !== null && total === 0 && (
+        {!isLoading && error === null && result !== null && total === 0 && !holdSkeleton && (
           <StateMessage
             title={
               hasActiveFilters
@@ -431,7 +443,7 @@ export default function EventListPage() {
           />
         )}
 
-        {!isLoading && result !== null && result.content.length > 0 && (
+        {result !== null && error === null && result.content.length > 0 && !holdSkeleton && (
           <div className={styles.list}>
             {result.content.map((event) => {
               const { day, month, time } = dateParts(event.startsAt)
@@ -475,11 +487,13 @@ export default function EventListPage() {
           </div>
         )}
 
-        <Pagination
-          page={page}
-          totalPages={result?.totalPages ?? 0}
-          onChange={goToPage}
-        />
+        {!holdSkeleton && (
+          <Pagination
+            page={page}
+            totalPages={result?.totalPages ?? 0}
+            onChange={goToPage}
+          />
+        )}
       </section>
     </div>
   )
