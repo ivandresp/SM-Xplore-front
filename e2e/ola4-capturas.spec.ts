@@ -5,8 +5,10 @@ import { mkdirSync } from 'node:fs'
 
 /*
  * Evidencia de la ola 4 (responsive). Se guarda en JPEG y no en PNG porque
- * el set completo en PNG pesaba 19,4 MB; aquí son 16 ficheros de estados
- * clave. Reproducible: npx playwright test e2e/ola4-capturas.spec.ts
+ * el set completo en PNG pesaba 19,4 MB; aquí son 12 ficheros de estados
+ * clave. Escribe en el repo, así que no corre en la suite normal: se activa a
+ * mano con CAPTURAS=1 (en PowerShell, $env:CAPTURAS='1') para no ensuciar el
+ * árbol en cada npm run test:e2e.
  */
 const OUT = 'docs/diseno/ola4'
 const WIDTHS = [375, 1280]
@@ -32,6 +34,11 @@ async function open(page: Page, path: string): Promise<void> {
   await page.waitForLoadState('networkidle')
   await expect(page.locator('main')).toBeVisible()
 }
+
+test.skip(
+  process.env.CAPTURAS !== '1',
+  'Capturas de evidencia: se activan con CAPTURAS=1.',
+)
 
 test.beforeAll(() => {
   mkdirSync(OUT, { recursive: true })

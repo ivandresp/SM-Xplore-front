@@ -30,8 +30,12 @@ Regenerar:
 
 ```bash
 npm run dev                 # en otra terminal
-npx playwright test e2e/ola4-capturas.spec.ts
+# PowerShell:
+$env:CAPTURAS='1'; npx playwright test e2e/ola4-capturas.spec.ts
 ```
+
+El spec escribe en el repo, así que queda saltado salvo que `CAPTURAS=1`: la
+suite normal de e2e no ensucia el árbol.
 
 ## Comprobaciones permanentes
 
