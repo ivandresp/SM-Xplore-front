@@ -45,6 +45,17 @@ export interface PreferenceResponse {
   updatedAt: string
 }
 
+/**
+ * Techo real de ms-05: `RecommendationProperties.maxLimit` = 50
+ * (`application.yaml:71`, `RECOMMENDATIONS_MAX_LIMIT`). Por encima, el backend responde
+ * 400 (`RecommendationService.validatePolicyLimit`), así que el front nunca lo pide.
+ */
+export const RECOMMENDATION_MAX_LIMIT = 50
+
+/** Corte inicial de la vista; "ver más" lo sube de 12 en 12 hasta el techo. */
+export const RECOMMENDATION_INITIAL_LIMIT = 12
+export const RECOMMENDATION_LIMIT_STEP = 12
+
 export interface RecommendationQuery {
   siteId?: string
   lat?: number

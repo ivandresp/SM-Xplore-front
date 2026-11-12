@@ -4,12 +4,16 @@ import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
+import { usePreferences } from '@/pages/profile/usePreferences'
 import { recommendationsApi } from '@/services/recommendationsApi'
-import { categoriesApi } from '@/services/categoriesApi'
-import { describeApiError } from '@/utils/errors'
+import { describeApiError, logApiError } from '@/utils/errors'
+// `@/types` solo reexporta tipos (`export type *`): las constantes van por su módulo.
+import {
+  RECOMMENDATION_INITIAL_LIMIT,
+  RECOMMENDATION_LIMIT_STEP,
+  RECOMMENDATION_MAX_LIMIT,
+} from '@/types/recommendation'
 import type {
-  CategoryResponse,
-  PreferenceResponse,
   RecommendationItemType,
   RecommendationResponse,
   RecommendationSource,
@@ -26,6 +30,14 @@ const TYPE_META: Record<
   SERVICE: { label: 'Servicio', to: '/servicios', action: 'Ver servicios' },
 }
 
+const SOURCE_LABEL: Record<RecommendationSource, string> = {
+  AFFINITY: 'Afinidad',
+  QUALITY: 'Valoración',
+  NEARBY: 'Cercanía',
+  FALLBACK: 'Catálogo',
+  MIXED: 'Mezcla',
+}
+
 const SOURCE_NOTE: Record<RecommendationSource, string> = {
   FALLBACK:
     'Todavía no tenemos suficientes señales tuyas, así que mostramos lo mejor valorado del catálogo. Abre fichas y volveremos a ordenarlas para ti.',
@@ -38,34 +50,46 @@ const SOURCE_NOTE: Record<RecommendationSource, string> = {
 export default function RecommendationsPage() {
   const [data, setData] = useState<RecommendationResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [limit, setLimit] = useState(RECOMMENDATION_INITIAL_LIMIT)
+  // El corte con el que llegó `data`: mientras sube `limit` la lista vieja sigue visible.
+  const [loadedLimit, setLoadedLimit] = useState(RECOMMENDATION_INITIAL_LIMIT)
   const [reloadToken, setReloadToken] = useState(0)
-
-  const [preferences, setPreferences] = useState<PreferenceResponse[]>([])
-  const [categories, setCategories] = useState<CategoryResponse[]>([])
-  const [preferencesError, setPreferencesError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [savingCategory, setSavingCategory] = useState<string | null>(null)
+
+  const {
+    preferences,
+    categories,
+    error: preferencesError,
+    savingCategory,
+    add,
+    remove,
+  } = usePreferences({ enabled: true })
 
   useEffect(() => {
     let cancelled = false
 
     async function run() {
       try {
-        const result = await recommendationsApi.list({ limit: 12 })
+        const result = await recommendationsApi.list({ limit })
 
         if (!cancelled) {
           setData(result)
+          setLoadedLimit(limit)
           setError(null)
         }
       } catch (cause) {
         if (!cancelled) {
+          // Sin esta traza el mensaje «revisa la consola» apunta a una consola vacía.
+          logApiError(cause, 'recomendaciones')
           setData(null)
           setError(describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
           setIsLoading(false)
+          setIsLoadingMore(false)
         }
       }
     }
@@ -75,7 +99,7 @@ export default function RecommendationsPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [limit, reloadToken])
 
   function retry() {
     setIsLoading(true)
@@ -83,74 +107,44 @@ export default function RecommendationsPage() {
     setReloadToken((current) => current + 1)
   }
 
-  useEffect(() => {
-    let cancelled = false
-
-    // Una preferencia que falla no debe tumbar las recomendaciones ni al revés.
-    void Promise.allSettled([
-      recommendationsApi.listPreferences(),
-      categoriesApi.list(),
-    ]).then(([prefs, cats]) => {
-      if (cancelled) return
-
-      if (prefs.status === 'fulfilled' && cats.status === 'fulfilled') {
-        setPreferences(prefs.value)
-        setCategories(cats.value)
-        setPreferencesError(null)
-        return
-      }
-
-      setPreferencesError(
-        describeApiError(
-          prefs.status === 'rejected'
-            ? prefs.reason
-            : cats.status === 'rejected'
-              ? cats.reason
-              : null,
-        ),
-      )
-    })
-
-    return () => {
-      cancelled = true
+  function loadMore() {
+    const nextLimit = Math.min(
+      limit + RECOMMENDATION_LIMIT_STEP,
+      RECOMMENDATION_MAX_LIMIT,
+    )
+    if (nextLimit === limit) {
+      return
     }
-  }, [])
+
+    setIsLoadingMore(true)
+    setLimit(nextLimit)
+  }
 
   async function addPreference(categoryId: string) {
-    setSavingCategory(categoryId)
-    setPreferencesError(null)
-
-    try {
-      const created = await recommendationsApi.addPreference(categoryId)
-      setPreferences((current) => [...current.filter((p) => p.categoryId !== categoryId), created])
-      setSelectedCategory('')
+    if (await add(categoryId)) {
       setReloadToken((current) => current + 1)
-    } catch (cause) {
-      setPreferencesError(describeApiError(cause))
-    } finally {
-      setSavingCategory(null)
     }
   }
 
   async function removePreference(categoryId: string) {
-    setSavingCategory(categoryId)
-    setPreferencesError(null)
-
-    try {
-      await recommendationsApi.removePreference(categoryId)
-      setPreferences((current) => current.filter((p) => p.categoryId !== categoryId))
+    if (await remove(categoryId)) {
       setReloadToken((current) => current + 1)
-    } catch (cause) {
-      setPreferencesError(describeApiError(cause))
-    } finally {
-      setSavingCategory(null)
     }
   }
 
-  const categoryNames = new Map(categories.map((category) => [category.id, category.name]))
-  const availableCategories = categories.filter(
-    (category) => !preferences.some((preference) => preference.categoryId === category.id),
+  const categoryNames = new Map(
+    categories.map((category) => [category.id, category.name]),
   )
+  const availableCategories = categories.filter(
+    (category) =>
+      !preferences.some((preference) => preference.categoryId === category.id),
+  )
+
+  const hasMore =
+    data !== null &&
+    data.items.length >= loadedLimit &&
+    loadedLimit < RECOMMENDATION_MAX_LIMIT
+  const isAtMaxLimit = loadedLimit === RECOMMENDATION_MAX_LIMIT
 
   return (
     <div className={styles.page}>
@@ -158,11 +152,6 @@ export default function RecommendationsPage() {
         serif
         title="Recomendado para ti"
         description="Sugerencias del catálogo según lo que has visto y su valoración."
-        meta={
-          data === null
-            ? undefined
-            : `${data.items.length} ${data.items.length === 1 ? 'sugerencia' : 'sugerencias'}`
-        }
       />
 
       <section className={styles.prefs} aria-labelledby="prefs-title">
@@ -171,15 +160,15 @@ export default function RecommendationsPage() {
             Tus intereses
           </h2>
           <p className={styles.prefsHint}>
-            Marca las categorías que te gustan y afinamos las sugerencias.
+            Marca las categorías que te gustan y afinamos las sugerencias. También
+            puedes editarlas desde tu perfil.
           </p>
         </div>
 
         {preferences.length > 0 && (
           <ul className={styles.prefsList}>
             {preferences.map((preference) => {
-              const name =
-                categoryNames.get(preference.categoryId) ?? 'Categoría'
+              const name = categoryNames.get(preference.categoryId) ?? 'Categoría'
 
               return (
                 <li key={preference.categoryId}>
@@ -262,6 +251,17 @@ export default function RecommendationsPage() {
         <>
           <p className={styles.note}>{SOURCE_NOTE[data.source]}</p>
 
+          <p className={styles.summary}>
+            <span className={styles.summarySource}>
+              Fuente: {SOURCE_LABEL[data.source]}
+            </span>
+            <span>
+              {`${data.items.length} ${
+                data.items.length === 1 ? 'sugerencia' : 'sugerencias'
+              }`}
+            </span>
+          </p>
+
           <div className={styles.cards}>
             {data.items.map((item) => {
               const meta = TYPE_META[item.itemType]
@@ -277,6 +277,34 @@ export default function RecommendationsPage() {
                 </article>
               )
             })}
+          </div>
+
+          <div className={styles.more}>
+            {hasMore && (
+              <>
+                <Button variant="outline" onClick={loadMore} disabled={isLoadingMore}>
+                  {isLoadingMore ? 'Cargando…' : 'Ver más sugerencias'}
+                </Button>
+                <p className={styles.moreNote}>
+                  El servicio no pagina: «Ver más» vuelve a pedir el mismo ranking con
+                  un corte más amplio, hasta el máximo de {RECOMMENDATION_MAX_LIMIT}{' '}
+                  sugerencias. No hay páginas.
+                </p>
+              </>
+            )}
+
+            {!hasMore && isAtMaxLimit && (
+              <p className={styles.moreNote}>
+                Estás viendo el máximo de {RECOMMENDATION_MAX_LIMIT} sugerencias que
+                devuelve el servicio.
+              </p>
+            )}
+
+            {!hasMore && !isAtMaxLimit && (
+              <p className={styles.moreNote}>
+                No hay más sugerencias disponibles por ahora.
+              </p>
+            )}
           </div>
         </>
       )}
