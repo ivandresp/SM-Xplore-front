@@ -13,6 +13,7 @@ import type {
   AuthUser,
   LoginRequest,
   LoginResult,
+  RegisterGuideRequest,
   RegisterProviderRequest,
   RegisterTouristRequest,
 } from '@/types'
@@ -107,6 +108,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return authApi.registerProvider(payload)
   }
 
+  function registerGuide(payload: RegisterGuideRequest) {
+    return authApi.registerGuide(payload)
+  }
+
   async function logout() {
     try {
       await usersApi.logout()
@@ -131,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         cancelMfa: () => setMfaChallenge(null),
         registerTourist,
         registerProvider,
+        registerGuide,
         logout,
         updateSessionUser: setUser,
       }}

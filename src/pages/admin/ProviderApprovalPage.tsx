@@ -223,7 +223,7 @@ export default function ProviderApprovalPage() {
         </p>
         <div className={styles.form}>
           <Field
-            label="Motivo (opcional)"
+            label="Motivo (obligatorio al rechazar)"
             maxLength={500}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
@@ -239,7 +239,7 @@ export default function ProviderApprovalPage() {
           </Button>
           <Button
             variant="outline"
-            disabled={isWorking || !isPending}
+            disabled={isWorking || !isPending || reason.trim() === ''}
             onClick={() => void review('RECHAZADO')}
           >
             Rechazar

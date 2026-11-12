@@ -2,6 +2,7 @@ import { createContext } from 'react'
 import type {
   AuthUser,
   LoginRequest,
+  RegisterGuideRequest,
   RegisterProviderRequest,
   RegisterTouristRequest,
 } from '@/types'
@@ -27,6 +28,8 @@ export interface AuthContextValue {
   registerTourist: (payload: RegisterTouristRequest) => Promise<AuthUser | null>
   /** Registro de prestadora; queda pendiente de aprobación y sin sesión. */
   registerProvider: (payload: RegisterProviderRequest) => Promise<AuthUser>
+  /** Registro público de guía; nace pendiente de revisión y sin sesión. */
+  registerGuide: (payload: RegisterGuideRequest) => Promise<AuthUser>
   /** Invalida la sesión en el backend (si se puede) y la borra en el navegador. */
   logout: () => Promise<void>
   /** Refresca el usuario de la sesión tras editar el perfil. */

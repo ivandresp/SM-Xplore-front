@@ -91,6 +91,13 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['ADMIN'],
   },
   {
+    to: '/app/solicitudes',
+    label: 'Solicitudes',
+    description:
+      'Cola de altas de guías y prestadoras: aprobar o rechazar con motivo antes de que puedan operar.',
+    roles: ['DESTINATION_MANAGER', 'ADMIN'],
+  },
+  {
     to: '/app/reportes',
     publicTo: {
       TOURIST: '/reportes',

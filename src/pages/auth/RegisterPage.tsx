@@ -6,6 +6,7 @@ import { Field, SelectField } from '@/components/FormField'
 import { useAuth } from '@/hooks/useAuth'
 import { isApiError } from '@/services/httpClient'
 import type {
+  RegisterGuideRequest,
   RegisterProviderRequest,
   RegisterTouristRequest,
 } from '@/types'
@@ -36,6 +37,7 @@ const INITIAL_FORM: RegisterFormValues = {
   password: '',
   dniType: 'CC',
   dniNumber: '',
+  license: '',
   nationality: '',
   preferredLanguage: '',
   birthDate: '',
@@ -49,6 +51,7 @@ const INITIAL_FORM: RegisterFormValues = {
 
 const ACCOUNT_OPTIONS = [
   { value: 'TOURIST', label: 'Turista' },
+  { value: 'GUIDE', label: 'Guía turístico' },
   { value: 'SERVICE_PROVIDER', label: 'Prestadora de servicios' },
 ]
 
@@ -83,6 +86,21 @@ function buildTouristPayload(values: RegisterFormValues): RegisterTouristRequest
   }
 }
 
+function buildGuidePayload(values: RegisterFormValues): RegisterGuideRequest {
+  return {
+    fullName: values.fullName.trim(),
+    email: values.email.trim(),
+    phone: normalizePhone(values.phone),
+    password: values.password,
+    dniType: values.dniType,
+    dniNumber: values.dniNumber.trim(),
+    license: values.license.trim(),
+    ...(values.startOperationDate !== '' && {
+      startOperationDate: values.startOperationDate,
+    }),
+  }
+}
+
 function buildProviderPayload(
   values: RegisterFormValues,
 ): RegisterProviderRequest {
@@ -112,12 +130,29 @@ function summaryMessage(errors: FieldErrors): string {
   return `Revisa los datos: ${labels.join(', ')}.`
 }
 
-export default function RegisterPage() {
-  const { registerTourist, registerProvider } = useAuth()
+interface RegisterPageProps {
+  /** `/registro/guia` entra con el formulario de guía ya elegido. */
+  initialKind?: AccountKind
+}
+
+export default function RegisterPage({
+  initialKind = 'TOURIST',
+}: RegisterPageProps) {
+  const { registerTourist, registerProvider, registerGuide } = useAuth()
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
 
-  const [kind, setKind] = useState<AccountKind>('TOURIST')
+  const [kind, setKind] = useState<AccountKind>(initialKind)
+  /**
+   * Al ir de /registro a /registro/guia React reutiliza la instancia y el
+   * estado sobreviviría: aquí se ajusta el tipo cuando cambia la ruta.
+   * (Patrón de React para sincronizar estado con una prop, sin efecto.)
+   */
+  const [kindSource, setKindSource] = useState<AccountKind>(initialKind)
+  if (kindSource !== initialKind) {
+    setKindSource(initialKind)
+    setKind(initialKind)
+  }
   const [values, setValues] = useState<RegisterFormValues>(INITIAL_FORM)
   const [touched, setTouched] = useState<
     Partial<Record<RegisterFieldKey, boolean>>
@@ -126,7 +161,10 @@ export default function RegisterPage() {
   const [serverErrors, setServerErrors] = useState<FieldErrors>({})
   const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [createdEmail, setCreatedEmail] = useState<string | null>(null)
+  const [created, setCreated] = useState<{
+    kind: AccountKind
+    email: string
+  } | null>(null)
 
   const clientErrors = validateRegisterForm(kind, values)
   const checks = passwordChecks(values.password)
@@ -232,9 +270,12 @@ export default function RegisterPage() {
         // El turista nace activo: se inicia sesión y entra al catálogo.
         const session = await registerTourist(buildTouristPayload(values))
         navigate(session === null ? '/login' : '/explorar', { replace: true })
+      } else if (kind === 'GUIDE') {
+        await registerGuide(buildGuidePayload(values))
+        setCreated({ kind, email: values.email.trim() })
       } else {
         await registerProvider(buildProviderPayload(values))
-        setCreatedEmail(values.email.trim())
+        setCreated({ kind, email: values.email.trim() })
       }
     } catch (cause) {
       handleRegisterError(cause)
@@ -243,11 +284,16 @@ export default function RegisterPage() {
     }
   }
 
-  if (createdEmail !== null) {
+  if (created !== null) {
+    const isGuide = created.kind === 'GUIDE'
     return (
       <AuthShell
         title="Solicitud enviada"
-        subtitle="Tu prestadora quedó registrada y está pendiente de revisión."
+        subtitle={
+          isGuide
+            ? 'Tu solicitud como guía quedó registrada y está pendiente de revisión.'
+            : 'Tu prestadora quedó registrada y está pendiente de revisión.'
+        }
         footer={
           <p>
             <Link to="/login">Ir a iniciar sesión</Link>
@@ -255,8 +301,10 @@ export default function RegisterPage() {
         }
       >
         <p className={styles.notice}>
-          Un administrador debe aprobar el registro de {createdEmail} antes de
-          que puedas iniciar sesión.
+          Revisa tu correo: puede llegar un aviso a {created.email}.{' '}
+          {isGuide
+            ? 'Una gestora revisará tu solicitud y, si la aprueba, podrás iniciar sesión.'
+            : 'Un administrador revisará el registro; la cuenta sigue activa y el perfil no se publica en el catálogo hasta que se apruebe.'}
         </p>
       </AuthShell>
     )
@@ -267,7 +315,7 @@ export default function RegisterPage() {
   return (
     <AuthShell
       title="Crear cuenta"
-      subtitle="Regístrate como turista o como prestadora de servicios."
+      subtitle="Regístrate como turista, guía turístico o prestadora de servicios."
       footer={
         <p>
           ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
@@ -445,7 +493,66 @@ export default function RegisterPage() {
               onBlur={() => markTouched('birthDate')}
             />
           </>
-        ) : (
+        ) : null}
+
+        {kind === 'GUIDE' && (
+          <>
+            <p className={styles.groupTitle}>Documento y licencia</p>
+            <div className={styles.grid}>
+              <SelectField
+                label="Tipo de documento"
+                name="dniType"
+                required
+                options={DNI_TYPE_OPTIONS}
+                value={values.dniType}
+                error={errorFor('dniType')}
+                onChange={(event) => update('dniType', event.target.value)}
+                onBlur={() => markTouched('dniType')}
+              />
+              <Field
+                label="Número de documento"
+                name="dniNumber"
+                required
+                value={values.dniNumber}
+                error={errorFor('dniNumber')}
+                onChange={(event) => update('dniNumber', event.target.value)}
+                onBlur={() => markTouched('dniNumber')}
+              />
+            </div>
+
+            <Field
+              label="Licencia de guía"
+              name="license"
+              autoComplete="off"
+              required
+              hint="Número de la licencia de guía turístico (máximo 50 caracteres)."
+              value={values.license}
+              error={errorFor('license')}
+              onChange={(event) => update('license', event.target.value)}
+              onBlur={() => markTouched('license')}
+            />
+
+            <Field
+              label="Fecha de inicio de operación"
+              type="date"
+              name="startOperationDate"
+              hint="Opcional: cuándo empezaste a operar como guía."
+              value={values.startOperationDate}
+              error={errorFor('startOperationDate')}
+              onChange={(event) =>
+                update('startOperationDate', event.target.value)
+              }
+              onBlur={() => markTouched('startOperationDate')}
+            />
+
+            <p className={styles.notice}>
+              Tu solicitud queda en revisión: una gestora la aprueba o la rechaza
+              y te avisamos por correo. Hasta entonces no podrás iniciar sesión.
+            </p>
+          </>
+        )}
+
+        {kind === 'SERVICE_PROVIDER' && (
           <>
             <p className={styles.groupTitle}>Empresa</p>
             <Field
@@ -508,6 +615,13 @@ export default function RegisterPage() {
               onBlur={() => markTouched('startOperationDate')}
             />
           </>
+        )}
+
+        {kind !== 'GUIDE' && (
+          <p className={styles.footer}>
+            ¿Eres guía turístico?{' '}
+            <Link to="/registro/guia">Registra tu solicitud como guía</Link>
+          </p>
         )}
 
         <Button

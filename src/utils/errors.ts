@@ -19,10 +19,18 @@ const CODE_MESSAGES: Record<string, string> = {
   INVALID_CURRENT_PASSWORD: 'La contraseña actual no es correcta.',
   EMAIL_ALREADY_EXISTS: 'Ya existe una cuenta con ese correo.',
   ACCOUNT_NOT_ACTIVE: 'La cuenta no está activa. Contacta a un administrador.',
+  // MS01-B8: solo se ven con la contraseña correcta, así que nombran el alta
+  // sin convertirse en un oráculo de existencia de cuentas.
+  ACCOUNT_PENDING_REVIEW:
+    'Tu solicitud como guía está en revisión. Podrás iniciar sesión cuando una gestora la apruebe.',
+  ACCOUNT_REGISTRATION_REJECTED:
+    'Tu solicitud como guía fue rechazada. Revisa el motivo en el correo que te enviamos.',
   FORBIDDEN_OPERATION: 'La operación no está permitida con esta cuenta.',
   INVALID_STATUS_TRANSITION:
     'La operación no es válida con el estado actual. Recarga la página y vuelve a intentarlo.',
   USER_NOT_FOUND: 'No se encontró la cuenta.',
+  REGISTRATION_NOT_FOUND:
+    'No se encontró la solicitud. Recarga la lista y vuelve a intentarlo.',
   INVALID_RESET_TOKEN:
     'El enlace de recuperación no es válido o ya expiró. Solicita uno nuevo.',
   MFA_ALREADY_ENABLED: 'La verificación en dos pasos ya está activa.',

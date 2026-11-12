@@ -102,6 +102,23 @@ describe('describeApiError', () => {
     expect(message).not.toContain('error interno')
   })
 
+  it('explica la solicitud de guía pendiente y la rechazada con el texto acordado', () => {
+    expect(describeApiError(apiError(403, 'ACCOUNT_PENDING_REVIEW'))).toContain(
+      'Tu solicitud como guía está en revisión',
+    )
+    const rejected = describeApiError(
+      apiError(403, 'ACCOUNT_REGISTRATION_REJECTED'),
+    )
+    expect(rejected).toContain('fue rechazada')
+    expect(rejected).toContain('motivo')
+  })
+
+  it('no confunde la cola de solicitudes con un usuario inexistente', () => {
+    expect(describeApiError(apiError(404, 'REGISTRATION_NOT_FOUND'))).toContain(
+      'No se encontró la solicitud',
+    )
+  })
+
   it('nunca muestra el texto en ingles del backend', () => {
     const message = describeApiError(
       apiError(409, undefined, 'Cannot change reservation from COMPLETED to COMPLETED'),

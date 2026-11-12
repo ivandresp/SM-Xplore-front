@@ -115,6 +115,21 @@ export interface RegisterTouristRequest {
   nationality?: string
 }
 
+/**
+ * `RegisterGuideRequest.java:10-21`: el alta nace `PENDIENTE` y la licencia es
+ * obligatoria (máximo 50 caracteres).
+ */
+export interface RegisterGuideRequest {
+  fullName: string
+  email: string
+  phone: string
+  password: string
+  dniType: string
+  dniNumber: string
+  license: string
+  startOperationDate?: string
+}
+
 export interface RegisterProviderRequest {
   fullName: string
   email: string

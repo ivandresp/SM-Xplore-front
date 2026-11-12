@@ -46,7 +46,8 @@ import {
   ReportDetailPage,
   ReportFormPage,
   ZoneFormPage,
-ZonesListPage
+  ZonesListPage,
+  RegistrationsQueuePage,
 } from './pages'
 import { RequireAuth, RequireRole } from './guards'
 
@@ -61,6 +62,7 @@ const IMPLEMENTED_SECTIONS = new Set([
   '/app/mis-servicios',
   '/app/reportes',
   '/app/zonas',
+  '/app/solicitudes',
 ])
 
 /** El resto de secciones existe como ruta provisional hasta implementarlas. */
@@ -83,6 +85,10 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/explorar" replace /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'registro', element: <RegisterPage /> },
+      {
+        path: 'registro/guia',
+        element: <RegisterPage initialKind="GUIDE" />,
+      },
       { path: 'reset-password', element: <ResetPasswordPage /> },
       /* Catálogo de actividades (mockups 06-UC2/UC7/UC8 y 06-UC9) */
       { path: 'explorar', element: <ExplorePage /> },
@@ -191,6 +197,15 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       ...sectionRoutes,
+      /* Cola de altas de guías y prestadoras (MS01-B8) — gestora y admin */
+      {
+        path: 'solicitudes',
+        element: (
+          <RequireRole roles={['DESTINATION_MANAGER', 'ADMIN']}>
+            <RegistrationsQueuePage />
+          </RequireRole>
+        ),
+      },
       /* Gestión de usuarios (admin) — wireframes 12-UC6 y 12-UC7 */
       {
         path: 'usuarios',

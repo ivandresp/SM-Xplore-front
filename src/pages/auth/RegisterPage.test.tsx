@@ -24,6 +24,21 @@ const PROVIDER_USER = {
   profile: { registrationStatus: 'PENDIENTE' },
 }
 
+const GUIDE_USER = {
+  ...TOURIST_USER,
+  id: 'u-3',
+  fullName: 'Ana Guía',
+  email: 'ana@correo.com',
+  role: 'GUIDE',
+  profile: {
+    dniType: 'CC',
+    dniNumber: '1020304050',
+    license: 'LIC-B8A-001',
+    registrationStatus: 'PENDIENTE',
+    startOperationDate: null,
+  },
+}
+
 const LOGIN_RESULT = {
   accessToken: 'jwt-1',
   tokenType: 'Bearer',
@@ -317,6 +332,12 @@ describe('RegisterPage', () => {
     ).toBeTruthy()
     expect(screen.getByText(/hotel@correo.com/)).toBeTruthy()
 
+    const providerNotice = screen.getByText(/puede llegar un aviso/i)
+    expect(providerNotice.textContent).not.toMatch(
+      /antes de que puedas iniciar sesión/i,
+    )
+    expect(providerNotice.textContent).toMatch(/sigue activa/i)
+
     const call = fetchMock.mock.calls.find(([input]) =>
       String(input).endsWith('/auth/register/prestadora'),
     )
@@ -440,6 +461,143 @@ describe('RegisterPage', () => {
     const alert = await screen.findByText(/el documento o el NIT/i)
     expect(alert.textContent).toMatch(/teléfono/i)
     expect(screen.queryByText(/Revisa los datos/i)).toBeNull()
+  })
+
+  it('al pulsar el enlace llega a /registro/guia con el formulario de guía', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
+
+    const user = userEvent.setup()
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/registro']}>
+          <Routes>
+            <Route path="/registro" element={<RegisterPage />} />
+            <Route
+              path="/registro/guia"
+              element={<RegisterPage initialKind="GUIDE" />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>,
+    )
+
+    await user.click(
+      screen.getByRole('link', { name: 'Registra tu solicitud como guía' }),
+    )
+
+    const kind = (await screen.findByLabelText(
+      'Tipo de cuenta',
+    )) as HTMLSelectElement
+    expect(kind.value).toBe('GUIDE')
+    expect(screen.getByLabelText('Licencia de guía')).toBeTruthy()
+  })
+
+  it('enlaza desde /registro al alta de guía', () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
+
+    renderRegister()
+
+    const link = screen.getByRole('link', {
+      name: 'Registra tu solicitud como guía',
+    })
+    expect(link.getAttribute('href')).toBe('/registro/guia')
+  })
+
+  it('entra a /registro/guia con el formulario de guía ya elegido', () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
+
+    render(
+      <AuthProvider>
+        <MemoryRouter initialEntries={['/registro/guia']}>
+          <Routes>
+            <Route
+              path="/registro/guia"
+              element={<RegisterPage initialKind="GUIDE" />}
+            />
+          </Routes>
+        </MemoryRouter>
+      </AuthProvider>,
+    )
+
+    const kind = screen.getByLabelText('Tipo de cuenta') as HTMLSelectElement
+    expect(kind.value).toBe('GUIDE')
+    expect(screen.getByLabelText('Licencia de guía')).toBeTruthy()
+    expect(screen.queryByLabelText('NIT')).toBeNull()
+  })
+
+  it('registra al guía y avisa de que la solicitud queda en revisión', async () => {
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        void init
+        const url = String(input)
+        if (url.endsWith('/auth/register/guia')) {
+          return jsonResponse(GUIDE_USER, 201)
+        }
+        return jsonResponse({ code: 'NOT_FOUND' }, 404)
+      },
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    renderRegister()
+
+    await user.selectOptions(screen.getByLabelText('Tipo de cuenta'), 'GUIDE')
+    await user.type(screen.getByLabelText('Nombre completo'), 'Ana Guía')
+    await user.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com')
+    await user.type(screen.getByLabelText('Teléfono'), '3001112233')
+    await user.type(screen.getByLabelText('Contraseña'), 'ContraseñaSegura1!')
+    await user.type(screen.getByLabelText('Número de documento'), '1020304050')
+    await user.type(screen.getByLabelText('Licencia de guía'), 'LIC-B8A-001')
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    expect(
+      await screen.findByRole('heading', { name: 'Solicitud enviada' }),
+    ).toBeTruthy()
+    const notice = screen.getByText(/puede llegar un aviso/i)
+    expect(notice.textContent).toContain('ana@correo.com')
+    expect(notice.textContent).not.toMatch(/escribimos|Se avisó/)
+    expect(screen.getByText(/ana@correo.com/)).toBeTruthy()
+
+    const call = fetchMock.mock.calls.find(([input]) =>
+      String(input).endsWith('/auth/register/guia'),
+    )
+    expect(JSON.parse(String(call?.[1]?.body))).toEqual({
+      fullName: 'Ana Guía',
+      email: 'ana@correo.com',
+      phone: '3001112233',
+      password: 'ContraseñaSegura1!',
+      dniType: 'CC',
+      dniNumber: '1020304050',
+      license: 'LIC-B8A-001',
+    })
+  })
+
+  it('exige la licencia del guía antes de enviar el alta', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse(GUIDE_USER, 201))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    renderRegister()
+
+    await user.selectOptions(screen.getByLabelText('Tipo de cuenta'), 'GUIDE')
+    await user.type(screen.getByLabelText('Nombre completo'), 'Ana Guía')
+    await user.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com')
+    await user.type(screen.getByLabelText('Teléfono'), '3001112233')
+    await user.type(screen.getByLabelText('Contraseña'), 'ContraseñaSegura1!')
+    await user.type(screen.getByLabelText('Número de documento'), '1020304050')
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    const license = screen.getByLabelText('Licencia de guía') as HTMLInputElement
+    expect(document.activeElement).toBe(license)
+    expect(license.getAttribute('aria-invalid')).toBe('true')
+
+    const alerts = screen
+      .getAllByRole('alert')
+      .map((node) => node.textContent ?? '')
+      .join(' ')
+    expect(alerts).toMatch(/licencia/i)
   })
 
   it('con la contraseña vacía el checklist no muestra ningún Cumple', async () => {
