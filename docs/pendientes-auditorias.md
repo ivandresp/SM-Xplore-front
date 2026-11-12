@@ -228,7 +228,7 @@ Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones pr
 
 | ID | Estado | Nota |
 | --- | --- | --- |
-| OPS-01 | ABIERTO | El repo front no tiene `.github/`: no hay checks de GitHub; la puerta es local |
+| OPS-01 | CERRADO | El repo front no tenía `.github/`: sin checks de GitHub. El PR #17 se mergeó en `ddfc905` (2026-11-12T23:49:41Z) y el workflow `CI` (typecheck, lint, test y build) corre en cada PR. La plantilla sigue inerte con la rama por defecto en `main` y la protección la cubre `OPS-09` |
 | OPS-02 | ACEPTADO | El gateway da 403 a `Origin` fuera de `http://localhost:5173`; los auditores usan proxy o 5173 |
 | OPS-03 | CERRADO | Imagen vieja de ms-04 produjo un falso bug de filtros: comparar fecha de imagen vs commit antes de diagnosticar |
 | OPS-04 | ABIERTO | Cuentas de prueba de auditorías en la BD local; borrar las privilegiadas al cerrar (una ya eliminada) |
@@ -236,3 +236,4 @@ Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones pr
 | OPS-06 | ABIERTO | Tiles de OSM: URL hardcodeada; proveedor o self-host antes de desplegar |
 | OPS-07 | ABIERTO | Cuentas de prueba nuevas (audit-b8b*, b3-r2*, b4*) en la BD local |
 | OPS-08 | ABIERTO | Worktrees en `%TEMP%` (b2, b4, b7, b8a, b8b, ms02-photos) para borrar tras los merges |
+| OPS-09 | ABIERTO | Protección de `develop`, rama por defecto `main`, `delete_branch_on_merge` y dependabot alerts: requiere administración del repo (dueño `ivandresp`). Mientras `develop` no esté protegida el check es informativo; mientras la default sea `main`, la plantilla y CODEOWNERS no se aplican |

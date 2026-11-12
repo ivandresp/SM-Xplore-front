@@ -402,10 +402,20 @@ describe('OnboardingPage', () => {
     renderOnboarding()
 
     const playa = await screen.findByRole('button', { name: 'Playa' })
+
+    // El efecto [step] enfoca el titulo tras el commit que hace visible el paso;
+    // si no se espera, el foco puede llegar a la capsula antes que ese efecto.
+    const heading = screen.getByRole('heading', {
+      name: /qué te gusta hacer en santa marta/i,
+    })
+    await waitFor(() => expect(document.activeElement).toBe(heading))
+
     playa.focus()
     await user.keyboard('{Enter}')
 
-    expect(playa.getAttribute('aria-disabled')).toBe('true')
+    await waitFor(() =>
+      expect(playa.getAttribute('aria-disabled')).toBe('true'),
+    )
     expect(document.activeElement).toBe(playa)
     expect(screen.getByRole('status').textContent).toContain('Guardando')
 
