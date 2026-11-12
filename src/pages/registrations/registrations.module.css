@@ -24,25 +24,6 @@
   font-size: 0.9rem;
 }
 
-.select {
-  padding: 0.6rem 1.1rem;
-  border: 1px solid var(--color-border);
-  border-radius: 999px;
-  background-color: var(--color-bg);
-  color: var(--color-text-soft);
-  font: inherit;
-  font-size: 0.95rem;
-}
-
-.select:hover {
-  border-color: var(--color-primary);
-}
-
-.select:focus-visible {
-  outline: 2px solid var(--color-link);
-  outline-offset: 1px;
-}
-
 .name {
   margin: 0;
   font-weight: 600;
