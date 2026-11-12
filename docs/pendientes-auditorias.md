@@ -83,6 +83,110 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B8-A8 | BAJA | ACEPTADO | Query/path inválidos devuelven `INVALID_BODY` | Handler global heredado |
 | B8-A9 | BAJA | ACEPTADO | `/admin/users` no filtra guías por estado | La cola lo cubre |
 
+## B9 — Estados de carga (PR #9, firmado PASA)
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| B9-01 | MEDIA | CERRADO | Hueco de 200 ms al recargar (lista desmontada, esqueleto tardío) | `b4debd3`; lista anterior + aria-busy |
+| B9-02 | MEDIA | CERRADO | Mínimo de 250 ms sobre datos ya recibidos en recargas | `e545893`; solo primera carga |
+| B9-03 | MEDIA-ALTA | CERRADO | Paginación antes que la rejilla; CLS real 0,06407 a 1280 con 12 resultados | `76efe65`; gateada con el contenido |
+| B9-04 | MEDIA | CERRADO | Reintento dejaba 200 ms sin mensaje ni esqueleto | `76efe65`; mensaje montado |
+| B9-05 | BAJA | CERRADO | Dos regiones vivas y aria-busy falso durante la retención | `76efe65`; una región, OR |
+| B9-06 | BAJA | ABIERTO | «Reintentar» sigue activo durante una petición nueva | Seguimiento |
+| B9-07 | INFO | ACEPTADO | La primera carga retiene 250 ms aunque el backend responda a 210 | Criterio 2 original |
+
+## B3 — Validación del alta (PR #8, firmado PASA)
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| B3-01 | ALTA | CERRADO | Teléfono más estricto que el DTO; bloqueaba +34/+1/fijos | `31391d6`; regex del DTO, +57 como pista |
+| B3-02 | ALTA | CERRADO | nationality/preferredLanguage fuera del gate: 1 POST inválido | `31391d6`; 81 chars -> 0 POST |
+| B3-03 | MEDIA | CERRADO | Errores sin anuncio y foco antes del commit | `31391d6`; role alert / aria-live y foco en efecto |
+| B3-04 | MEDIA | CERRADO | Primer clic perdido al mover el botón con el error de blur | `d1daef9`; onMouseDown + e2e RED/GREEN |
+| B3-05 | BAJA | CERRADO | DATA_CONFLICT genérico | `31391d6`; mensaje accionable con correo |
+| B3-06 | BAJA | CERRADO | Checklist en verde con contraseña vacía | `31391d6`; estado neutral |
+| B3-07 | BAJA | ACEPTADO | Fechas comparadas con el reloj del navegador | Peor caso 400 con campo señalado |
+| B3-08 | BAJA | ACEPTADO | Clases Unicode no idénticas a Java | Dirección segura (front más estricto) |
+| B3-09 | BAJA | ABIERTO | El mismo reflujo se come el primer clic en «Inicia sesión» | Misma clase; fix estructural: reservar el hueco del error |
+| B3-10 | BAJA | ABIERTO | `playwright.config` con puerto fijo y reuseExistingServer | Puede correr contra otro checkout si 5173 está ocupado |
+
+## B4 — Reportes: ubicación y foto (PR #11, firmado PASA CON RESERVAS)
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| B4-01 | — | CERRADO | Ubicación opcional verificada en el DTO y con 201 sin coordenadas | `SecurityReportRequest.java:14` |
+| B4-02 | MEDIA | CERRADO | «Volver a consultar» borraba la ubicación válida si fallaba | `ddfd71e` |
+| B4-03 | MEDIA | CERRADO | Se podía enviar mientras la geolocalización seguía buscando | `ddfd71e`; submit bloqueado |
+| B4-04 | BAJA | CERRADO | Quitar foto 28×28 | `ddfd71e`; 44×44 |
+| B4-05 | BAJA | CERRADO | Error de envío sin foco ni scroll | `ddfd71e`; ancla + focus |
+| B4-06 | ALTA | CON DUEÑO | Prod sin allowlist: ms-02 no arranca y el alta con foto da 400 | Backend #98 (`PHOTO_ALLOWED_HOSTS=res.cloudinary.com`); mergear antes de desplegar |
+| B4-07 | BAJA | ACEPTADO | 400 de foto sin `code`; el front muestra el genérico | Mitigado por la allowlist |
+| B4-08 | BAJA | ACEPTADO | Recursos huérfanos en Cloudinary al quitar/abandonar | Limpieza diferida |
+| B4-09 | INFO | ACEPTADO | `handleSubmit` no comprueba `isUploadingPhotos` | Solo defensa visual; Chrome no permite Enter |
+| B4-10 | BAJA | ABIERTO | Primera consulta de ubicación sin timeout propio | Depende del navegador; reconsultas sí tienen escape |
+
+## B7 — Mapa OSM (PR #12, firmado PASA)
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| B7-01 | MEDIA | CERRADO | «Sin coordenadas» mentía cuando fallaba /sites | `e8a80aa`; missing vs unavailable |
+| B7-02 | MEDIA | CERRADO | Un solo tile caído tumbaba los 4 sin reintento | `e8a80aa`; 2 intentos y parciales |
+| B7-03 | MEDIA | CERRADO | Sin estado de carga ni timeout | `e8a80aa`; aria-busy + 8 s |
+| B7-04 | BAJA | CERRADO | target=_blank sin avisar | `e8a80aa`; rel + aria-label |
+| B7-05 | BAJA | CERRADO | Claves duplicadas en z=0 y `#map=NaN` | `e8a80aa`; key con índice, clampZoom |
+| B7-06 | MEDIA | ABIERTO | URL de OSM hardcodeada; su política prohíbe volumen | Proveedor/self-host antes de desplegar |
+| B7-07 | BAJA | ABIERTO | Con 1-3 tiles muertos no aparece el enlace a OSM | Auditor final N1 |
+| B7-08 | BAJA | ABIERTO | aria-busy dura hasta el timeout con un tile muerto | Auditor final N2 |
+| B7-09 | INFO | ACEPTADO | El estado «sin coordenadas» es inalcanzable desde Site/Service (zod) | Rama defensiva válida |
+
+## B8a — Alta de guía y cola (PR #10, firmado PASA)
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| B8a-01 | MEDIA | CERRADO | Cola sin salida al decidir la última fila de la última página | `f93f0e0`; clamp |
+| B8a-02 | MEDIA | CERRADO | Panel de motivo invisible, sin foco ni aria-controls | `f93f0e0`; foco/scroll/orden |
+| B8a-03 | BAJA | CERRADO | «Se avisó por correo» aunque el SMTP falle | `f93f0e0`; copy condicional |
+| B8a-04 | BAJA | CERRADO | Prestadora rechazada: texto falso sobre el login | `f93f0e0`; «cuenta activa, perfil no publicado» |
+| B8a-05 | MEDIA | CERRADO | Reintento tras 409/404 servía la lista de caché | `d8f4c6d`; clearCache + _= |
+| B8a-06 | MEDIA | CERRADO | Invariante de página solo en el éxito de review | `d8f4c6d`; por respuesta |
+| B8a-07 | BAJA | ABIERTO | Tipos duplicados (registration vs user, labels) | Seguimiento |
+| B8a-08 | BAJA | ABIERTO | Pestaña/estado/página fuera de la URL | Seguimiento |
+| B8a-09 | MEDIA | ABIERTO | RECHAZADO→APROBADO permite que una lista cacheada revierta un rechazo reciente | Backend; ver B8-R1 |
+| B8a-10 | INFO | ABIERTO | No probado con DESTINATION_MANAGER real (solo ADMIN) | Deuda de verificación |
+
+## B8b — Onboarding (PR #13, firmado PASA CON RESERVAS)
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| B8b-01 | ALTA | CERRADO | Preferencias INFERRED contaban como intereses elegidos | `b69231b`; solo EXPLICIT |
+| B8b-02 | ALTA | CERRADO | Fallo de GET /preferences dejaba el paso 1 cargando para siempre | `b69231b`; error + reintento |
+| B8b-03 | MEDIA | CERRADO | Foco perdido al alternar cápsulas con teclado | `b69231b`; aria-disabled |
+| B8b-04 | MEDIA-BAJA | CERRADO | Clics descartados sin aviso durante una escritura | `b69231b`; role=status «Guardando…» |
+| B8b-05 | BAJA | CERRADO | Objetivos táctiles de 17 px | `b69231b`; 44 px + touch-action |
+| B8b-06 | BAJA | CERRADO | Copy del perfil afirmaba guardado sin PATCH | `b69231b` |
+| B8b-07 | BAJA | ABIERTO | Paso 3 dice «nacionalidad y idioma» si solo se envió nacionalidad | Componer el texto desde el patch |
+| B8b-08 | BAJA | ACEPTADO | Emoji como icono de cápsula | aria-hidden, sin daño |
+| B8b-09 | BAJA | ACEPTADO | preferredLanguage nace «es» por normalización del backend | «Completo» puede ser un valor por defecto |
+
+## B8-backend — máquina de estados y reseñas (PR #97, firmado PASA)
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| B8-08 | ALTA | CERRADO | Aprobar era reversible y dos gestoras podían sobrescribirse | `a2cfc41`; APROBADO terminal, revocación por user status |
+| B8-09 | MEDIA | CERRADO | Reseñas de un alta no aprobada seguían públicas | `0d3d87e`; 400/404 |
+| B8-10 | MEDIA | ABIERTO | Una lista cacheada puede revertir un rechazo reciente (RECHAZADO→APROBADO) | If-Match o exigir motivo al aprobar una rechazada |
+| B8-11 | MEDIA | ABIERTO | Revocar por estado de usuario no exige motivo ni notifica; solo ADMIN | Cambio de producto |
+| B8-12 | MEDIA | ABIERTO | La cascada sigue: BLOQUEADO deja actividades publicadas en ms-03 | Nuevo bloque de backend/cascada |
+| B8-13 | BAJA | ABIERTO | La regla vive en el servicio, no en el dominio | Si otro llamador entra, APROBADO deja de ser terminal |
+| B8-14 | BAJA | ABIERTO | Un RECHAZADO sin motivo sobre una APROBADA da 400 antes que 409 | Orden de guardas |
+
+## B2 y B6
+
+- **B2** en curso (rama `feat/b2-combobox`, apilada sobre B8b). Excluye auth, solicitudes, onboarding y
+  reportes; esos selects se migran en el pase de B6.
+- **B6** pendiente tras los merges: toca layouts, cabecera y todas las páginas; hacerlo sobre 7 PR
+  apilados garantiza conflictos.
+
 ## Entorno y operación (no son bugs de código)
 
 | ID | Estado | Nota |
@@ -91,3 +195,8 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | OPS-02 | ACEPTADO | El gateway da 403 a `Origin` fuera de `http://localhost:5173`; los auditores usan proxy o 5173 |
 | OPS-03 | CERRADO | Imagen vieja de ms-04 produjo un falso bug de filtros: comparar fecha de imagen vs commit antes de diagnosticar |
 | OPS-04 | ABIERTO | Cuentas de prueba de auditorías en la BD local; borrar las privilegiadas al cerrar (una ya eliminada) |
+| OPS-05 | ABIERTO | **Backend #98 antes de prod**: sin `PHOTO_ALLOWED_HOSTS=res.cloudinary.com`, ms-02 no arranca y el alta con foto da 400 |
+| OPS-06 | ABIERTO | Tiles de OSM: URL hardcodeada; proveedor o self-host antes de desplegar |
+| OPS-07 | ABIERTO | Cuentas de prueba nuevas (audit-b8b*, b3-r2*, b4*) en la BD local |
+| OPS-08 | ABIERTO | Worktrees en `%TEMP%` (b2, b4, b7, b8a, b8b, ms02-photos) para borrar tras los merges |
+
