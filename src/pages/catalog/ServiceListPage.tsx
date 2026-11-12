@@ -25,6 +25,13 @@ import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
 
+/**
+ * Una fila de tarjetas en 1280 px. El total real no se conoce hasta que responde
+ * el servidor: con 0-4 resultados el esqueleto casi no salta, con 12 se acepta un
+ * salto residual en la primera carga (documentado en el PR).
+ */
+const SKELETON_COUNT = 4
+
 // El backend filtra por `type` como texto libre; estos son los que ofrece la UI.
 const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
 
@@ -48,8 +55,12 @@ export default function ServiceListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
-  const showSkeleton = useDelayedLoading(isLoading)
-  const isWaiting = isLoading || showSkeleton
+  const isFirstLoad = result === null && error === null
+  // El retardo y el minimo visible solo aplican a la primera carga. En recargas
+  // la lista anterior se queda en pantalla y no se desmonta.
+  const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
+  const holdSkeleton = isFirstLoad && (isLoading || showSkeleton)
+  const isBusy = isLoading || showSkeleton
 
   useEffect(() => {
     let cancelled = false
@@ -183,7 +194,7 @@ export default function ServiceListPage() {
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isWaiting
+  const resultSummary = isBusy
     ? 'Buscando…'
     : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
 
@@ -258,12 +269,17 @@ export default function ServiceListPage() {
         </label>
       </FilterBar>
 
-      <section className={styles.results} aria-busy={isLoading}>
-        {isWaiting && (
-          <Skeleton visible={showSkeleton} variant="service-card" count={PAGE_SIZE} label="Cargando servicios…" />
+      <section className={styles.results} aria-busy={isBusy}>
+        {holdSkeleton && (
+          <Skeleton
+            decorative
+            visible={showSkeleton}
+            variant="card"
+            count={SKELETON_COUNT}
+          />
         )}
 
-        {!isWaiting && error !== null && (
+        {!isLoading && error !== null && !holdSkeleton && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los servicios"
@@ -276,7 +292,7 @@ export default function ServiceListPage() {
           />
         )}
 
-        {!isWaiting && error === null && result !== null && total === 0 && (
+        {!isLoading && error === null && result !== null && total === 0 && !holdSkeleton && (
           <StateMessage
             title={
               hasActiveFilters
@@ -298,7 +314,7 @@ export default function ServiceListPage() {
           />
         )}
 
-        {!isWaiting && result !== null && result.content.length > 0 && (
+        {result !== null && error === null && result.content.length > 0 && !holdSkeleton && (
           <div className={styles.cards}>
             {result.content.map((service) => (
               <ServiceCard key={service.id} service={service} />

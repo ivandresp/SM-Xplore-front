@@ -32,6 +32,9 @@ import styles from './events.module.css'
 
 const PAGE_SIZE = 10
 
+/** Cuatro filas de evento: aproxima el caso filtrado sin saber el total real. */
+const SKELETON_COUNT = 4
+
 const SORT_OPTIONS: Array<{ value: EventSort; label: string }> = [
   { value: 'dateAsc', label: 'Fecha: próximos primero' },
   { value: 'dateDesc', label: 'Fecha: últimos primero' },
@@ -104,8 +107,12 @@ export default function EventListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
-  const showSkeleton = useDelayedLoading(isLoading)
-  const isWaiting = isLoading || showSkeleton
+  const isFirstLoad = result === null && error === null
+  // El retardo y el minimo visible solo aplican a la primera carga. En recargas
+  // la lista anterior se queda en pantalla y no se desmonta.
+  const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
+  const holdSkeleton = isFirstLoad && (isLoading || showSkeleton)
+  const isBusy = isLoading || showSkeleton
 
   useEffect(() => {
     let cancelled = false
@@ -269,7 +276,7 @@ export default function EventListPage() {
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isWaiting
+  const resultSummary = isBusy
     ? 'Buscando…'
     : `${total} ${total === 1 ? 'evento' : 'eventos'}`
 
@@ -394,12 +401,17 @@ export default function EventListPage() {
         </label>
       </FilterBar>
 
-      <section className={styles.results} aria-busy={isLoading}>
-        {isWaiting && (
-          <Skeleton visible={showSkeleton} variant="row" count={PAGE_SIZE} label="Cargando eventos…" />
+      <section className={styles.results} aria-busy={isBusy}>
+        {holdSkeleton && (
+          <Skeleton
+            decorative
+            visible={showSkeleton}
+            variant="row"
+            count={SKELETON_COUNT}
+          />
         )}
 
-        {!isWaiting && error !== null && (
+        {!isLoading && error !== null && !holdSkeleton && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los eventos"
@@ -412,7 +424,7 @@ export default function EventListPage() {
           />
         )}
 
-        {!isWaiting && error === null && result !== null && total === 0 && (
+        {!isLoading && error === null && result !== null && total === 0 && !holdSkeleton && (
           <StateMessage
             title={
               hasActiveFilters
@@ -434,7 +446,7 @@ export default function EventListPage() {
           />
         )}
 
-        {!isWaiting && result !== null && result.content.length > 0 && (
+        {result !== null && error === null && result.content.length > 0 && !holdSkeleton && (
           <div className={styles.list}>
             {result.content.map((event) => {
               const { day, month, time } = dateParts(event.startsAt)

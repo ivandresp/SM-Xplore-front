@@ -32,58 +32,13 @@
   background-color: var(--color-bg);
 }
 
-.rowBadge {
-  width: 3.6rem;
-  height: 3.8rem;
-  border-radius: var(--radius-md);
-}
-
-.rowThumb {
-  width: 7rem;
-  aspect-ratio: 4 / 3;
-  border-radius: var(--radius-md);
-}
-
-.rowBody {
-  flex: 1 1 16rem;
-  min-width: 0;
-  display: grid;
-  gap: 0.5rem;
-}
-
-.rowPrice {
-  width: 5.5rem;
-  height: 2.1rem;
-  margin-left: auto;
-  border-radius: 999px;
-}
-
 /* Se pinta solo cuando la carga pasa del retardo, pero ocupa su caja desde el primer render. */
 .hidden {
   visibility: hidden;
 }
 
-/* Esqueletos de texto */
-.lines,
-.rows {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.line,
-.row,
-.cardMedia,
-.cardTitle,
-.cardMeta,
-.cardMetaWide,
-.cardPrice,
-.rowBadge,
-.rowThumb,
-.rowTitle,
-.rowMeta,
-.rowPrice,
-.cardAction {
+/* Bloque animado base: cada pieza solo define tamaño y radio. */
+.block {
   border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
@@ -95,18 +50,26 @@
   animation: shimmer 1.4s linear infinite;
 }
 
-.cardMedia {
-  aspect-ratio: 4 / 3;
-  margin-bottom: 0.35rem;
+.lines,
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.cardMedia,
-.rowThumb {
+.line {
+  height: 1rem;
+  max-width: 32rem;
+}
+
+.row {
+  height: 2.75rem;
   border-radius: var(--radius-md);
 }
 
-.rowBadge,
-.rowPrice {
+.cardMedia {
+  aspect-ratio: 4 / 3;
+  margin-bottom: 0.35rem;
   border-radius: var(--radius-md);
 }
 
@@ -137,6 +100,25 @@
   border-radius: 999px;
 }
 
+.rowBadge {
+  width: 3.6rem;
+  height: 3.8rem;
+  border-radius: var(--radius-md);
+}
+
+.rowThumb {
+  width: 7rem;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+}
+
+.rowBody {
+  flex: 1 1 16rem;
+  min-width: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
 .rowTitle {
   width: 45%;
   height: 1.32rem;
@@ -147,14 +129,11 @@
   height: 1.1rem;
 }
 
-.line {
-  height: 1rem;
-  max-width: 32rem;
-}
-
-.row {
-  height: 2.75rem;
-  border-radius: var(--radius-md);
+.rowPrice {
+  width: 5.5rem;
+  height: 2.1rem;
+  margin-left: auto;
+  border-radius: 999px;
 }
 
 @keyframes shimmer {
@@ -167,19 +146,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .line,
-  .row,
-  .cardMedia,
-  .cardTitle,
-  .cardMeta,
-  .cardMetaWide,
-  .cardPrice,
-  .rowBadge,
-  .rowThumb,
-  .rowTitle,
-  .rowMeta,
-  .rowPrice,
-  .cardAction {
+  .block {
     animation: none;
   }
 }

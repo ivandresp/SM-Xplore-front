@@ -70,4 +70,26 @@ describe('useDelayedLoading', () => {
     advance(1)
     expect(result.current).toBe(false)
   })
+
+  it('con la carga desactivada (recarga con datos en pantalla) nunca pinta', () => {
+    const { result, rerender } = renderHook(
+      ({ loading }) => useDelayedLoading(loading),
+      { initialProps: { loading: false } },
+    )
+
+    advance(500)
+    expect(result.current).toBe(false)
+
+    rerender({ loading: false })
+    advance(500)
+    expect(result.current).toBe(false)
+  })
+
+  it('al desmontar no deja temporizadores vivos', () => {
+    const { unmount } = renderHook(() => useDelayedLoading(true))
+    advance(SKELETON_DELAY_MS)
+
+    unmount()
+    expect(vi.getTimerCount()).toBe(0)
+  })
 })

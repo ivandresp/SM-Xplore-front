@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -88,6 +88,50 @@ describe('ServiceListPage', () => {
       .find((url) => url.includes('/services?'))
     expect(servicesCall).toContain('priceMax=100000')
     expect(servicesCall).toContain('status=PUBLISHED')
+  })
+
+  it('al recargar mantiene la lista anterior sin esqueleto y marca aria-busy', async () => {
+    let release: ((response: Response) => void) | null = null
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/services?')) {
+          if (url.includes('priceMax=100000')) {
+            return new Promise<Response>((resolve) => {
+              release = resolve
+            })
+          }
+          return Promise.resolve(jsonResponse(page([SERVICE])))
+        }
+        return Promise.resolve(jsonResponse(page([])))
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderServices()
+
+    expect(await screen.findByText('Alquiler de kayak')).toBeTruthy()
+
+    await user.selectOptions(screen.getByLabelText('Precio'), '100000')
+    await waitFor(() => {
+      expect(release).not.toBeNull()
+    })
+
+    // La tarjeta anterior sigue montada y no se pinta esqueleto.
+    expect(screen.getByText('Alquiler de kayak')).toBeTruthy()
+    expect(document.querySelector('[data-skeleton]')).toBeNull()
+    expect(
+      document.querySelector('section[aria-busy="true"]'),
+    ).not.toBeNull()
+
+    await act(async () => {
+      release?.(jsonResponse(page([])))
+    })
+    expect(
+      await screen.findByText('No encontramos servicios con esos filtros'),
+    ).toBeTruthy()
+    expect(screen.queryByText('Alquiler de kayak')).toBeNull()
   })
 
   it('quita el parámetro al limpiar los filtros', async () => {

@@ -1,14 +1,7 @@
 import { classNames } from '@/utils/format'
 import styles from './Skeleton.module.css'
 
-export type SkeletonVariant =
-  | 'text'
-  | 'card'
-  | 'activity-card'
-  | 'site-card'
-  | 'service-card'
-  | 'row'
-  | 'table'
+export type SkeletonVariant = 'text' | 'card' | 'row' | 'table'
 
 export interface SkeletonProps {
   variant?: SkeletonVariant
@@ -22,14 +15,24 @@ export interface SkeletonProps {
    * Permite esperar el retardo sin que la página se recomponga al aparecer.
    */
   visible?: boolean
+  /**
+   * Si es true, el esqueleto es decorativo: no crea región viva ni se anuncia.
+   * Las páginas que ya tienen un contador `role="status"` lo usan para no
+   * duplicar el anuncio de carga.
+   */
+  decorative?: boolean
+  /** Líneas de metadatos de la tarjeta que se está imitando (1 o 2). */
+  metaLines?: 1 | 2
+  /** Si la tarjeta real muestra precio. */
+  showPrice?: boolean
 }
 
 /**
  * Marcador de carga con la forma del contenido que va a llegar.
  *
- * Las variantes de tarjeta y `row` replican la caja de las tarjetas del catálogo y
- * de las filas de eventos (padding, rejilla, medios y líneas de texto) para que
- * el cambio a contenido real no mueva el resto de la página.
+ * La variante `card` replica la caja de las tarjetas del catálogo (media 4:3,
+ * líneas de texto, precio y acción) y `row` la fila del listado de eventos.
+ * Así el cambio a contenido real no mueve el resto de la página.
  */
 export function Skeleton({
   variant = 'text',
@@ -37,35 +40,38 @@ export function Skeleton({
   label = 'Cargando',
   className,
   visible = true,
+  decorative = false,
+  metaLines = 1,
+  showPrice = true,
 }: SkeletonProps) {
   const items = Array.from({ length: count }, (_, index) => index)
-  const statusProps = visible
-    ? { role: 'status' as const, 'aria-label': label }
-    : { 'aria-hidden': true as const }
+  const statusProps =
+    decorative || !visible
+      ? { 'aria-hidden': true as const }
+      : { role: 'status' as const, 'aria-label': label }
+  const rootProps = {
+    'data-skeleton': visible ? 'visible' : 'hidden',
+    ...statusProps,
+  }
   const classes = (variantClass: string) =>
     classNames(variantClass, className, !visible && styles.hidden)
+  const block = (...modifiers: string[]) =>
+    classNames(styles.block, ...modifiers)
 
-  const isCard =
-    variant === 'card' ||
-    variant === 'activity-card' ||
-    variant === 'site-card' ||
-    variant === 'service-card'
-
-  if (isCard) {
-    const isActivity = variant === 'activity-card'
-    const hasPrice = variant !== 'site-card'
-
+  if (variant === 'card') {
     return (
-      <div className={classes(styles.cards)} {...statusProps}>
+      <div className={classes(styles.cards)} {...rootProps}>
         {items.map((key) => (
           <div key={key} className={styles.card}>
-            <div className={styles.cardMedia} />
-            <div className={styles.cardTitle} />
+            <div className={block(styles.cardMedia)} />
+            <div className={block(styles.cardTitle)} />
             <div
-              className={isActivity ? styles.cardMetaWide : styles.cardMeta}
+              className={block(
+                metaLines === 2 ? styles.cardMetaWide : styles.cardMeta,
+              )}
             />
-            {hasPrice && <div className={styles.cardPrice} />}
-            <div className={styles.cardAction} />
+            {showPrice && <div className={block(styles.cardPrice)} />}
+            <div className={block(styles.cardAction)} />
           </div>
         ))}
       </div>
@@ -74,19 +80,16 @@ export function Skeleton({
 
   if (variant === 'row') {
     return (
-      <div
-        className={classes(styles.listRows)}
-        {...statusProps}
-      >
+      <div className={classes(styles.listRows)} {...rootProps}>
         {items.map((key) => (
           <div key={key} className={styles.listRow}>
-            <div className={styles.rowBadge} />
-            <div className={styles.rowThumb} />
+            <div className={block(styles.rowBadge)} />
+            <div className={block(styles.rowThumb)} />
             <div className={styles.rowBody}>
-              <div className={styles.rowTitle} />
-              <div className={styles.rowMeta} />
+              <div className={block(styles.rowTitle)} />
+              <div className={block(styles.rowMeta)} />
             </div>
-            <div className={styles.rowPrice} />
+            <div className={block(styles.rowPrice)} />
           </div>
         ))}
       </div>
@@ -95,24 +98,18 @@ export function Skeleton({
 
   if (variant === 'table') {
     return (
-      <div
-        className={classes(styles.rows)}
-        {...statusProps}
-      >
+      <div className={classes(styles.rows)} {...rootProps}>
         {items.map((key) => (
-          <div key={key} className={styles.row} />
+          <div key={key} className={block(styles.row)} />
         ))}
       </div>
     )
   }
 
   return (
-    <div
-      className={classes(styles.lines)}
-      {...statusProps}
-    >
+    <div className={classes(styles.lines)} {...rootProps}>
       {items.map((key) => (
-        <div key={key} className={styles.line} />
+        <div key={key} className={block(styles.line)} />
       ))}
     </div>
   )
