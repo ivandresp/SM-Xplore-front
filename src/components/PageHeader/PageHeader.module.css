@@ -37,6 +37,8 @@
   flex-wrap: wrap;
   align-items: baseline;
   gap: 0.9rem;
+  /* Sin esto un título largo fija el min-content de la fila. */
+  min-width: 0;
 }
 
 .title {
@@ -69,6 +71,12 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 0.6rem;
+  /* Es un ítem de la fila y en móvil el contenedor apila en columna. Chrome
+     no estira por debajo del min-content del control con desplegable, así que
+     a 320 px la fila empujaba la página 10 px fuera del viewport. Se acota al
+     ancho del contenedor; el valor del desplegable recorta con puntos. */
+  min-width: 0;
+  max-width: 100%;
 }
 /*
  * Móvil: título y acciones en una sola columna. Los botones conservan su

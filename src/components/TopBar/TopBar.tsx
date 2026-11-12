@@ -40,6 +40,9 @@ export interface TopBarProps {
   right?: ReactNode
 }
 
+/** Mismo corte que TopBar.module.css: desde aquí manda la barra lateral. */
+const DESKTOP_QUERY = '(min-width: 900px)'
+
 const SEARCH_GROUPS: Array<{ key: GlobalSearchGroup; label: string }> = [
   { key: 'activities', label: 'Actividades' },
   { key: 'events', label: 'Eventos' },
@@ -288,6 +291,27 @@ export function TopBar({
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
 
+  /*
+   * Al cruzar a escritorio (p. ej. girar una tableta de 768 a 1024) el botón y
+   * el panel se ocultan por CSS: si el menú estaba abierto se cerraría solo de
+   * forma visual, dejando aria-expanded=true sin panel. Se cierra de verdad.
+   */
+  useEffect(() => {
+    if (!menuOpen || typeof window.matchMedia !== 'function') {
+      return
+    }
+
+    const query = window.matchMedia(DESKTOP_QUERY)
+    function handleChange(event: MediaQueryListEvent) {
+      if (event.matches) {
+        setMenuOpen(false)
+      }
+    }
+
+    query.addEventListener('change', handleChange)
+    return () => query.removeEventListener('change', handleChange)
+  }, [menuOpen])
+
   useEffect(() => {
     if (!menuOpen) {
       return
@@ -388,7 +412,8 @@ export function TopBar({
           type="button"
           className={styles.menuButton}
           aria-expanded={menuOpen}
-          aria-controls={menuId}
+          /* Cerrado no hay panel: no se apunta a un id inexistente. */
+          aria-controls={menuOpen ? menuId : undefined}
           aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
           onClick={() => setMenuOpen((open) => !open)}
         >

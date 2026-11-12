@@ -10,16 +10,6 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
-@media (min-width: 900px) {
-  .body {
-    grid-template-columns: 15rem minmax(0, 1fr);
-  }
-
-  .sidebar {
-    display: flex;
-  }
-}
-
 .sidebar {
   /* Por debajo de 900 px la navegación se resuelve en el menú de la barra. */
   display: none;
@@ -28,6 +18,21 @@
   gap: 1.5rem;
   padding: 1.5rem 1rem;
   background-color: var(--color-ink);
+}
+
+/*
+ * Desde 900 px la barra lateral es la única navegación del panel (el botón de
+ * menú se oculta en la barra superior). Este bloque va DESPUÉS de la regla
+ * base a propósito: misma especificidad, gana el orden de aparición.
+ */
+@media (min-width: 900px) {
+  .body {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+
+  .sidebar {
+    display: flex;
+  }
 }
 
 .nav {

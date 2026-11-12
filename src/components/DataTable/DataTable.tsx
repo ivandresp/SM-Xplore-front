@@ -109,7 +109,8 @@ export function DataTable<T>({
         role="region"
         aria-label={label}
         aria-describedby={scrollable ? hintId : undefined}
-        tabIndex={0}
+        /* Solo se entra con Tab cuando hay algo que desplazar. */
+        tabIndex={scrollable ? 0 : -1}
       >
         <table className={styles.table}>
           <thead>
@@ -117,6 +118,7 @@ export function DataTable<T>({
               {columns.map((column, index) => (
                 <th
                   key={index}
+                  scope="col"
                   className={classNames(
                     column.align === 'right' && styles.alignRight,
                     column.className,
