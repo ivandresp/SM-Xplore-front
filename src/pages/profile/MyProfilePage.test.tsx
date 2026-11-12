@@ -37,10 +37,17 @@ const CATEGORIES = {
       parentId: null,
       updatedAt: '2026-11-07T12:00:00Z',
     },
+    {
+      categoryId: 'c4',
+      name: 'Miradores',
+      scope: 'GENERAL',
+      parentId: null,
+      updatedAt: '2026-11-07T12:00:00Z',
+    },
   ],
   page: 0,
   size: 100,
-  total: 3,
+  total: 4,
   totalPages: 1,
 }
 
@@ -152,6 +159,7 @@ describe('MyProfilePage · preferencias', () => {
     expect(Array.from(select.options).map((option) => option.text)).toEqual([
       'Selecciona una categoría…',
       'Senderos',
+      'Miradores',
     ])
 
     await userEvent.selectOptions(select, 'c3')
@@ -161,12 +169,74 @@ describe('MyProfilePage · preferencias', () => {
     expect(calls.filter((url) => url === '/api/v1/preferences')).toHaveLength(2)
     expect(methods).toContain('POST')
 
+    // El select vuelve a su opción vacía y «Añadir» se deshabilita: sin POST duplicado.
+    await waitFor(() => expect(select.value).toBe(''))
+    expect(
+      (screen.getByRole('button', { name: 'Añadir' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+
     await userEvent.click(screen.getByRole('button', { name: 'Quitar Playas' }))
 
     await waitFor(() =>
       expect(screen.queryByRole('button', { name: 'Quitar Playas' })).toBeNull(),
     )
     expect(calls.some((url) => url.endsWith('/preferences/c1'))).toBe(true)
+  })
+
+  it('deja rastro en consola cuando falla el guardado del perfil', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    stubApi((url) => {
+      if (url.includes('/preferences')) {
+        return jsonResponse([])
+      }
+      if (url.includes('/categories')) {
+        return jsonResponse(CATEGORIES)
+      }
+      return jsonResponse(
+        {
+          title: 'Internal error',
+          status: 500,
+          detail: 'Internal detail: Cypher query failed at line 12',
+          instance: '/api/v1/users/me',
+        },
+        500,
+      )
+    })
+
+    renderProfile('TOURIST')
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Editar' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }))
+
+    expect(await screen.findByText(/error interno/i)).toBeTruthy()
+
+    const printed = JSON.stringify(consoleSpy.mock.calls)
+    expect(printed).toContain('perfil: guardar')
+    expect(printed).not.toContain('Cypher')
+  })
+
+  it('no pinta el vacio de preferencias cuando la carga falla', async () => {
+    stubApi((url) => {
+      if (url.includes('/preferences')) {
+        return jsonResponse(
+          {
+            title: 'Forbidden',
+            status: 403,
+            detail: 'Your role is not allowed to perform this operation.',
+            instance: '/api/v1/preferences',
+          },
+          403,
+        )
+      }
+      return jsonResponse(CATEGORIES)
+    })
+
+    renderProfile('TOURIST')
+
+    expect(await screen.findByText(/no tiene permiso/i)).toBeTruthy()
+    expect(screen.queryByText(/Aún no has marcado ninguna categoría/i)).toBeNull()
   })
 
   it('no pide preferencias a una cuenta que no es de turista', async () => {

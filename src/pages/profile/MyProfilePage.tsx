@@ -12,7 +12,7 @@ import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { usersApi } from '@/services/usersApi'
 import type { PreferenceSource } from '@/types'
-import { describeApiError } from '@/utils/errors'
+import { describeApiError, logApiError } from '@/utils/errors'
 import { formatMonthYear } from '@/utils/format'
 import { usePreferences } from './usePreferences'
 import styles from './profile.module.css'
@@ -89,6 +89,17 @@ export default function MyProfilePage() {
     setError(null)
   }
 
+  async function handleAddPreference() {
+    if (selectedCategory === '') {
+      return
+    }
+
+    // Limpiar el select evita que «Añadir» repita una categoría que ya no está.
+    if (await addPreference(selectedCategory)) {
+      setSelectedCategory('')
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -109,6 +120,7 @@ export default function MyProfilePage() {
       setDraft(null)
       setFeedback('Perfil actualizado.')
     } catch (cause) {
+      logApiError(cause, 'perfil: guardar')
       setError(describeApiError(cause))
     } finally {
       setIsSaving(false)
@@ -232,11 +244,13 @@ export default function MyProfilePage() {
                   <p className={styles.empty}>Cargando preferencias…</p>
                 )}
 
-                {!isPreferencesLoading && preferences.length === 0 && (
-                  <p className={styles.empty}>
-                    Aún no has marcado ninguna categoría.
-                  </p>
-                )}
+                {!isPreferencesLoading &&
+                  preferencesError === null &&
+                  preferences.length === 0 && (
+                    <p className={styles.empty}>
+                      Aún no has marcado ninguna categoría.
+                    </p>
+                  )}
 
                 {preferences.length > 0 && (
                   <ul className={styles.prefsList}>
@@ -295,13 +309,7 @@ export default function MyProfilePage() {
                       disabled={
                         selectedCategory === '' || savingCategory !== null
                       }
-                      onClick={() => {
-                        void (async () => {
-                          if (await addPreference(selectedCategory)) {
-                            setSelectedCategory('')
-                          }
-                        })()
-                      }}
+                      onClick={() => void handleAddPreference()}
                     >
                       Añadir
                     </Button>
