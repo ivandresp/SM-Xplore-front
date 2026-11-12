@@ -116,8 +116,10 @@ export interface SelectFieldProps {
 /**
  * Selector con etiqueta asociada automáticamente.
  *
- * Delega en el combobox ARIA 1.2 de `@/components/SelectField`; se conservan
- * el nombre y la API que ya usaban auth y onboarding, sin `<select>` nativo.
+ * Delega en el combobox ARIA 1.2 de `@/components/SelectField`; se conservan el
+ * nombre y las props que usaban auth y onboarding (`label`, `options`, `value`,
+ * `name`, `error`, `hint`, `onChange`, `onBlur`). No se reexponen `defaultValue`,
+ * `autoComplete`, `onFocus` ni `data-*` del `<select>` nativo.
  */
 export function SelectField(props: SelectFieldProps) {
   return <Combobox {...props} />
