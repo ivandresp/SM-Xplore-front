@@ -41,6 +41,8 @@ export interface SelectFieldProps {
   'aria-label'?: string
   'aria-describedby'?: string
   onChange?: (event: SelectChangeEvent) => void
+  /** Se dispara cuando el foco sale del disparador (paridad con el select nativo). */
+  onBlur?: () => void
 }
 
 interface FlatOption extends SelectOption {
@@ -120,6 +122,7 @@ export function SelectField({
   'aria-label': ariaLabel,
   'aria-describedby': describedByProp,
   onChange,
+  onBlur,
 }: SelectFieldProps) {
   const generatedId = useId()
   const fieldId = id ?? generatedId
@@ -386,6 +389,7 @@ export function SelectField({
           }
         }}
         onKeyDown={handleKeyDown}
+        onBlur={onBlur}
       >
         <span className={styles.value}>
           {flat[selectedIndex]?.label ?? placeholder ?? ''}

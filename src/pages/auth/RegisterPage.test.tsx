@@ -316,9 +316,9 @@ describe('RegisterPage', () => {
     const user = userEvent.setup()
     renderRegister()
 
-    await user.selectOptions(
-      screen.getByLabelText('Tipo de cuenta'),
-      'SERVICE_PROVIDER',
+    await user.click(screen.getByRole('combobox', { name: 'Tipo de cuenta' }))
+    await user.click(
+      screen.getByRole('option', { name: 'Prestadora de servicios' }),
     )
     await user.type(screen.getByLabelText('Nombre completo'), 'Hotel Tayrona')
     await user.type(screen.getByLabelText('Correo electrónico'), 'hotel@correo.com')
@@ -485,10 +485,8 @@ describe('RegisterPage', () => {
       screen.getByRole('link', { name: 'Registra tu solicitud como guía' }),
     )
 
-    const kind = (await screen.findByLabelText(
-      'Tipo de cuenta',
-    )) as HTMLSelectElement
-    expect(kind.value).toBe('GUIDE')
+    const kind = await screen.findByRole('combobox', { name: 'Tipo de cuenta' })
+    expect(kind.textContent).toContain('Guía turístico')
     expect(screen.getByLabelText('Licencia de guía')).toBeTruthy()
   })
 
@@ -519,8 +517,8 @@ describe('RegisterPage', () => {
       </AuthProvider>,
     )
 
-    const kind = screen.getByLabelText('Tipo de cuenta') as HTMLSelectElement
-    expect(kind.value).toBe('GUIDE')
+    const kind = screen.getByRole('combobox', { name: 'Tipo de cuenta' })
+    expect(kind.textContent).toContain('Guía turístico')
     expect(screen.getByLabelText('Licencia de guía')).toBeTruthy()
     expect(screen.queryByLabelText('NIT')).toBeNull()
   })
@@ -541,7 +539,8 @@ describe('RegisterPage', () => {
     const user = userEvent.setup()
     renderRegister()
 
-    await user.selectOptions(screen.getByLabelText('Tipo de cuenta'), 'GUIDE')
+    await user.click(screen.getByRole('combobox', { name: 'Tipo de cuenta' }))
+    await user.click(screen.getByRole('option', { name: 'Guía turístico' }))
     await user.type(screen.getByLabelText('Nombre completo'), 'Ana Guía')
     await user.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com')
     await user.type(screen.getByLabelText('Teléfono'), '3001112233')
@@ -579,7 +578,8 @@ describe('RegisterPage', () => {
     const user = userEvent.setup()
     renderRegister()
 
-    await user.selectOptions(screen.getByLabelText('Tipo de cuenta'), 'GUIDE')
+    await user.click(screen.getByRole('combobox', { name: 'Tipo de cuenta' }))
+    await user.click(screen.getByRole('option', { name: 'Guía turístico' }))
     await user.type(screen.getByLabelText('Nombre completo'), 'Ana Guía')
     await user.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com')
     await user.type(screen.getByLabelText('Teléfono'), '3001112233')

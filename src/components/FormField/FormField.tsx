@@ -1,9 +1,7 @@
 import { useId } from 'react'
-import type {
-  InputHTMLAttributes,
-  ReactNode,
-  SelectHTMLAttributes,
-} from 'react'
+import type { InputHTMLAttributes, ReactNode } from 'react'
+import { SelectField as Combobox } from '@/components/SelectField'
+import type { SelectChangeEvent } from '@/components/SelectField'
 import { classNames } from '@/utils/format'
 import styles from './FormField.module.css'
 
@@ -96,73 +94,31 @@ export function Field({
   )
 }
 
-export interface SelectFieldProps
-  extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'id'> {
+export interface SelectFieldProps {
   label: string
   hint?: string
   id?: string
   options: SelectOption[]
   /** Error del campo: se anuncia con aria-invalid y aria-describedby. */
   error?: string
+  value?: string
+  placeholder?: string
+  name?: string
+  disabled?: boolean
+  required?: boolean
+  className?: string
+  'aria-label'?: string
+  'aria-describedby'?: string
+  onChange?: (event: SelectChangeEvent) => void
+  onBlur?: () => void
 }
 
 /**
- * Selector nativo con etiqueta asociada automáticamente.
+ * Selector con etiqueta asociada automáticamente.
  *
- * Se mantiene con `<select>` para auth, onboarding, registros y reportes
- * (ramas paralelas, pendientes de su propio pase). Para el resto de pantallas
- * usa el combobox ARIA de `@/components/SelectField`.
+ * Delega en el combobox ARIA 1.2 de `@/components/SelectField`; se conservan
+ * el nombre y la API que ya usaban auth y onboarding, sin `<select>` nativo.
  */
-export function SelectField({
-  label,
-  hint,
-  id,
-  options,
-  error,
-  ...select
-}: SelectFieldProps) {
-  const generatedId = useId()
-  const fieldId = id ?? generatedId
-
-  return (
-    <div className={styles.field}>
-      <label className={styles.label} htmlFor={fieldId}>
-        {label}
-      </label>
-      <select
-        id={fieldId}
-        {...select}
-        className={classNames(styles.control, select.className)}
-        aria-invalid={error === undefined ? undefined : true}
-        aria-describedby={describedBy(
-          fieldId,
-          hint,
-          error,
-          select['aria-describedby'],
-        )}
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-      {hint !== undefined && (
-        <p className={styles.hint} id={`${fieldId}-hint`}>
-          {hint}
-        </p>
-      )}
-      {error !== undefined && (
-        // aria-live="polite": el error se anuncia sin competir con el resumen
-        // del formulario, que es el único role="alert".
-        <p
-          className={styles.error}
-          id={`${fieldId}-error`}
-          aria-live="polite"
-        >
-          {error}
-        </p>
-      )}
-    </div>
-  )
+export function SelectField(props: SelectFieldProps) {
+  return <Combobox {...props} />
 }
