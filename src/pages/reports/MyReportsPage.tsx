@@ -4,6 +4,7 @@ import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
@@ -135,17 +136,19 @@ export default function MyReportsPage() {
             </Chip>
           ))}
 
-          <select
-            className={styles.sort}
-            value={sort}
-            onChange={(changeEvent) =>
-              setSort(changeEvent.target.value as SortOrder)
-            }
-            aria-label="Ordenar"
-          >
-            <option value="recent">Ordenar: más recientes</option>
-            <option value="oldest">Ordenar: más antiguos</option>
-          </select>
+          <div className={styles.sortSlot}>
+            <SelectField
+              aria-label="Ordenar"
+              options={[
+                { value: 'recent', label: 'Ordenar: más recientes' },
+                { value: 'oldest', label: 'Ordenar: más antiguos' },
+              ]}
+              value={sort}
+              onChange={(changeEvent) =>
+                setSort(changeEvent.target.value as SortOrder)
+              }
+            />
+          </div>
         </div>
       )}
 
