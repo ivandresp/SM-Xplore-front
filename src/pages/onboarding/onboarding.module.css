@@ -1,0 +1,405 @@
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100svh;
+  padding: 32px 16px;
+  background: var(--color-bg);
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  max-width: 760px;
+}
+
+.top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+
+.brand {
+  flex-shrink: 0;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.topLinks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-left: auto;
+}
+
+/* Objetivo táctil de 44 px aunque el texto mida menos. */
+.skip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  color: var(--color-muted-strong);
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  touch-action: manipulation;
+}
+
+.skip:hover {
+  color: var(--color-link-hover);
+}
+
+.skip:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+.progress {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.progressList {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progressItem {
+  display: flex;
+  align-items: center;
+}
+
+.progressDot {
+  display: block;
+  width: 56px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-border-strong);
+  transition: background-color 200ms ease, transform 200ms ease;
+}
+
+.progressDone .progressDot {
+  background: var(--color-primary);
+}
+
+.progressCurrent .progressDot {
+  background: var(--color-link);
+  transform: scaleY(1.4);
+}
+
+/* La etiqueta del paso existe para lectores de pantalla: los puntos son visuales. */
+.progressLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.progressHint {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-muted-strong);
+  font-variant-numeric: tabular-nums;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface-soft);
+  box-shadow: var(--shadow-card);
+  animation: rise 240ms ease-out;
+}
+
+/*
+ * El título recibe foco por código al cambiar de paso para que el lector de
+ * pantalla lo anuncie; no es un control, así que no lleva anillo.
+ */
+.title:focus-visible {
+  outline: none;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(26px, 5vw, 38px);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.lead {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-text-soft);
+  text-wrap: pretty;
+}
+
+.capsules {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.capsule {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 999px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    box-shadow 150ms ease,
+    transform 150ms ease;
+}
+
+.capsule:hover:not(:disabled) {
+  border-color: var(--color-link);
+  background: var(--color-primary-tint);
+}
+
+.capsule:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.capsule:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+.capsule {
+  touch-action: manipulation;
+}
+
+/* Pausada por una escritura en curso o por preferencias sin cargar. */
+.capsuleBusy {
+  cursor: progress;
+  opacity: 0.8;
+}
+
+.capsuleSelected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--color-primary);
+}
+
+.capsuleSelected .emoji {
+  animation: pop 260ms ease-out;
+}
+
+.emoji {
+  flex-shrink: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.capsuleName {
+  min-width: 0;
+  overflow-wrap: normal;
+}
+
+/* Hueco fijo del testigo: el nombre no se reacomoda al seleccionar. */
+.capsuleState {
+  flex-shrink: 0;
+  width: 1em;
+  margin-left: auto;
+  color: var(--color-primary);
+  font-weight: 700;
+  text-align: center;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.actionsHint {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.linkButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-link);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.linkButton:hover {
+  color: var(--color-link-hover);
+}
+
+.linkButton:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+.status {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted-strong);
+}
+
+.error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-danger-text);
+}
+
+.inlineError {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1px solid var(--color-danger-border);
+  border-radius: var(--radius-md);
+  background: var(--color-danger-bg);
+  color: var(--color-danger-text);
+  font-size: 14px;
+}
+
+.inlineError p {
+  margin: 0;
+}
+
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subtitle {
+  margin: 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted-strong);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--color-primary-soft);
+  color: var(--color-text);
+  font-size: 14px;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop {
+  from {
+    transform: scale(0.72);
+  }
+
+  to {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+
+  .capsuleSelected .emoji {
+    animation: none;
+  }
+
+  .progressDot,
+  .capsule {
+    transition: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .panel {
+    padding: 18px;
+    border-radius: var(--radius-lg);
+  }
+
+  .capsules {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .capsule {
+    gap: 8px;
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .emoji {
+    font-size: 18px;
+  }
+}

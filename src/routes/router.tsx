@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Placeholder } from '@/components/Placeholder'
 import { NAV_ITEMS } from '@/config/navigation'
@@ -39,6 +40,7 @@ import {
   ServiceFormPage,
   ServiceManagePage,
   MyReservationsPage,
+  OnboardingPage,
   RecommendationsPage,
   ReservationDetailPage,
   ManageReportsPage,
@@ -186,6 +188,19 @@ export const router = createBrowserRouter([
         ),
       },
     ],
+  },
+  {
+    /* Onboarding de bienvenida del turista (B8b): pantalla propia, sin shell. */
+    path: '/bienvenida',
+    element: (
+      <RequireAuth>
+        <RequireRole roles={['TOURIST']}>
+          <Suspense fallback={<p role="status">Preparando tu bienvenida…</p>}>
+            <OnboardingPage />
+          </Suspense>
+        </RequireRole>
+      </RequireAuth>
+    ),
   },
   {
     path: '/app',

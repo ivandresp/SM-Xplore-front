@@ -62,7 +62,7 @@ function renderRegister() {
         <Routes>
           <Route path="/registro" element={<RegisterPage />} />
           <Route path="/login" element={<p>Formulario de acceso</p>} />
-          <Route path="/explorar" element={<p>Catálogo de actividades</p>} />
+          <Route path="/bienvenida" element={<p>Bienvenida a SM-Xplore</p>} />
         </Routes>
       </MemoryRouter>
     </AuthProvider>,
@@ -209,7 +209,7 @@ describe('RegisterPage', () => {
     await fillTouristForm(user)
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
-    expect(await screen.findByText('Catálogo de actividades')).toBeTruthy()
+    expect(await screen.findByText('Bienvenida a SM-Xplore')).toBeTruthy()
 
     const call = registerCall(fetchMock)
     expect(call).toBeTruthy()
@@ -372,7 +372,7 @@ describe('RegisterPage', () => {
     await fillTouristForm(user, { phone: '+34 600 123 456' })
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
-    expect(await screen.findByText('Catálogo de actividades')).toBeTruthy()
+    expect(await screen.findByText('Bienvenida a SM-Xplore')).toBeTruthy()
     const call = registerCall(fetchMock)
     expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
       phone: '+34600123456',

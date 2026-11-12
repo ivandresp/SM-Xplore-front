@@ -267,9 +267,10 @@ export default function RegisterPage({
 
     try {
       if (kind === 'TOURIST') {
-        // El turista nace activo: se inicia sesión y entra al catálogo.
+        // El turista nace activo: se inicia sesión y pasa por el onboarding de
+        // bienvenida, que alimenta preferencias y perfil (B8b).
         const session = await registerTourist(buildTouristPayload(values))
-        navigate(session === null ? '/login' : '/explorar', { replace: true })
+        navigate(session === null ? '/login' : '/bienvenida', { replace: true })
       } else if (kind === 'GUIDE') {
         await registerGuide(buildGuidePayload(values))
         setCreated({ kind, email: values.email.trim() })
