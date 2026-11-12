@@ -7,6 +7,29 @@ Alias de referencia de OpenCode: `backend` (declarado en `opencode.json`).
 
 Rama de trabajo: **`develop`**. `main` solo tiene la plantilla inicial.
 
+## Agente senior — leer antes de tocar código
+
+[`docs/agents/prompt-senior.md`](docs/agents/prompt-senior.md) es **normativo** para cualquier agente
+(principal o subagente) que trabaje aquí. Resumen de lo que no se negocia:
+
+- **Rol senior, no ejecutor:** mide antes de tocar, decide, recorta y responde con evidencia. El objetivo
+  son los 16 problemas reales de `docs/agents/prompt-senior.md` §7, no «mejorar cosas».
+- **Ley de evidencia:** toda afirmación se paga con `archivo:línea` o salida de comando. Prohibido
+  «listo / funciona / robusto / completo» sin número detrás. Lo que no se probó, se declara.
+- **Skills obligatorias:** cargar con `skill` antes de actuar (`systematic-debugging`,
+  `test-driven-development`, `verification-before-completion`, `ui-ux-pro-max`, `ponytail-review`,
+  `code-reviewer`, `the-fool`…), y nombrar en el reporte cuáles se usaron y cuáles se descartaron y por qué.
+- **Auditoría sin autohalago:** quien implementa no se audita. Un auditor adversario intenta romper el
+  bloque con las 12 preguntas de ataque; en auth, contratos, caché o permisos se suma un auditor
+  independiente en contexto limpio. Veredicto BLOQUEA / PASA CON RESERVAS / PASA, con `archivo:línea`.
+- **Ramas y PR:** `develop` es la rama principal de los dos repos y entrada solo por
+  rama → PR → checks de GitHub verdes → review manual de otra persona → merge. Prohibido pushear
+  directo a `develop`, mergear sin review o saltarse checks (`--admin`, `--force`).
+- **Puertas y métricas:** `typecheck && lint && test && build` verde por bloque, y antes/después de
+  peticiones, latencia de recomendaciones, bundle y viewports (375/768/1280).
+- **Decisiones de producto** (caché, OSM, onboarding, alta de guías/gestoras): propuesta + coste +
+  alternativa; se paran y se preguntan. Lo demás se decide y se documenta.
+
 ## Comandos
 
 ```bash
@@ -157,6 +180,7 @@ Kafka internos, no respuestas HTTP. El backend no expone OpenAPI.
 3. **Verificar antes de declarar terminado**:
    `npm run typecheck && npm run lint && npm test && npm run build`.
 4. Revisión final con `verification-before-completion` y `ponytail-review`.
+5. Entrega por rama + PR a `develop`; el merge necesita checks verdes y review de otra persona.
 
 ## Deuda conocida
 
