@@ -332,7 +332,7 @@ describe('RegisterPage', () => {
     ).toBeTruthy()
     expect(screen.getByText(/hotel@correo.com/)).toBeTruthy()
 
-    const providerNotice = screen.getByText(/aviso por correo/i)
+    const providerNotice = screen.getByText(/puede llegar un aviso/i)
     expect(providerNotice.textContent).not.toMatch(
       /antes de que puedas iniciar sesión/i,
     )
@@ -552,7 +552,7 @@ describe('RegisterPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Solicitud enviada' }),
     ).toBeTruthy()
-    const notice = screen.getByText(/aviso por correo/i)
+    const notice = screen.getByText(/puede llegar un aviso/i)
     expect(notice.textContent).toContain('ana@correo.com')
     expect(notice.textContent).not.toMatch(/escribimos|Se avisó/)
     expect(screen.getByText(/ana@correo.com/)).toBeTruthy()

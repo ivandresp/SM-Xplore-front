@@ -308,7 +308,7 @@ export default function RegisterPage({
         }
       >
         <p className={styles.notice}>
-          Aviso por correo: revisa la bandeja de {created.email}.{' '}
+          Revisa tu correo: puede llegar un aviso a {created.email}.{' '}
           {isGuide
             ? 'Una gestora revisará tu solicitud y, si la aprueba, podrás iniciar sesión.'
             : 'Un administrador revisará el registro; la cuenta sigue activa y el perfil no se publica en el catálogo hasta que se apruebe.'}

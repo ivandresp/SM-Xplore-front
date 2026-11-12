@@ -7,6 +7,7 @@ import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
+import { clearCache } from '@/services/cache'
 import { registrationsApi } from '@/services/registrationsApi'
 import { describeApiError } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
@@ -100,6 +101,17 @@ export default function RegistrationsQueuePage() {
         })
         cacheBusterRef.current = undefined
 
+        // Invariante: la página pedida tiene que existir. Si otra gestora
+        // vació la cola, el backend devuelve content=[] y totalPages menor:
+        // sin esto la tabla queda vacía y el paginador desaparece.
+        const lastPage = Math.max(1, result.totalPages)
+        if (page > lastPage) {
+          if (!cancelled) {
+            setPage(lastPage)
+          }
+          return
+        }
+
         if (!cancelled) {
           setRows(result.content)
           setTotal(result.total)
@@ -159,6 +171,11 @@ export default function RegistrationsQueuePage() {
   function retry() {
     setIsLoading(true)
     setLoadError(null)
+    // El banner de un 409/404 no debe sobrevivir a la recarga de la lista.
+    setActionError(null)
+    // El `_=` crea una clave nueva; la canónica seguiría viva 30 s y una
+    // vuelta a esa página pintaría la lista anterior al 409.
+    clearCache()
     cacheBusterRef.current = Date.now()
     setReloadToken((token) => token + 1)
   }
@@ -203,7 +220,7 @@ export default function RegistrationsQueuePage() {
       )
       // El backend no confirma la entrega del correo: no se promete.
       // Y solo el guía queda sin poder entrar; la prestadora sigue activa.
-      const aviso = `Aviso por correo a ${row.email}; revisa la bandeja de entrada.`
+      const aviso = `Puede llegar un aviso a ${row.email}; revisa la bandeja de entrada.`
       setFeedback(
         decision === 'APROBADO'
           ? `Solicitud de ${row.fullName} aprobada. ${aviso}`
