@@ -4,6 +4,7 @@ import type {
   ReactNode,
   SelectHTMLAttributes,
 } from 'react'
+import { classNames } from '@/utils/format'
 import styles from './FormField.module.css'
 
 interface SelectOption {
@@ -18,10 +19,38 @@ export interface FieldProps
   id?: string
   /** Contenido al final del campo (p. ej. "Mostrar" en la contraseña). */
   trailing?: ReactNode
+  /** Error del campo: se anuncia con aria-invalid y aria-describedby. */
+  error?: string
+}
+
+/**
+ * Ids estables para `aria-describedby`: la pista y el error se suman a
+ * cualquier descripción que ya traiga el campo.
+ */
+function describedBy(
+  fieldId: string,
+  hint: string | undefined,
+  error: string | undefined,
+  existing: string | undefined,
+): string | undefined {
+  const ids = [
+    existing ?? '',
+    hint === undefined ? '' : `${fieldId}-hint`,
+    error === undefined ? '' : `${fieldId}-error`,
+  ].filter((id) => id !== '')
+
+  return ids.length === 0 ? undefined : ids.join(' ')
 }
 
 /** Campo de texto con etiqueta asociada automáticamente. */
-export function Field({ label, hint, id, trailing, ...input }: FieldProps) {
+export function Field({
+  label,
+  hint,
+  id,
+  trailing,
+  error,
+  ...input
+}: FieldProps) {
   const generatedId = useId()
   const fieldId = id ?? generatedId
 
@@ -31,12 +60,32 @@ export function Field({ label, hint, id, trailing, ...input }: FieldProps) {
         {label}
       </label>
       <div className={styles.controlWrap}>
-        <input className={styles.control} id={fieldId} {...input} />
+        <input
+          id={fieldId}
+          {...input}
+          className={classNames(styles.control, input.className)}
+          aria-invalid={error === undefined ? undefined : true}
+          aria-describedby={describedBy(
+            fieldId,
+            hint,
+            error,
+            input['aria-describedby'],
+          )}
+        />
         {trailing !== undefined && (
           <span className={styles.trailing}>{trailing}</span>
         )}
       </div>
-      {hint !== undefined && <p className={styles.hint}>{hint}</p>}
+      {hint !== undefined && (
+        <p className={styles.hint} id={`${fieldId}-hint`}>
+          {hint}
+        </p>
+      )}
+      {error !== undefined && (
+        <p className={styles.error} id={`${fieldId}-error`}>
+          {error}
+        </p>
+      )}
     </div>
   )
 }
@@ -47,6 +96,8 @@ export interface SelectFieldProps
   hint?: string
   id?: string
   options: SelectOption[]
+  /** Error del campo: se anuncia con aria-invalid y aria-describedby. */
+  error?: string
 }
 
 /** Selector con etiqueta asociada automáticamente. */
@@ -55,6 +106,7 @@ export function SelectField({
   hint,
   id,
   options,
+  error,
   ...select
 }: SelectFieldProps) {
   const generatedId = useId()
@@ -65,14 +117,34 @@ export function SelectField({
       <label className={styles.label} htmlFor={fieldId}>
         {label}
       </label>
-      <select className={styles.control} id={fieldId} {...select}>
+      <select
+        id={fieldId}
+        {...select}
+        className={classNames(styles.control, select.className)}
+        aria-invalid={error === undefined ? undefined : true}
+        aria-describedby={describedBy(
+          fieldId,
+          hint,
+          error,
+          select['aria-describedby'],
+        )}
+      >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
       </select>
-      {hint !== undefined && <p className={styles.hint}>{hint}</p>}
+      {hint !== undefined && (
+        <p className={styles.hint} id={`${fieldId}-hint`}>
+          {hint}
+        </p>
+      )}
+      {error !== undefined && (
+        <p className={styles.error} id={`${fieldId}-error`}>
+          {error}
+        </p>
+      )}
     </div>
   )
 }

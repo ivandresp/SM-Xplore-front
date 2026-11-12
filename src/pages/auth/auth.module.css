@@ -138,3 +138,57 @@
 .submit {
   width: 100%;
 }
+
+/* Checklist de contraseña: el estado va escrito, no solo en color. */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.7rem 0.9rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  list-style: none;
+  font-size: 0.82rem;
+  color: var(--color-muted-strong);
+}
+
+.checklistItem {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+/* La etiqueta puede ocupar varias líneas; el estado nunca se parte. */
+.checklistItem > span:nth-child(2) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checklistMet {
+  color: var(--color-success-text);
+}
+
+.checklistPending {
+  color: var(--color-muted-strong);
+}
+
+.checkStatus {
+  flex: 0 0 auto;
+  font-weight: 700;
+}
+
+.checklistMet .checkStatus {
+  color: var(--color-success-text);
+}
+
+.checklistPending .checkStatus {
+  color: var(--color-danger-text);
+}
+
