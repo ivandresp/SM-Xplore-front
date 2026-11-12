@@ -1,3 +1,5 @@
+import { clearCache } from './cache'
+
 const SESSION_KEY = 'sm-xplore:session'
 
 interface StoredSession {
@@ -51,6 +53,8 @@ export function loadToken(): string | null {
 }
 
 export function saveToken(token: string, expiresAt: string) {
+  // Otra cuenta no puede ver la caché de la anterior.
+  clearCache()
   cached = { token, expiresAt }
   window.sessionStorage.setItem(SESSION_KEY, JSON.stringify(cached))
 }
@@ -58,6 +62,7 @@ export function saveToken(token: string, expiresAt: string) {
 export function clearToken() {
   cached = null
   window.sessionStorage.removeItem(SESSION_KEY)
+  clearCache()
 }
 
 /** Lo registra AuthProvider para cerrar sesión cuando la API responde 401. */

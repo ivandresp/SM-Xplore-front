@@ -113,6 +113,66 @@ describe('httpClient', () => {
     expect(secondHeaders.get('Authorization')).toBeNull()
   })
 
+  it('deduplica dos GET en vuelo y reutiliza la respuesta cacheada', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ items: [1] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const [first, second] = await Promise.all([
+      httpClient.get('/activities'),
+      httpClient.get('/activities'),
+    ])
+    const third = await httpClient.get('/activities')
+
+    expect(first).toEqual({ items: [1] })
+    expect(second).toEqual(first)
+    expect(third).toEqual(first)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('no cachea respuestas de error', async () => {
+    const fetchMock = vi.fn(async () =>
+      jsonResponse({ title: 'boom', status: 500 }, 500),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(httpClient.get('/activities')).rejects.toBeInstanceOf(ApiError)
+    await expect(httpClient.get('/activities')).rejects.toBeInstanceOf(ApiError)
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('una mutación invalida la caché de los GET', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ items: [] }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ items: [2] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpClient.get('/activities')
+    await httpClient.post('/activities')
+    const refreshed = await httpClient.get('/activities')
+
+    expect(refreshed).toEqual({ items: [2] })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('registrar una vista no invalida la caché', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ items: [] }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ items: [3] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpClient.get('/activities')
+    await httpClient.post('/interactions/view/ACTIVITY/a1')
+    const cached = await httpClient.get('/activities')
+
+    expect(cached).toEqual({ items: [] })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it('no avisa de sesión caída si la petición iba sin token', async () => {
     const handler = vi.fn()
     onUnauthorized(handler)
