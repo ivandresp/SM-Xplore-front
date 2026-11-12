@@ -179,6 +179,15 @@
   color: var(--color-muted-strong);
 }
 
+/* Sin contraseña escrita: neutro, ni verde ni rojo. */
+.checklistNeutral {
+  color: var(--color-muted);
+}
+
+.checklistNeutral .checkStatus {
+  color: var(--color-muted);
+}
+
 .checkStatus {
   flex: 0 0 auto;
   font-weight: 700;

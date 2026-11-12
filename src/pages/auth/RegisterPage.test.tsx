@@ -125,6 +125,9 @@ describe('RegisterPage', () => {
     await fillTouristForm(user, { phone: '300 12' })
     await user.tab()
 
+    // El error del blur se pinta en la tarea siguiente (ver RegisterPage).
+    await screen.findByText(/7 y 20/i)
+
     const phone = screen.getByLabelText('Teléfono') as HTMLInputElement
     expect(phone.getAttribute('aria-invalid')).toBe('true')
 
@@ -133,13 +136,17 @@ describe('RegisterPage', () => {
       .split(' ')
       .map((id) => document.getElementById(id)?.textContent ?? '')
       .join(' ')
-    expect(described).toMatch(/10 dígitos/i)
+    expect(described).toMatch(/7 y 20/i)
 
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     expect(fetchMock).not.toHaveBeenCalled()
     expect(document.activeElement).toBe(phone)
-    expect(screen.getByRole('alert').textContent).toMatch(/teléfono/i)
+    const blockedAlerts = screen
+      .getAllByRole('alert')
+      .map((node) => node.textContent ?? '')
+      .join(' ')
+    expect(blockedAlerts).toMatch(/teléfono/i)
   })
 
   it('quita el error del teléfono en cuanto el valor pasa a ser válido', async () => {
@@ -152,13 +159,14 @@ describe('RegisterPage', () => {
     const phone = screen.getByLabelText('Teléfono') as HTMLInputElement
     await user.type(phone, '300 12')
     await user.tab()
+    await screen.findByText(/7 y 20/i)
     expect(phone.getAttribute('aria-invalid')).toBe('true')
 
     await user.type(phone, '34567')
     await user.tab()
 
     expect(phone.getAttribute('aria-invalid')).toBeNull()
-    expect(screen.queryByText(/10 dígitos/i)).toBeNull()
+    expect(screen.queryByText(/7 y 20/i)).toBeNull()
   })
 
   it('da de alta al turista y entra al catálogo', async () => {
@@ -230,9 +238,11 @@ describe('RegisterPage', () => {
       .join(' ')
     expect(described).toMatch(/ya existe una cuenta con ese correo/i)
 
-    expect(screen.getByRole('alert').textContent).toMatch(
-      /ya existe una cuenta con ese correo/i,
-    )
+    const duplicateAlerts = screen
+      .getAllByRole('alert')
+      .map((node) => node.textContent ?? '')
+      .join(' ')
+    expect(duplicateAlerts).toMatch(/ya existe una cuenta con ese correo/i)
   })
 
   it('mapea los errors del ProblemDetail a su campo sin taparlos con el mensaje genérico', async () => {
@@ -267,7 +277,12 @@ describe('RegisterPage', () => {
 
     expect(described).toMatch(/teléfono/i)
     expect(described).not.toMatch(/must match/i)
-    expect(screen.getByRole('alert').textContent).toMatch(/revisa los datos/i)
+
+    const serverAlerts = screen
+      .getAllByRole('alert')
+      .map((node) => node.textContent ?? '')
+      .join(' ')
+    expect(serverAlerts).toMatch(/revisa los datos/i)
   })
 
   it('registra la prestadora y avisa de que queda pendiente de revisión', async () => {
@@ -309,5 +324,138 @@ describe('RegisterPage', () => {
       nit: '900123456-7',
       phone: '3001234567',
     })
+  })
+
+  it('acepta un teléfono internacional distinto de +57 (gate = DTO)', async () => {
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        void init
+        const url = String(input)
+        if (url.endsWith('/auth/register/turista')) {
+          return jsonResponse(TOURIST_USER, 201)
+        }
+        if (url.endsWith('/auth/login')) {
+          return jsonResponse(LOGIN_RESULT)
+        }
+        if (url.endsWith('/users/me')) {
+          return jsonResponse(TOURIST_USER)
+        }
+        return jsonResponse({ code: 'NOT_FOUND' }, 404)
+      },
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    renderRegister()
+
+    await fillTouristForm(user, { phone: '+34 600 123 456' })
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    expect(await screen.findByText('Catálogo de actividades')).toBeTruthy()
+    const call = registerCall(fetchMock)
+    expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
+      phone: '+34600123456',
+    })
+  })
+
+  it('detiene el alta si la nacionalidad excede el máximo y enfoca el campo', async () => {
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        void input
+        void init
+        return jsonResponse(TOURIST_USER, 201)
+      },
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    renderRegister()
+
+    await fillTouristForm(user)
+    await user.type(screen.getByLabelText('Nacionalidad'), 'a'.repeat(81))
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    const registerCalls = fetchMock.mock.calls.filter(([input]) =>
+      String(input).includes('/auth/register'),
+    )
+    expect(registerCalls).toHaveLength(0)
+
+    const nationality = screen.getByLabelText('Nacionalidad') as HTMLInputElement
+    expect(document.activeElement).toBe(nationality)
+    expect(nationality.getAttribute('aria-invalid')).toBe('true')
+
+    const described = (nationality.getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .map((id) => document.getElementById(id)?.textContent ?? '')
+      .join(' ')
+    expect(described).toMatch(/80/)
+  })
+
+  it('al enviar con teclado el foco llega al primer error ya descrito', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
+
+    const user = userEvent.setup()
+    renderRegister()
+
+    screen.getByRole('button', { name: 'Crear cuenta' }).focus()
+    await user.keyboard('{Enter}')
+
+    expect(document.activeElement?.getAttribute('name')).toBe('fullName')
+
+    const described = (document.activeElement?.getAttribute('aria-describedby') ?? '')
+      .split(' ')
+      .map((id) => document.getElementById(id)?.textContent ?? '')
+      .join(' ')
+    expect(described).toContain('Escribe tu nombre completo.')
+
+    const warns = screen
+      .getAllByRole('alert')
+      .map((node) => node.textContent ?? '')
+    expect(warns.some((text) => text.includes('Escribe tu nombre completo.'))).toBe(
+      true,
+    )
+  })
+
+  it('explica el DATA_CONFLICT sin hablar de campos no válidos', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse(
+          {
+            detail: 'Ya existe un registro con los mismos datos',
+            code: 'DATA_CONFLICT',
+          },
+          409,
+        ),
+      ),
+    )
+
+    const user = userEvent.setup()
+    renderRegister()
+
+    await fillTouristForm(user)
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    const alert = await screen.findByText(/el documento o el NIT/i)
+    expect(alert.textContent).toMatch(/teléfono/i)
+    expect(screen.queryByText(/Revisa los datos/i)).toBeNull()
+  })
+
+  it('con la contraseña vacía el checklist no muestra ningún Cumple', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
+
+    renderRegister()
+
+    const checklist = screen.getByRole('list', {
+      name: 'Requisitos de la contraseña',
+    })
+    const items = within(checklist).getAllByRole('listitem')
+
+    expect(items.some((item) => (item.textContent ?? '').includes('Pendiente'))).toBe(
+      true,
+    )
+    expect(items.every((item) => !(item.textContent ?? '').includes('Cumple'))).toBe(
+      true,
+    )
   })
 })

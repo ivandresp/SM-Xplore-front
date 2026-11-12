@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  FIELD_ORDER,
   PASSWORD_MAX_LENGTH,
   PASSWORD_MIN_CLASSES,
   PASSWORD_MIN_LENGTH,
@@ -53,28 +54,38 @@ describe('contrato real de la política de contraseñas', () => {
   })
 })
 
-describe('teléfono colombiano', () => {
+describe('teléfono: la puerta dura es el patrón del DTO', () => {
   it.each([
+    // DTO: ^[0-9+()\-\s]{7,20}$ (RegisterTouristRequest.java:14)
     '3001234567',
     '300 123 4567',
     '300-123-4567',
     '+57 300 123 4567',
     '+573001234567',
     '+57 300-123-45 67',
+    '+34 600 123 456',
+    '+1 305 555 0100',
+    '6061234',
+    '1234567',
+    '(601) 234 5678',
   ])('acepta %s', (phone) => {
     expect(validatePhone(phone)).toBeNull()
   })
 
-  it.each(['30012345', '30012345678', '+1 3001234567', '300123456a', '300 123'])(
-    'rechaza %s',
-    (phone) => {
-      expect(validatePhone(phone)).not.toBeNull()
-    },
-  )
+  it.each([
+    '123456',
+    '300 12',
+    'a300123456',
+    'abcdefg',
+    '123456789012345678901',
+  ])('rechaza %s', (phone) => {
+    expect(validatePhone(phone)).not.toBeNull()
+  })
 
-  it('exige el campo y lo dice en español', () => {
+  it('exige el campo y explica el rango en español', () => {
     expect(validatePhone('   ')).toBe('Escribe tu teléfono.')
-    expect(validatePhone('30012345')).toMatch(/10 dígitos/i)
+    expect(validatePhone('123456')).toMatch(/7 y 20/i)
+    expect(validatePhone('300123456a')).toMatch(/números/i)
   })
 
   it('normaliza a dígitos con el +57 opcional delante', () => {
@@ -110,6 +121,17 @@ describe('política de contraseña', () => {
 
     const done = passwordChecks('ContraseñaSegura1!')
     expect(done.every((check) => check.met)).toBe(true)
+    expect(done.every((check) => check.state === 'met')).toBe(true)
+  })
+
+  it('con la contraseña vacía no adelanta ningún requisito', () => {
+    const empty = passwordChecks('')
+    expect(empty.every((check) => check.met === false)).toBe(true)
+    expect(empty.every((check) => check.state === 'empty')).toBe(true)
+
+    const pending = passwordChecks('corta')
+    expect(pending.find((check) => check.id === 'maxLength')?.state).toBe('met')
+    expect(pending.find((check) => check.id === 'length')?.state).toBe('pending')
   })
 })
 
@@ -125,9 +147,9 @@ describe('validateRegisterForm', () => {
   it('señala el teléfono inválido en su propio campo', () => {
     const errors = validateRegisterForm('TOURIST', {
       ...TOURIST_FORM,
-      phone: '30012345',
+      phone: '300 12',
     })
-    expect(errors).toEqual({ phone: expect.stringMatching(/10 dígitos/i) })
+    expect(errors).toEqual({ phone: expect.stringMatching(/7 y 20/i) })
   })
 
   it('señala todos los campos obligatorios vacíos a la vez', () => {
@@ -232,9 +254,32 @@ describe('firstInvalidField', () => {
     expect(
       firstInvalidField('TOURIST', {
         ...TOURIST_FORM,
-        phone: '30012345',
+        phone: '300 12',
         password: 'corta',
       }),
     ).toBe('phone')
+  })
+
+  it('incluye nacionalidad e idioma en el orden y en el gate', () => {
+    const order = [...FIELD_ORDER]
+    expect(order.indexOf('nationality')).toBeGreaterThan(order.indexOf('dniNumber'))
+    expect(order.indexOf('preferredLanguage')).toBeGreaterThan(
+      order.indexOf('nationality'),
+    )
+    expect(order.indexOf('birthDate')).toBeGreaterThan(
+      order.indexOf('preferredLanguage'),
+    )
+
+    const longNationality = { ...TOURIST_FORM, nationality: 'a'.repeat(81) }
+    expect(validateRegisterForm('TOURIST', longNationality).nationality).toMatch(
+      /80/,
+    )
+    expect(firstInvalidField('TOURIST', longNationality)).toBe('nationality')
+
+    const longLanguage = { ...TOURIST_FORM, preferredLanguage: 'a'.repeat(51) }
+    expect(
+      validateRegisterForm('TOURIST', longLanguage).preferredLanguage,
+    ).toMatch(/50/)
+    expect(firstInvalidField('TOURIST', longLanguage)).toBe('preferredLanguage')
   })
 })

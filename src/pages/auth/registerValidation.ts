@@ -55,13 +55,15 @@ export const FIELD_ORDER: readonly RegisterFieldKey[] = [
   'password',
   'dniType',
   'dniNumber',
+  'nationality',
+  'preferredLanguage',
+  'birthDate',
   'nit',
   'businessType',
   'latitude',
   'longitude',
   'websiteUrl',
   'startOperationDate',
-  'birthDate',
 ]
 
 const FIELD_LABELS: Record<RegisterFieldKey, string> = {
@@ -89,15 +91,16 @@ export function fieldLabel(field: RegisterFieldKey): string {
 
 /**
  * `RegisterTouristRequest.java:14` y `RegisterProviderRequest.java:17`:
- * `^[0-9+()\\-\\s]{7,20}$`. La UI es más estricta (10 dígitos con +57
- * opcional) porque el alta real de Santa Marta es un móvil colombiano.
+ * `^[0-9+()\\-\\s]{7,20}$`. Es la puerta dura, aplicada al valor tal cual
+ * y al normalizado. El móvil colombiano (+57, 10 dígitos) es solo una pista
+ * visible en el campo, no un bloqueo: un turista extranjero (+34, +1) o un
+ * fijo colombiano (6061234) tienen que poder registrarse.
  */
-const PHONE_ALLOWED = /^[0-9+()\s-]+$/
-const PHONE_NORMALIZED = /^(?:\+57)?[0-9]{10}$/
+const PHONE_DTO_PATTERN = /^[0-9+()\s-]{7,20}$/
 const PHONE_SEPARATORS = /[\s()-]/g
 
 export const PHONE_MESSAGE =
-  'Escribe un teléfono colombiano de 10 dígitos.'
+  'Escribe un teléfono válido: entre 7 y 20 caracteres, solo números, +, espacios, guiones o paréntesis.'
 
 export function normalizePhone(raw: string): string {
   return raw.trim().replace(PHONE_SEPARATORS, '')
@@ -108,12 +111,12 @@ export function validatePhone(raw: string): string | null {
   if (trimmed === '') {
     return 'Escribe tu teléfono.'
   }
-  if (!PHONE_ALLOWED.test(trimmed)) {
+  if (!PHONE_DTO_PATTERN.test(trimmed)) {
     return PHONE_MESSAGE
   }
 
-  const normalized = normalizePhone(trimmed)
-  return PHONE_NORMALIZED.test(normalized) ? null : PHONE_MESSAGE
+  // El normalizado también cumple el patrón: 7..20 caracteres útiles.
+  return PHONE_DTO_PATTERN.test(normalizePhone(trimmed)) ? null : PHONE_MESSAGE
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -122,9 +125,17 @@ export interface PasswordCheck {
   id: 'length' | 'maxLength' | 'classes' | 'common'
   label: string
   met: boolean
+  /** `empty`: todavía no hay contraseña; ni verde ni rojo. */
+  state: 'empty' | 'met' | 'pending'
 }
 
-/** Igual que `PasswordPolicy.characterClasses` (PasswordPolicy.java:61-76). */
+/**
+ * Igual que `PasswordPolicy.characterClasses` (PasswordPolicy.java:61-76).
+ *
+ * H7 (dirección segura): se usan propiedades Unicode (`\p{Ll}`, `\p{Lu}`)
+ * como hace `Character.isLowerCase` en Java; rangos ASCII rechazarían "ñ" o
+ * "á" en una contraseña válida.
+ */
 function characterClasses(password: string): number {
   let classes = 0
   if (/\p{Ll}/u.test(password)) classes += 1
@@ -137,7 +148,9 @@ function characterClasses(password: string): number {
 /** `PasswordPolicy.validate` (PasswordPolicy.java:43-59), sin el mensaje genérico. */
 export function passwordChecks(password: string): PasswordCheck[] {
   const lowered = password.toLowerCase()
-  return [
+  // Sin contraseña no se adelanta ningún requisito: estado neutral, no verde.
+  const empty = password === ''
+  const checks: Array<Omit<PasswordCheck, 'state'>> = [
     {
       id: 'length',
       label: `Al menos ${PASSWORD_MIN_LENGTH} caracteres`,
@@ -159,12 +172,24 @@ export function passwordChecks(password: string): PasswordCheck[] {
       met: !COMMON_PASSWORDS.includes(lowered),
     },
   ]
+
+  return checks.map((check) => ({
+    ...check,
+    met: empty ? false : check.met,
+    state: empty ? 'empty' : check.met ? 'met' : 'pending',
+  }))
 }
 
 export function isPasswordValid(password: string): boolean {
   return passwordChecks(password).every((check) => check.met)
 }
 
+/**
+ * H6 (documentado): la fecha se compara con el reloj y la zona del navegador,
+ * así que un usuario en otro huso puede ver el borde del día distinto al del
+ * backend. El backend vuelve a validar `@Past`/`@PastOrPresent`, de modo que
+ * el peor caso es un 400 con el campo señalado.
+ */
 function todayIso(): string {
   const now = new Date()
   const month = String(now.getMonth() + 1).padStart(2, '0')

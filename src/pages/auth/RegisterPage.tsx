@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
@@ -144,8 +144,15 @@ export default function RegisterPage() {
     }
   }
 
+  /**
+   * El error de blur se pinta en la tarea siguiente: si apareciera durante el
+   * mousedown del botón, el reflujo movería el botón y el mouseup caería fuera,
+   * perdiendo el clic (habría que pulsar dos veces).
+   */
   function markTouched(key: RegisterFieldKey) {
-    setTouched((current) => ({ ...current, [key]: true }))
+    window.setTimeout(() => {
+      setTouched((current) => ({ ...current, [key]: true }))
+    }, 0)
   }
 
   /**
@@ -162,10 +169,28 @@ export default function RegisterPage() {
     return undefined
   }
 
-  function focusField(key: RegisterFieldKey) {
+  /**
+   * El foco se aplica en un efecto, después del commit: el campo ya lleva su
+   * `aria-describedby` con el error cuando recibe el foco.
+   */
+  const [focusRequest, setFocusRequest] = useState<{
+    key: RegisterFieldKey
+    token: number
+  } | null>(null)
+  const focusToken = useRef(0)
+
+  useEffect(() => {
+    if (focusRequest === null) {
+      return
+    }
     formRef.current
-      ?.querySelector<HTMLElement>(`[name="${key}"]`)
+      ?.querySelector<HTMLElement>(`[name="${focusRequest.key}"]`)
       ?.focus()
+  }, [focusRequest])
+
+  function requestFocus(key: RegisterFieldKey) {
+    focusToken.current += 1
+    setFocusRequest({ key, token: focusToken.current })
   }
 
   function handleRegisterError(cause: unknown) {
@@ -174,19 +199,19 @@ export default function RegisterPage() {
         'Ya existe una cuenta con ese correo. Inicia sesión o usa otro correo.'
       setServerErrors({ email: message })
       setFormError(message)
-      focusField('email')
+      requestFocus('email')
       return
     }
 
     if (isApiError(cause) && cause.code === 'VALIDATION_ERROR') {
       const { fields } = mapServerFieldErrors(cause.fieldErrors)
-      setServerErrors(fields)
       const mapped = FIELD_ORDER.filter(
         (field) => fields[field] !== undefined,
       )
       if (mapped.length > 0) {
+        setServerErrors(fields)
         setFormError(summaryMessage(fields))
-        focusField(mapped[0])
+        requestFocus(mapped[0])
         return
       }
     }
@@ -196,16 +221,17 @@ export default function RegisterPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setFormError(null)
-    setSubmitAttempted(true)
 
     const blocked = firstInvalidField(kind, values)
     if (blocked !== null) {
+      setSubmitAttempted(true)
       setFormError(summaryMessage(clientErrors))
-      focusField(blocked)
+      requestFocus(blocked)
       return
     }
 
+    setFormError(null)
+    setSubmitAttempted(true)
     setIsSubmitting(true)
 
     try {
@@ -312,7 +338,7 @@ export default function RegisterPage() {
             name="phone"
             autoComplete="tel"
             required
-            hint="Ejemplo: +57 300 123 4567. El +57 es opcional."
+            hint="Móvil colombiano: +57 300 123 4567. También aceptamos fijos e internacionales."
             value={values.phone}
             error={errorFor('phone')}
             onChange={(event) => update('phone', event.target.value)}
@@ -345,13 +371,21 @@ export default function RegisterPage() {
                 key={check.id}
                 className={classNames(
                   styles.checklistItem,
-                  check.met ? styles.checklistMet : styles.checklistPending,
+                  check.state === 'met' && styles.checklistMet,
+                  check.state === 'pending' && styles.checklistPending,
+                  check.state === 'empty' && styles.checklistNeutral,
                 )}
               >
-                <span aria-hidden="true">{check.met ? '✓' : '•'}</span>
+                <span aria-hidden="true">
+                  {check.state === 'met' ? '✓' : check.state === 'empty' ? '·' : '•'}
+                </span>
                 <span>{check.label}</span>
                 <span className={styles.checkStatus}>
-                  {check.met ? 'Cumple' : 'Falta'}
+                  {check.state === 'met'
+                    ? 'Cumple'
+                    : check.state === 'empty'
+                      ? 'Pendiente'
+                      : 'Falta'}
                 </span>
               </li>
             ))}

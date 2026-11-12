@@ -82,7 +82,8 @@ export function Field({
         </p>
       )}
       {error !== undefined && (
-        <p className={styles.error} id={`${fieldId}-error`}>
+        // role="alert": el mensaje se anuncia al aparecer, sin depender del foco.
+        <p className={styles.error} id={`${fieldId}-error`} role="alert">
           {error}
         </p>
       )}
@@ -141,7 +142,8 @@ export function SelectField({
         </p>
       )}
       {error !== undefined && (
-        <p className={styles.error} id={`${fieldId}-error`}>
+        // role="alert": el mensaje se anuncia al aparecer, sin depender del foco.
+        <p className={styles.error} id={`${fieldId}-error`} role="alert">
           {error}
         </p>
       )}
