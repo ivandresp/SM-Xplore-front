@@ -55,6 +55,44 @@ const CODE_MESSAGES: Record<string, string> = {
 }
 
 /**
+ * `parseResponse` (services/validate.ts) lanza un `Error` con este prefijo cuando el
+ * wire no cuadra con el esquema. No tiene tipo propio porque ese módulo no pertenece a
+ * este bloque: aquí se reconoce por el prefijo y un test de `recommendationsApi` fija el
+ * formato, así que si allí cambia la redacción el fallo se ve en CI.
+ */
+const RESPONSE_CONTRACT_PREFIX = 'Respuesta inesperada de '
+
+/**
+ * Mensaje de un contrato roto: dice qué pasó, qué hacer y dónde mirar. Es neutro a
+ * propósito: hay pantallas sin botón de reintento (preferencias, guardado del perfil).
+ * El `detail` del backend nunca se usa aquí porque no es la causa del fallo.
+ */
+const RESPONSE_CONTRACT_MESSAGE =
+  'El servicio devolvió datos en un formato que no reconocemos. Vuelve a intentarlo; si persiste, envía a soporte la hora del fallo y el detalle de la consola del navegador.'
+
+interface ContractDetails {
+  label: string
+  issues: string
+}
+
+function isResponseContractError(error: unknown): error is Error {
+  return (
+    error instanceof Error &&
+    error.message.startsWith(RESPONSE_CONTRACT_PREFIX)
+  )
+}
+
+/** Parte el mensaje de `parseResponse` en endpoint y issues de zod. */
+function readContractDetails(message: string): ContractDetails {
+  const rest = message.slice(RESPONSE_CONTRACT_PREFIX.length)
+  const separator = rest.indexOf(': ')
+
+  return separator === -1
+    ? { label: rest, issues: '' }
+    : { label: rest.slice(0, separator), issues: rest.slice(separator + 2) }
+}
+
+/**
  * `fetch` falla con un `TypeError` de red; cualquier otro error no-HTTP es un bug
  * nuestro y decir «no se pudo conectar» lo esconde.
  */
@@ -128,5 +166,54 @@ export function describeApiError(error: unknown): string {
     return CONNECTION_ERROR
   }
 
+  if (isResponseContractError(error)) {
+    return RESPONSE_CONTRACT_MESSAGE
+  }
+
   return 'Ocurrió un error inesperado. Revisa la consola del navegador.'
+}
+
+/** Lo que se escribe en consola: diagnóstico, nunca el `detail` crudo del backend. */
+export type ApiErrorLogDetail =
+  | { kind: 'timeout'; timeoutMs: number }
+  | { kind: 'network'; error: unknown }
+  | { kind: 'api'; status: number; code: string | undefined; fieldErrors: Record<string, string> | undefined }
+  | { kind: 'contract'; label: string; issues: string; error: Error }
+  | { kind: 'unexpected'; error: unknown }
+
+function toLogDetail(error: unknown): ApiErrorLogDetail {
+  if (isRequestTimeout(error)) {
+    return { kind: 'timeout', timeoutMs: error.timeoutMs }
+  }
+
+  if (isApiError(error)) {
+    // `ApiError.message` es el `detail` del backend: se omite a propósito.
+    return {
+      kind: 'api',
+      status: error.status,
+      code: error.code,
+      fieldErrors: error.fieldErrors,
+    }
+  }
+
+  if (isResponseContractError(error)) {
+    const { label, issues } = readContractDetails(error.message)
+    return { kind: 'contract', label, issues, error }
+  }
+
+  // Mismo criterio que `describeApiError`: un fallo de red no es un bug nuestro.
+  if (isNetworkFailure(error)) {
+    return { kind: 'network', error }
+  }
+
+  return { kind: 'unexpected', error }
+}
+
+/**
+ * Deja rastro del fallo real en la consola. Se llama desde los `catch` de este bloque
+ * (recomendaciones, preferencias y guardado del perfil): sin esto, «Revisa la consola del
+ * navegador» apunta a una consola vacía. El resto de pantallas todavía no lo usan.
+ */
+export function logApiError(error: unknown, context: string): void {
+  console.error(`[api] ${context}`, toLogDetail(error))
 }

@@ -1,15 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
+import { usePreferences } from '@/pages/profile/usePreferences'
 import { recommendationsApi } from '@/services/recommendationsApi'
-import { categoriesApi } from '@/services/categoriesApi'
-import { describeApiError } from '@/utils/errors'
+import { describeApiError, logApiError } from '@/utils/errors'
+// `@/types` solo reexporta tipos (`export type *`): las constantes van por su módulo.
+import {
+  RECOMMENDATION_INITIAL_LIMIT,
+  RECOMMENDATION_LIMIT_STEP,
+  RECOMMENDATION_MAX_LIMIT,
+} from '@/types/recommendation'
 import type {
-  CategoryResponse,
-  PreferenceResponse,
   RecommendationItemType,
   RecommendationResponse,
   RecommendationSource,
@@ -26,6 +30,14 @@ const TYPE_META: Record<
   SERVICE: { label: 'Servicio', to: '/servicios', action: 'Ver servicios' },
 }
 
+const SOURCE_LABEL: Record<RecommendationSource, string> = {
+  AFFINITY: 'Afinidad',
+  QUALITY: 'Valoración',
+  NEARBY: 'Cercanía',
+  FALLBACK: 'Catálogo',
+  MIXED: 'Mezcla',
+}
+
 const SOURCE_NOTE: Record<RecommendationSource, string> = {
   FALLBACK:
     'Todavía no tenemos suficientes señales tuyas, así que mostramos lo mejor valorado del catálogo. Abre fichas y volveremos a ordenarlas para ti.',
@@ -38,30 +50,64 @@ const SOURCE_NOTE: Record<RecommendationSource, string> = {
 export default function RecommendationsPage() {
   const [data, setData] = useState<RecommendationResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Fallo de una recarga o de «ver más» con tarjetas ya en pantalla: no borra la lista.
+  const [inlineError, setInlineError] = useState<string | null>(null)
+  // Corte con el que llegó `data`: es el que se puede volver a pedir sin fallar.
+  const [loadedLimit, setLoadedLimit] = useState(RECOMMENDATION_INITIAL_LIMIT)
+  const [statusMessage, setStatusMessage] = useState('')
   const [reloadToken, setReloadToken] = useState(0)
-
-  const [preferences, setPreferences] = useState<PreferenceResponse[]>([])
-  const [categories, setCategories] = useState<CategoryResponse[]>([])
-  const [preferencesError, setPreferencesError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
-  const [savingCategory, setSavingCategory] = useState<string | null>(null)
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
+  // El corte vigente se lee por ref: una recarga por preferencia lo conserva y, al no
+  // estar en las deps del efecto, no dispara un segundo fetch.
+  const loadedLimitRef = useRef(RECOMMENDATION_INITIAL_LIMIT)
+  const dataRef = useRef<RecommendationResponse | null>(null)
+  // Solo la última petición escribe en pantalla: una respuesta vieja de «ver más» no
+  // puede pisar la recarga que la sustituyó.
+  const requestSeqRef = useRef(0)
+
+  const {
+    preferences,
+    categories,
+    error: preferencesError,
+    savingCategory,
+    add,
+    remove,
+  } = usePreferences({ enabled: true })
 
   useEffect(() => {
     let cancelled = false
+    const seq = (requestSeqRef.current += 1)
+    const limit = loadedLimitRef.current
 
     async function run() {
       try {
-        const result = await recommendationsApi.list({ limit: 12 })
+        const result = await recommendationsApi.list({ limit })
 
-        if (!cancelled) {
-          setData(result)
-          setError(null)
+        if (cancelled || seq !== requestSeqRef.current) {
+          return
         }
+
+        dataRef.current = result
+        setData(result)
+        setInlineError(null)
+        setError(null)
       } catch (cause) {
-        if (!cancelled) {
-          setData(null)
-          setError(describeApiError(cause))
+        if (cancelled || seq !== requestSeqRef.current) {
+          return
+        }
+
+        // Sin esta traza el mensaje «revisa la consola» apunta a una consola vacía.
+        logApiError(cause, 'recomendaciones')
+        const message = describeApiError(cause)
+
+        if (dataRef.current === null) {
+          setError(message)
+        } else {
+          // Había tarjetas en pantalla: se quedan y el aviso es inline.
+          setInlineError(message)
         }
       } finally {
         if (!cancelled) {
@@ -78,79 +124,107 @@ export default function RecommendationsPage() {
   }, [reloadToken])
 
   function retry() {
+    // El reintento vuelve al corte inicial: repetir el mismo limit que el backend
+    // rechaza dejaba el botón en un bucle que solo se rompía recargando.
+    loadedLimitRef.current = RECOMMENDATION_INITIAL_LIMIT
+    setLoadedLimit(RECOMMENDATION_INITIAL_LIMIT)
     setIsLoading(true)
     setError(null)
+    setInlineError(null)
     setReloadToken((current) => current + 1)
   }
 
-  useEffect(() => {
-    let cancelled = false
+  function retryInline() {
+    // Recarga con el corte que hay en pantalla (loadedLimitRef): el reintento no debe
+    // devolver al usuario al corte inicial y perder lo que ya tenía abierto.
+    setInlineError(null)
+    setReloadToken((current) => current + 1)
+  }
 
-    // Una preferencia que falla no debe tumbar las recomendaciones ni al revés.
-    void Promise.allSettled([
-      recommendationsApi.listPreferences(),
-      categoriesApi.list(),
-    ]).then(([prefs, cats]) => {
-      if (cancelled) return
+  async function loadMore() {
+    if (isLoadingMore) {
+      return
+    }
 
-      if (prefs.status === 'fulfilled' && cats.status === 'fulfilled') {
-        setPreferences(prefs.value)
-        setCategories(cats.value)
-        setPreferencesError(null)
+    const nextLimit = Math.min(
+      loadedLimit + RECOMMENDATION_LIMIT_STEP,
+      RECOMMENDATION_MAX_LIMIT,
+    )
+    if (nextLimit === loadedLimit) {
+      return
+    }
+
+    const seq = (requestSeqRef.current += 1)
+    setIsLoadingMore(true)
+    setInlineError(null)
+
+    try {
+      const result = await recommendationsApi.list({ limit: nextLimit })
+
+      if (seq !== requestSeqRef.current) {
+        // Una recarga más nueva ya manda: esta respuesta es del ranking anterior.
         return
       }
 
-      setPreferencesError(
-        describeApiError(
-          prefs.status === 'rejected'
-            ? prefs.reason
-            : cats.status === 'rejected'
-              ? cats.reason
-              : null,
-        ),
+      dataRef.current = result
+      setData(result)
+      loadedLimitRef.current = nextLimit
+      setLoadedLimit(nextLimit)
+      setStatusMessage(
+        `${result.items.length} ${result.items.length === 1 ? 'sugerencia' : 'sugerencias'} en pantalla.`,
       )
-    })
 
-    return () => {
-      cancelled = true
+      const stillHasMore =
+        result.items.length >= nextLimit && nextLimit < RECOMMENDATION_MAX_LIMIT
+      if (!stillHasMore) {
+        // El botón desaparece: sin esto Chrome manda el foco a <body> y el usuario de
+        // teclado no puede seguir.
+        resultsHeadingRef.current?.focus()
+      }
+    } catch (cause) {
+      if (seq !== requestSeqRef.current) {
+        return
+      }
+
+      // La lista que ya estaba en pantalla se queda; solo se avisa y no se sube el corte.
+      logApiError(cause, 'recomendaciones: ver más')
+      setInlineError(describeApiError(cause))
+    } finally {
+      setIsLoadingMore(false)
     }
-  }, [])
+  }
 
-  async function addPreference(categoryId: string) {
-    setSavingCategory(categoryId)
-    setPreferencesError(null)
+  async function addPreference() {
+    if (selectedCategory === '') {
+      return
+    }
 
-    try {
-      const created = await recommendationsApi.addPreference(categoryId)
-      setPreferences((current) => [...current.filter((p) => p.categoryId !== categoryId), created])
+    if (await add(selectedCategory)) {
+      // Sin limpiar el select, «Añadir» quedaba habilitado con una opción ya inexistente.
       setSelectedCategory('')
       setReloadToken((current) => current + 1)
-    } catch (cause) {
-      setPreferencesError(describeApiError(cause))
-    } finally {
-      setSavingCategory(null)
     }
   }
 
   async function removePreference(categoryId: string) {
-    setSavingCategory(categoryId)
-    setPreferencesError(null)
-
-    try {
-      await recommendationsApi.removePreference(categoryId)
-      setPreferences((current) => current.filter((p) => p.categoryId !== categoryId))
+    if (await remove(categoryId)) {
       setReloadToken((current) => current + 1)
-    } catch (cause) {
-      setPreferencesError(describeApiError(cause))
-    } finally {
-      setSavingCategory(null)
     }
   }
 
-  const categoryNames = new Map(categories.map((category) => [category.id, category.name]))
-  const availableCategories = categories.filter(
-    (category) => !preferences.some((preference) => preference.categoryId === category.id),
+  const categoryNames = new Map(
+    categories.map((category) => [category.id, category.name]),
   )
+  const availableCategories = categories.filter(
+    (category) =>
+      !preferences.some((preference) => preference.categoryId === category.id),
+  )
+
+  const hasMore =
+    data !== null &&
+    data.items.length >= loadedLimit &&
+    loadedLimit < RECOMMENDATION_MAX_LIMIT
+  const isAtMaxLimit = loadedLimit === RECOMMENDATION_MAX_LIMIT
 
   return (
     <div className={styles.page}>
@@ -158,11 +232,6 @@ export default function RecommendationsPage() {
         serif
         title="Recomendado para ti"
         description="Sugerencias del catálogo según lo que has visto y su valoración."
-        meta={
-          data === null
-            ? undefined
-            : `${data.items.length} ${data.items.length === 1 ? 'sugerencia' : 'sugerencias'}`
-        }
       />
 
       <section className={styles.prefs} aria-labelledby="prefs-title">
@@ -171,15 +240,15 @@ export default function RecommendationsPage() {
             Tus intereses
           </h2>
           <p className={styles.prefsHint}>
-            Marca las categorías que te gustan y afinamos las sugerencias.
+            Marca las categorías que te gustan y afinamos las sugerencias. También
+            puedes editarlas desde tu perfil.
           </p>
         </div>
 
         {preferences.length > 0 && (
           <ul className={styles.prefsList}>
             {preferences.map((preference) => {
-              const name =
-                categoryNames.get(preference.categoryId) ?? 'Categoría'
+              const name = categoryNames.get(preference.categoryId) ?? 'Categoría'
 
               return (
                 <li key={preference.categoryId}>
@@ -220,7 +289,7 @@ export default function RecommendationsPage() {
             <Button
               size="sm"
               disabled={selectedCategory === '' || savingCategory !== null}
-              onClick={() => void addPreference(selectedCategory)}
+              onClick={() => void addPreference()}
             >
               Añadir
             </Button>
@@ -244,6 +313,15 @@ export default function RecommendationsPage() {
         </div>
       )}
 
+      {!isLoading && error === null && data !== null && inlineError !== null && (
+        <div className={styles.inlineError} role="alert">
+          <p className={styles.inlineErrorText}>{inlineError}</p>
+          <Button variant="outline" size="sm" onClick={retryInline}>
+            Reintentar
+          </Button>
+        </div>
+      )}
+
       {isLoading && (
         <Skeleton variant="card" count={4} label="Cargando recomendaciones" />
       )}
@@ -262,6 +340,29 @@ export default function RecommendationsPage() {
         <>
           <p className={styles.note}>{SOURCE_NOTE[data.source]}</p>
 
+          <h2
+            ref={resultsHeadingRef}
+            tabIndex={-1}
+            className={styles.resultsTitle}
+          >
+            Sugerencias
+          </h2>
+
+          <p className={styles.summary}>
+            <span className={styles.summarySource}>
+              Fuente: {SOURCE_LABEL[data.source]}
+            </span>
+            <span>
+              {`${data.items.length} ${
+                data.items.length === 1 ? 'sugerencia' : 'sugerencias'
+              }`}
+            </span>
+          </p>
+
+          <p role="status" aria-live="polite" className={styles.srOnly}>
+            {statusMessage}
+          </p>
+
           <div className={styles.cards}>
             {data.items.map((item) => {
               const meta = TYPE_META[item.itemType]
@@ -269,7 +370,7 @@ export default function RecommendationsPage() {
               return (
                 <article key={`${item.itemType}-${item.itemId}`} className={styles.card}>
                   <StatusBadge tone="info">{meta.label}</StatusBadge>
-                  <h2 className={styles.cardTitle}>{item.name}</h2>
+                  <h3 className={styles.cardTitle}>{item.name}</h3>
                   <p className={styles.reason}>{item.reason}</p>
                   <Link className={styles.cardLink} to={meta.to}>
                     {meta.action}
@@ -277,6 +378,40 @@ export default function RecommendationsPage() {
                 </article>
               )
             })}
+          </div>
+
+          <div className={styles.more}>
+            {hasMore && (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => void loadMore()}
+                  aria-busy={isLoadingMore}
+                >
+                  {isLoadingMore ? 'Cargando…' : 'Ver más sugerencias'}
+                </Button>
+                <p className={styles.moreNote}>
+                  El servicio no pagina ni informa un total: «Ver más» vuelve a pedir
+                  el mismo ranking con un corte más amplio, hasta el máximo de{' '}
+                  {RECOMMENDATION_MAX_LIMIT} sugerencias.
+                </p>
+              </>
+            )}
+
+            {!hasMore && isAtMaxLimit && (
+              <p className={styles.moreNote}>
+                Estás viendo el máximo de {RECOMMENDATION_MAX_LIMIT} sugerencias que
+                acepta el servicio. El servicio no informa cuántas más podría haber.
+              </p>
+            )}
+
+            {!hasMore && !isAtMaxLimit && (
+              <p className={styles.moreNote}>
+                El servicio no informa un total. Devolvió {data.items.length} de las{' '}
+                {loadedLimit} pedidas: no quedan más candidatas para tu perfil por
+                ahora.
+              </p>
+            )}
           </div>
         </>
       )}
