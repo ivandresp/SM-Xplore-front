@@ -65,6 +65,8 @@ interface StubOptions {
   rejectLimit?: number
   rejectStatus?: number
   preferences?: unknown[]
+  /** Respuesta a medida por llamada de /recommendations (1-based); permite diferirla. */
+  recommendationsCall?: (callIndex: number, limit: number) => Response | Promise<Response>
 }
 
 function stubApi({
@@ -72,8 +74,10 @@ function stubApi({
   rejectLimit,
   rejectStatus = 400,
   preferences = [],
+  recommendationsCall,
 }: StubOptions = {}) {
   const limits: number[] = []
+  let recommendationCalls = 0
 
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input)
@@ -94,6 +98,11 @@ function stubApi({
     if (url.includes('/recommendations')) {
       const limit = Number(new URL(url, 'http://localhost').searchParams.get('limit'))
       limits.push(limit)
+      recommendationCalls += 1
+
+      if (recommendationsCall !== undefined) {
+        return await recommendationsCall(recommendationCalls, limit)
+      }
 
       if (limit === rejectLimit) {
         return jsonResponse(
@@ -306,6 +315,94 @@ describe('RecommendationsPage', () => {
     expect(document.activeElement).toBe(
       screen.getByRole('button', { name: /ver más sugerencias/i }),
     )
+  })
+
+  it('conserva el corte abierto cuando recarga por una preferencia', async () => {
+    const { limits } = stubApi()
+
+    renderPage()
+
+    expect(await screen.findByText('12 sugerencias')).toBeTruthy()
+    await userEvent.click(
+      screen.getByRole('button', { name: /ver más sugerencias/i }),
+    )
+    await waitFor(() => expect(screen.getByText('24 sugerencias')).toBeTruthy())
+
+    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
+    await userEvent.selectOptions(select, 'c1')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+
+    // La recarga vuelve a pedir 24, no 12, y la lista sigue en 24.
+    await waitFor(() => expect(limits).toEqual([12, 24, 24]))
+    expect(screen.getByText('24 sugerencias')).toBeTruthy()
+  })
+
+  it('conserva las tarjetas y avisa inline cuando falla la recarga', async () => {
+    stubApi({
+      recommendationsCall: (callIndex) =>
+        callIndex === 1
+          ? jsonResponse(recommendation(12))
+          : jsonResponse(
+              {
+                title: 'Internal error',
+                status: 500,
+                detail: 'Internal detail: Cypher query failed at line 12',
+                instance: '/api/v1/recommendations',
+              },
+              500,
+            ),
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('12 sugerencias')).toBeTruthy()
+
+    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
+    await userEvent.selectOptions(select, 'c1')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.getByText('12 sugerencias')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: /^Reintentar$/ })).toBeNull()
+    expect(screen.queryByText(/Cypher/)).toBeNull()
+  })
+
+  it('no deja que una respuesta vieja de «ver más» pise la recarga', async () => {
+    let resolveStale: ((response: Response) => void) | null = null
+    const stale = new Promise<Response>((resolve) => {
+      resolveStale = resolve
+    })
+
+    const { limits } = stubApi({
+      recommendationsCall: (callIndex) => {
+        if (callIndex === 1) return jsonResponse(recommendation(12))
+        // El «ver más» a 24 queda en vuelo hasta que el test lo resuelva.
+        if (callIndex === 2) return stale
+        // La recarga usa el corte que está en pantalla (12), no el 24 que no llegó.
+        return jsonResponse(recommendation(9))
+      },
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('12 sugerencias')).toBeTruthy()
+    await userEvent.click(
+      screen.getByRole('button', { name: /ver más sugerencias/i }),
+    )
+
+    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
+    await userEvent.selectOptions(select, 'c1')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+
+    await waitFor(() => expect(screen.getByText('9 sugerencias')).toBeTruthy())
+    expect(limits).toEqual([12, 24, 12])
+
+    // La respuesta vieja (24 items, ranking anterior) llega tarde y se descarta.
+    resolveStale!(jsonResponse(recommendation(24)))
+    await new Promise((resolve) => setTimeout(resolve, 80))
+
+    expect(screen.getByText('9 sugerencias')).toBeTruthy()
+    expect(screen.queryByText('24 sugerencias')).toBeNull()
   })
 
   it('lleva el foco al encabezado cuando el boton desaparece tras cargar', async () => {

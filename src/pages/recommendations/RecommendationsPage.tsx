@@ -52,13 +52,21 @@ export default function RecommendationsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
+  // Fallo de una recarga o de «ver más» con tarjetas ya en pantalla: no borra la lista.
+  const [inlineError, setInlineError] = useState<string | null>(null)
   // Corte con el que llegó `data`: es el que se puede volver a pedir sin fallar.
   const [loadedLimit, setLoadedLimit] = useState(RECOMMENDATION_INITIAL_LIMIT)
   const [statusMessage, setStatusMessage] = useState('')
   const [reloadToken, setReloadToken] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState('')
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
+  // El corte vigente se lee por ref: una recarga por preferencia lo conserva y, al no
+  // estar en las deps del efecto, no dispara un segundo fetch.
+  const loadedLimitRef = useRef(RECOMMENDATION_INITIAL_LIMIT)
+  const dataRef = useRef<RecommendationResponse | null>(null)
+  // Solo la última petición escribe en pantalla: una respuesta vieja de «ver más» no
+  // puede pisar la recarga que la sustituyó.
+  const requestSeqRef = useRef(0)
 
   const {
     preferences,
@@ -71,25 +79,35 @@ export default function RecommendationsPage() {
 
   useEffect(() => {
     let cancelled = false
+    const seq = (requestSeqRef.current += 1)
+    const limit = loadedLimitRef.current
 
     async function run() {
       try {
-        const result = await recommendationsApi.list({
-          limit: RECOMMENDATION_INITIAL_LIMIT,
-        })
+        const result = await recommendationsApi.list({ limit })
 
-        if (!cancelled) {
-          setData(result)
-          setLoadedLimit(RECOMMENDATION_INITIAL_LIMIT)
-          setLoadMoreError(null)
-          setError(null)
+        if (cancelled || seq !== requestSeqRef.current) {
+          return
         }
+
+        dataRef.current = result
+        setData(result)
+        setInlineError(null)
+        setError(null)
       } catch (cause) {
-        if (!cancelled) {
-          // Sin esta traza el mensaje «revisa la consola» apunta a una consola vacía.
-          logApiError(cause, 'recomendaciones')
-          setData(null)
-          setError(describeApiError(cause))
+        if (cancelled || seq !== requestSeqRef.current) {
+          return
+        }
+
+        // Sin esta traza el mensaje «revisa la consola» apunta a una consola vacía.
+        logApiError(cause, 'recomendaciones')
+        const message = describeApiError(cause)
+
+        if (dataRef.current === null) {
+          setError(message)
+        } else {
+          // Había tarjetas en pantalla: se quedan y el aviso es inline.
+          setInlineError(message)
         }
       } finally {
         if (!cancelled) {
@@ -106,11 +124,13 @@ export default function RecommendationsPage() {
   }, [reloadToken])
 
   function retry() {
-    // Siempre desde el corte inicial: reintentar el mismo limit que el backend rechaza
-    // dejaba el botón en un bucle que solo se rompía recargando.
+    // El reintento vuelve al corte inicial: repetir el mismo limit que el backend
+    // rechaza dejaba el botón en un bucle que solo se rompía recargando.
+    loadedLimitRef.current = RECOMMENDATION_INITIAL_LIMIT
+    setLoadedLimit(RECOMMENDATION_INITIAL_LIMIT)
     setIsLoading(true)
     setError(null)
-    setLoadMoreError(null)
+    setInlineError(null)
     setReloadToken((current) => current + 1)
   }
 
@@ -127,12 +147,21 @@ export default function RecommendationsPage() {
       return
     }
 
+    const seq = (requestSeqRef.current += 1)
     setIsLoadingMore(true)
-    setLoadMoreError(null)
+    setInlineError(null)
 
     try {
       const result = await recommendationsApi.list({ limit: nextLimit })
+
+      if (seq !== requestSeqRef.current) {
+        // Una recarga más nueva ya manda: esta respuesta es del ranking anterior.
+        return
+      }
+
+      dataRef.current = result
       setData(result)
+      loadedLimitRef.current = nextLimit
       setLoadedLimit(nextLimit)
       setStatusMessage(
         `${result.items.length} ${result.items.length === 1 ? 'sugerencia' : 'sugerencias'} en pantalla.`,
@@ -146,9 +175,13 @@ export default function RecommendationsPage() {
         resultsHeadingRef.current?.focus()
       }
     } catch (cause) {
+      if (seq !== requestSeqRef.current) {
+        return
+      }
+
       // La lista que ya estaba en pantalla se queda; solo se avisa y no se sube el corte.
       logApiError(cause, 'recomendaciones: ver más')
-      setLoadMoreError(describeApiError(cause))
+      setInlineError(describeApiError(cause))
     } finally {
       setIsLoadingMore(false)
     }
@@ -349,9 +382,9 @@ export default function RecommendationsPage() {
               </>
             )}
 
-            {loadMoreError !== null && (
+            {inlineError !== null && (
               <p className={styles.moreError} role="alert">
-                {loadMoreError}
+                {inlineError}
               </p>
             )}
 
