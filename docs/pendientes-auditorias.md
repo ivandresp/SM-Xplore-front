@@ -194,7 +194,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B2-06 | BAJA | CERRADO | Clic en el label abría el desplegable | `6723b41`; solo enfoca |
 | B2-07 | INFO | ACEPTADO | Grupo vacío pinta `role=group` | Las páginas filtran grupos |
 | B2-08 | BAJA | ABIERTO | Abrir una lista larga con el trigger abajo desplaza la página (+287 px a 375) | Observación del auditor final |
-| B2-09 | MEDIA | ABIERTO | Auth, solicitudes, onboarding, reportes y recomendaciones seguían con `<select>` nativo. `FormField` migrado en el PR #18; pantallas en #19-#22. Se cierra al mergear el último. | PRs #18-#22; `Select-String -CaseSensitive '<select' src` |
+| B2-09 | MEDIA | ABIERTO | Auth, solicitudes, onboarding, reportes y recomendaciones seguían con `<select>` nativo. Resuelto en los PRs #18 (FormField), #19 (solicitudes), #20 (recomendaciones), #21 (reportes) y #22 (perfil); se cierra al mergear el último. | PRs #18-#22; con las cinco ramas aplicadas `Select-String -CaseSensitive '<select' src` no devuelve etiquetas reales |
 
 ## B6 — Responsive (PR #15)
 
