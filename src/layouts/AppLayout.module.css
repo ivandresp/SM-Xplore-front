@@ -14,10 +14,15 @@
   .body {
     grid-template-columns: 15rem minmax(0, 1fr);
   }
+
+  .sidebar {
+    display: flex;
+  }
 }
 
 .sidebar {
-  display: flex;
+  /* Por debajo de 900 px la navegación se resuelve en el menú de la barra. */
+  display: none;
   flex-direction: column;
   justify-content: space-between;
   gap: 1.5rem;
@@ -70,8 +75,14 @@
 
 .content {
   min-width: 0;
-  padding: 2rem 1.5rem 3rem;
+  padding: 1.5rem 1rem 2.5rem;
   background-color: var(--color-surface);
+}
+
+@media (min-width: 900px) {
+  .content {
+    padding: 2rem 1.5rem 3rem;
+  }
 }
 
 /* Elementos de la barra superior del panel */
@@ -103,3 +114,17 @@
   background-color: rgba(255, 255, 255, 0.12);
 }
 
+.logout:focus-visible {
+  outline: 2px solid #c9f2ec;
+  outline-offset: 2px;
+}
+
+/* Objetivo táctil de 44 px para las acciones de la barra en móvil. */
+@media (max-width: 899px) {
+  .role,
+  .logout {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+  }
+}

@@ -41,6 +41,13 @@ export function FilterBar({
         <p className={styles.count} role="status">
           {resultSummary}
         </p>
+        {hasFilters && (
+          <p className={styles.summary}>
+            {activeFilters.length === 1
+              ? '1 filtro activo'
+              : `${activeFilters.length} filtros activos`}
+          </p>
+        )}
         <div className={styles.actions}>
           <Button
             className={styles.toggle}
@@ -50,7 +57,11 @@ export function FilterBar({
             aria-controls={panelId}
             onClick={() => setIsOpen((open) => !open)}
           >
-            {isOpen ? 'Ocultar filtros' : 'Mostrar filtros'}
+            {isOpen
+              ? 'Ocultar filtros'
+              : hasFilters
+                ? `Mostrar filtros (${activeFilters.length})`
+                : 'Mostrar filtros'}
           </Button>
           {hasFilters && (
             <Button variant="outline" size="sm" onClick={onClearFilters}>
