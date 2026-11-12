@@ -162,6 +162,44 @@
   font-size: 0.85rem;
 }
 
+/* Ubicación del navegador en el alta de reportes. */
+.locationBox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface-soft);
+}
+
+.locationBox .helper {
+  margin: 0;
+}
+
+.locationCoords {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.95rem;
+}
+
+.locationActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.locationStatus {
+  margin: 0;
+  color: var(--color-muted-strong);
+  font-size: 0.86rem;
+}
+
+.locationStatusError {
+  color: var(--color-danger-text);
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -293,6 +331,17 @@
   border: 1px solid var(--color-danger-border);
   background-color: var(--color-danger-bg);
   color: var(--color-danger-text);
+}
+
+/* Ancla del primer error: recibe foco y scroll al fallar el envío. */
+.errorAnchor {
+  scroll-margin-top: 1rem;
+  border-radius: var(--radius-lg);
+}
+
+.errorAnchor:focus-visible {
+  outline: 3px solid var(--color-danger-text);
+  outline-offset: 3px;
 }
 
 .back {
