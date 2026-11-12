@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
@@ -8,35 +8,28 @@ import { isApiError } from '@/services/httpClient'
 import type {
   RegisterProviderRequest,
   RegisterTouristRequest,
-  UserRole,
 } from '@/types'
+import { classNames } from '@/utils/format'
 import { describeApiError } from '@/utils/errors'
 import { AuthShell } from './AuthShell'
+import {
+  FIELD_ORDER,
+  fieldLabel,
+  firstInvalidField,
+  mapServerFieldErrors,
+  normalizePhone,
+  passwordChecks,
+  validateRegisterForm,
+} from './registerValidation'
+import type {
+  AccountKind,
+  FieldErrors,
+  RegisterFieldKey,
+  RegisterFormValues,
+} from './registerValidation'
 import styles from './auth.module.css'
 
-type AccountKind = Extract<UserRole, 'TOURIST' | 'SERVICE_PROVIDER'>
-
-interface FormState {
-  fullName: string
-  email: string
-  phone: string
-  password: string
-  // Turista
-  dniType: string
-  dniNumber: string
-  nationality: string
-  preferredLanguage: string
-  birthDate: string
-  // Prestadora
-  nit: string
-  businessType: string
-  latitude: string
-  longitude: string
-  websiteUrl: string
-  startOperationDate: string
-}
-
-const INITIAL_FORM: FormState = {
+const INITIAL_FORM: RegisterFormValues = {
   fullName: '',
   email: '',
   phone: '',
@@ -72,114 +65,179 @@ const LANGUAGE_OPTIONS = [
   { value: 'fr', label: 'Francés' },
 ]
 
-function buildTouristPayload(form: FormState): RegisterTouristRequest {
+const PASSWORD_CHECKLIST_ID = 'password-requirements'
+
+function buildTouristPayload(values: RegisterFormValues): RegisterTouristRequest {
   return {
-    fullName: form.fullName.trim(),
-    email: form.email.trim(),
-    phone: form.phone.trim(),
-    password: form.password,
-    dniType: form.dniType,
-    dniNumber: form.dniNumber.trim(),
-    ...(form.nationality !== '' && { nationality: form.nationality.trim() }),
-    ...(form.preferredLanguage !== '' && {
-      preferredLanguage: form.preferredLanguage,
+    fullName: values.fullName.trim(),
+    email: values.email.trim(),
+    phone: normalizePhone(values.phone),
+    password: values.password,
+    dniType: values.dniType,
+    dniNumber: values.dniNumber.trim(),
+    ...(values.nationality !== '' && { nationality: values.nationality.trim() }),
+    ...(values.preferredLanguage !== '' && {
+      preferredLanguage: values.preferredLanguage,
     }),
-    ...(form.birthDate !== '' && { birthDate: form.birthDate }),
+    ...(values.birthDate !== '' && { birthDate: values.birthDate }),
   }
 }
 
-function buildProviderPayload(form: FormState): RegisterProviderRequest {
+function buildProviderPayload(
+  values: RegisterFormValues,
+): RegisterProviderRequest {
   return {
-    fullName: form.fullName.trim(),
-    email: form.email.trim(),
-    phone: form.phone.trim(),
-    password: form.password,
-    nit: form.nit.trim(),
-    ...(form.businessType !== '' && { businessType: form.businessType.trim() }),
-    ...(form.latitude !== '' && { latitude: Number(form.latitude) }),
-    ...(form.longitude !== '' && { longitude: Number(form.longitude) }),
-    ...(form.websiteUrl !== '' && { websiteUrl: form.websiteUrl.trim() }),
-    ...(form.startOperationDate !== '' && {
-      startOperationDate: form.startOperationDate,
+    fullName: values.fullName.trim(),
+    email: values.email.trim(),
+    phone: normalizePhone(values.phone),
+    password: values.password,
+    nit: values.nit.trim(),
+    ...(values.businessType !== '' && {
+      businessType: values.businessType.trim(),
+    }),
+    ...(values.latitude !== '' && { latitude: Number(values.latitude) }),
+    ...(values.longitude !== '' && { longitude: Number(values.longitude) }),
+    ...(values.websiteUrl !== '' && { websiteUrl: values.websiteUrl.trim() }),
+    ...(values.startOperationDate !== '' && {
+      startOperationDate: values.startOperationDate,
     }),
   }
 }
 
-function validate(kind: AccountKind, form: FormState): string | null {
-  if (form.fullName.trim() === '') return 'Escribe tu nombre completo.'
-  if (form.email.trim() === '') return 'Escribe tu correo electrónico.'
-  if (form.phone.trim() === '') return 'Escribe tu teléfono.'
-  if (form.password.length < 12) {
-    return 'La contraseña debe tener entre 12 y 72 caracteres.'
-  }
-
-  if (kind === 'TOURIST' && form.dniNumber.trim() === '') {
-    return 'Escribe el número de documento.'
-  }
-
-  if (kind === 'SERVICE_PROVIDER' && form.nit.trim() === '') {
-    return 'Escribe el NIT de la empresa.'
-  }
-
-  return null
-}
-
-function describeRegisterError(error: unknown): string {
-  if (!isApiError(error)) {
-    return 'No pudimos conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.'
-  }
-
-  if (error.code === 'EMAIL_ALREADY_EXISTS') {
-    return 'Ya existe una cuenta con ese correo electrónico.'
-  }
-
-  if (error.code === 'VALIDATION_ERROR') {
-    const fields = Object.values(error.fieldErrors ?? {})
-    return fields.length > 0
-      ? `Revisa los datos: ${fields.join(' ')}`
-      : 'Revisa los datos enviados.'
-  }
-
-  return describeApiError(error)
+/** Resumen del formulario: nombra los campos, sin inventar el detalle de cada uno. */
+function summaryMessage(errors: FieldErrors): string {
+  const labels = FIELD_ORDER.filter(
+    (field) => errors[field] !== undefined,
+  ).map(fieldLabel)
+  return `Revisa los datos: ${labels.join(', ')}.`
 }
 
 export default function RegisterPage() {
   const { registerTourist, registerProvider } = useAuth()
   const navigate = useNavigate()
+  const formRef = useRef<HTMLFormElement>(null)
 
   const [kind, setKind] = useState<AccountKind>('TOURIST')
-  const [form, setForm] = useState<FormState>(INITIAL_FORM)
-  const [error, setError] = useState<string | null>(null)
+  const [values, setValues] = useState<RegisterFormValues>(INITIAL_FORM)
+  const [touched, setTouched] = useState<
+    Partial<Record<RegisterFieldKey, boolean>>
+  >({})
+  const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [serverErrors, setServerErrors] = useState<FieldErrors>({})
+  const [formError, setFormError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [createdEmail, setCreatedEmail] = useState<string | null>(null)
 
-  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((current) => ({ ...current, [key]: value }))
+  const clientErrors = validateRegisterForm(kind, values)
+  const checks = passwordChecks(values.password)
+
+  function update<K extends RegisterFieldKey>(
+    key: K,
+    value: RegisterFormValues[K],
+  ) {
+    setValues((current) => ({ ...current, [key]: value }))
+    if (serverErrors[key] !== undefined) {
+      setServerErrors((current) => ({ ...current, [key]: undefined }))
+    }
+    if (formError !== null) {
+      setFormError(null)
+    }
+  }
+
+  function markTouched(key: RegisterFieldKey) {
+    setTouched((current) => ({ ...current, [key]: true }))
+  }
+
+  /**
+   * Un campo muestra su error cuando ya se visitó o cuando se intentó enviar;
+   * los errores del servidor se ven siempre porque no dependen del tecleo.
+   */
+  function errorFor(key: RegisterFieldKey): string | undefined {
+    if (serverErrors[key] !== undefined) {
+      return serverErrors[key]
+    }
+    if (submitAttempted || touched[key] === true) {
+      return clientErrors[key]
+    }
+    return undefined
+  }
+
+  /**
+   * El foco se aplica en un efecto, después del commit: el campo ya lleva su
+   * `aria-describedby` con el error cuando recibe el foco.
+   */
+  const [focusRequest, setFocusRequest] = useState<{
+    key: RegisterFieldKey
+    token: number
+  } | null>(null)
+  const focusToken = useRef(0)
+
+  useEffect(() => {
+    if (focusRequest === null) {
+      return
+    }
+    formRef.current
+      ?.querySelector<HTMLElement>(`[name="${focusRequest.key}"]`)
+      ?.focus()
+  }, [focusRequest])
+
+  function requestFocus(key: RegisterFieldKey) {
+    focusToken.current += 1
+    setFocusRequest({ key, token: focusToken.current })
+  }
+
+  function handleRegisterError(cause: unknown) {
+    if (isApiError(cause) && cause.code === 'EMAIL_ALREADY_EXISTS') {
+      const message =
+        'Ya existe una cuenta con ese correo. Inicia sesión o usa otro correo.'
+      setServerErrors({ email: message })
+      setFormError(message)
+      requestFocus('email')
+      return
+    }
+
+    if (isApiError(cause) && cause.code === 'VALIDATION_ERROR') {
+      const { fields } = mapServerFieldErrors(cause.fieldErrors)
+      const mapped = FIELD_ORDER.filter(
+        (field) => fields[field] !== undefined,
+      )
+      if (mapped.length > 0) {
+        setServerErrors(fields)
+        setFormError(summaryMessage(fields))
+        requestFocus(mapped[0])
+        return
+      }
+    }
+
+    setFormError(describeApiError(cause))
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setError(null)
 
-    const validationError = validate(kind, form)
-    if (validationError !== null) {
-      setError(validationError)
+    const blocked = firstInvalidField(kind, values)
+    if (blocked !== null) {
+      setSubmitAttempted(true)
+      setFormError(summaryMessage(clientErrors))
+      requestFocus(blocked)
       return
     }
 
+    setFormError(null)
+    setSubmitAttempted(true)
     setIsSubmitting(true)
 
     try {
       if (kind === 'TOURIST') {
         // El turista nace activo: se inicia sesión y entra al catálogo.
-        const session = await registerTourist(buildTouristPayload(form))
+        const session = await registerTourist(buildTouristPayload(values))
         navigate(session === null ? '/login' : '/explorar', { replace: true })
       } else {
-        await registerProvider(buildProviderPayload(form))
-        setCreatedEmail(form.email.trim())
+        await registerProvider(buildProviderPayload(values))
+        setCreatedEmail(values.email.trim())
       }
     } catch (cause) {
-      setError(describeRegisterError(cause))
+      handleRegisterError(cause)
     } finally {
       setIsSubmitting(false)
     }
@@ -216,10 +274,15 @@ export default function RegisterPage() {
         </p>
       }
     >
-      <form className={styles.form} onSubmit={handleSubmit} noValidate>
-        {error !== null && (
+      <form
+        className={styles.form}
+        onSubmit={handleSubmit}
+        noValidate
+        ref={formRef}
+      >
+        {formError !== null && (
           <p className={styles.error} role="alert">
-            {error}
+            {formError}
           </p>
         )}
 
@@ -230,7 +293,10 @@ export default function RegisterPage() {
           value={kind}
           onChange={(event) => {
             setKind(event.target.value as AccountKind)
-            setError(null)
+            setTouched({})
+            setSubmitAttempted(false)
+            setServerErrors({})
+            setFormError(null)
           }}
         />
 
@@ -239,8 +305,10 @@ export default function RegisterPage() {
           name="fullName"
           autoComplete="name"
           required
-          value={form.fullName}
+          value={values.fullName}
+          error={errorFor('fullName')}
           onChange={(event) => update('fullName', event.target.value)}
+          onBlur={() => markTouched('fullName')}
         />
 
         <div className={styles.grid}>
@@ -249,31 +317,73 @@ export default function RegisterPage() {
             type="email"
             name="email"
             autoComplete="email"
+            spellCheck={false}
             required
-            value={form.email}
+            value={values.email}
+            error={errorFor('email')}
             onChange={(event) => update('email', event.target.value)}
+            onBlur={() => markTouched('email')}
           />
           <Field
             label="Teléfono"
+            type="tel"
+            inputMode="tel"
             name="phone"
             autoComplete="tel"
             required
-            hint="Entre 7 y 20 dígitos; admite +, (), - y espacios."
-            value={form.phone}
+            hint="Móvil colombiano: +57 300 123 4567. También aceptamos fijos e internacionales."
+            value={values.phone}
+            error={errorFor('phone')}
             onChange={(event) => update('phone', event.target.value)}
+            onBlur={() => markTouched('phone')}
           />
         </div>
 
-        <Field
-          label="Contraseña"
-          type="password"
-          name="password"
-          autoComplete="new-password"
-          required
-          hint="Entre 12 y 72 caracteres."
-          value={form.password}
-          onChange={(event) => update('password', event.target.value)}
-        />
+        <div className={styles.fieldGroup}>
+          <Field
+            label="Contraseña"
+            type="password"
+            name="password"
+            autoComplete="new-password"
+            spellCheck={false}
+            required
+            aria-describedby={PASSWORD_CHECKLIST_ID}
+            value={values.password}
+            error={errorFor('password')}
+            onChange={(event) => update('password', event.target.value)}
+            onBlur={() => markTouched('password')}
+          />
+          <ul
+            className={styles.checklist}
+            id={PASSWORD_CHECKLIST_ID}
+            aria-label="Requisitos de la contraseña"
+            aria-live="polite"
+          >
+            {checks.map((check) => (
+              <li
+                key={check.id}
+                className={classNames(
+                  styles.checklistItem,
+                  check.state === 'met' && styles.checklistMet,
+                  check.state === 'pending' && styles.checklistPending,
+                  check.state === 'empty' && styles.checklistNeutral,
+                )}
+              >
+                <span aria-hidden="true">
+                  {check.state === 'met' ? '✓' : check.state === 'empty' ? '·' : '•'}
+                </span>
+                <span>{check.label}</span>
+                <span className={styles.checkStatus}>
+                  {check.state === 'met'
+                    ? 'Cumple'
+                    : check.state === 'empty'
+                      ? 'Pendiente'
+                      : 'Falta'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
 
         {isTourist ? (
           <>
@@ -284,15 +394,19 @@ export default function RegisterPage() {
                 name="dniType"
                 required
                 options={DNI_TYPE_OPTIONS}
-                value={form.dniType}
+                value={values.dniType}
+                error={errorFor('dniType')}
                 onChange={(event) => update('dniType', event.target.value)}
+                onBlur={() => markTouched('dniType')}
               />
               <Field
                 label="Número de documento"
                 name="dniNumber"
                 required
-                value={form.dniNumber}
+                value={values.dniNumber}
+                error={errorFor('dniNumber')}
                 onChange={(event) => update('dniNumber', event.target.value)}
+                onBlur={() => markTouched('dniNumber')}
               />
             </div>
 
@@ -300,8 +414,10 @@ export default function RegisterPage() {
               <Field
                 label="Nacionalidad"
                 name="nationality"
-                value={form.nationality}
+                value={values.nationality}
+                error={errorFor('nationality')}
                 onChange={(event) => update('nationality', event.target.value)}
+                onBlur={() => markTouched('nationality')}
               />
               <SelectField
                 label="Idioma preferido"
@@ -310,10 +426,12 @@ export default function RegisterPage() {
                   { value: '', label: 'Sin especificar' },
                   ...LANGUAGE_OPTIONS,
                 ]}
-                value={form.preferredLanguage}
+                value={values.preferredLanguage}
+                error={errorFor('preferredLanguage')}
                 onChange={(event) =>
                   update('preferredLanguage', event.target.value)
                 }
+                onBlur={() => markTouched('preferredLanguage')}
               />
             </div>
 
@@ -321,8 +439,10 @@ export default function RegisterPage() {
               label="Fecha de nacimiento"
               type="date"
               name="birthDate"
-              value={form.birthDate}
+              value={values.birthDate}
+              error={errorFor('birthDate')}
               onChange={(event) => update('birthDate', event.target.value)}
+              onBlur={() => markTouched('birthDate')}
             />
           </>
         ) : (
@@ -333,47 +453,59 @@ export default function RegisterPage() {
               name="nit"
               required
               hint="Solo números y guiones, entre 6 y 30 caracteres."
-              value={form.nit}
+              value={values.nit}
+              error={errorFor('nit')}
               onChange={(event) => update('nit', event.target.value)}
+              onBlur={() => markTouched('nit')}
             />
             <Field
               label="Tipo de negocio"
               name="businessType"
-              hint="Alojamiento, transporte, alimentación..."
-              value={form.businessType}
+              hint="Alojamiento, transporte, alimentación…"
+              value={values.businessType}
+              error={errorFor('businessType')}
               onChange={(event) => update('businessType', event.target.value)}
+              onBlur={() => markTouched('businessType')}
             />
             <div className={styles.grid}>
               <Field
                 label="Latitud"
                 name="latitude"
                 inputMode="decimal"
-                value={form.latitude}
+                value={values.latitude}
+                error={errorFor('latitude')}
                 onChange={(event) => update('latitude', event.target.value)}
+                onBlur={() => markTouched('latitude')}
               />
               <Field
                 label="Longitud"
                 name="longitude"
                 inputMode="decimal"
-                value={form.longitude}
+                value={values.longitude}
+                error={errorFor('longitude')}
                 onChange={(event) => update('longitude', event.target.value)}
+                onBlur={() => markTouched('longitude')}
               />
             </div>
             <Field
               label="Sitio web"
               type="url"
               name="websiteUrl"
-              value={form.websiteUrl}
+              value={values.websiteUrl}
+              error={errorFor('websiteUrl')}
               onChange={(event) => update('websiteUrl', event.target.value)}
+              onBlur={() => markTouched('websiteUrl')}
             />
             <Field
               label="Fecha de inicio de operación"
               type="date"
               name="startOperationDate"
-              value={form.startOperationDate}
+              value={values.startOperationDate}
+              error={errorFor('startOperationDate')}
               onChange={(event) =>
                 update('startOperationDate', event.target.value)
               }
+              onBlur={() => markTouched('startOperationDate')}
             />
           </>
         )}
@@ -382,6 +514,10 @@ export default function RegisterPage() {
           className={styles.submit}
           type="submit"
           disabled={isSubmitting}
+          // Evita que el botón se lleve el foco al pulsar: si el campo con
+          // error pierde el foco, el mensaje refluye y el mouseup cae fuera
+          // (el primer clic se perdía). El teclado sigue enfocando por Tab.
+          onMouseDown={(event) => event.preventDefault()}
         >
           {isSubmitting ? 'Creando cuenta…' : 'Crear cuenta'}
         </Button>

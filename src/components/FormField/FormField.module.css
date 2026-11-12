@@ -50,3 +50,20 @@
   font-size: 0.8rem;
   color: var(--color-muted);
 }
+
+/* Estado inválido: borde propio además del mensaje, nunca solo color. */
+.control[aria-invalid='true'] {
+  border-color: var(--color-danger-border);
+}
+
+.control[aria-invalid='true']:focus-visible {
+  outline-color: var(--color-danger-border);
+}
+
+.error {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: var(--color-danger-text);
+}
+
