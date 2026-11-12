@@ -1,10 +1,6 @@
-/**
- * Caché de respuestas GET en memoria, por pestaña: TTL corto + dedupe en vuelo.
- * Se vacía entera al cambiar de token y tras cualquier mutación (ver httpClient).
- */
 export const DEFAULT_TTL_MS = 30_000
 
-/** Tope de entradas vivas: por encima se purgan las expiradas y luego la más antigua. */
+/** Tope de entradas vivas: por encima se purgan las expiradas y luego la mas antigua. */
 const MAX_ENTRIES = 200
 
 interface CacheEntry {
@@ -21,31 +17,28 @@ export interface CachedValue<T> {
   value: T | undefined
 }
 
-export function readCache<T>(key: string, now = Date.now()): CachedValue<T> {
+export function readCache<T>(key: string): CachedValue<T> {
   const entry = entries.get(key)
   if (entry === undefined) {
     return { found: false, value: undefined }
   }
-  if (entry.expiresAt <= now) {
+  if (entry.expiresAt <= Date.now()) {
     entries.delete(key)
     return { found: false, value: undefined }
   }
   return { found: true, value: entry.value as T }
 }
 
-export function writeCache(
-  key: string,
-  value: unknown,
-  ttlMs = DEFAULT_TTL_MS,
-  now = Date.now(),
-): void {
-  prune(now)
-  entries.set(key, { expiresAt: now + ttlMs, value })
+export function writeCache(key: string, value: unknown, ttlMs = DEFAULT_TTL_MS): void {
+  prune(Date.now())
+  // Reescribir una clave la rejuvenece: Map conserva el orden de insercion.
+  entries.delete(key)
+  entries.set(key, { expiresAt: Date.now() + ttlMs, value })
 }
 
 /**
- * Escribe solo si la caché no se limpió desde que empezó la petición. Evita que
- * la respuesta en vuelo de una cuenta acabe sirviéndose a la siguiente.
+ * Escribe solo si la cache no se limpio desde que empezo la peticion. Evita que
+ * la respuesta en vuelo de una cuenta acabe sirviendose a la siguiente.
  */
 export function writeCacheIfCurrent(
   key: string,
@@ -64,7 +57,7 @@ export function cacheGeneration(): number {
   return generation
 }
 
-/** Si la clave ya se está pidiendo, devuelve esa misma promesa en vez de repetir la llamada. */
+/** Si la clave ya se esta pidiendo, devuelve esa misma promesa en vez de repetir la llamada. */
 export function dedupe<T>(key: string, load: () => Promise<T>): Promise<T> {
   const running = inflight.get(key)
   if (running !== undefined) {

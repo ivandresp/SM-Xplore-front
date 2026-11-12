@@ -18,7 +18,7 @@ const READ_TIMEOUT_MS = 45_000
 const WRITE_TIMEOUT_MS = 90_000
 
 /** Escrituras que no cambian nada de lo que la UI lee: no invalidan la caché. */
-const CACHE_NEUTRAL_WRITES = /\/interactions\/view\//
+const CACHE_NEUTRAL_WRITES = /\/interactions\/view\/[^/]+\/[^/]+$/
 
 /** Parámetros de query string; los valores vacíos se omiten. */
 export type QueryParams = Record<
@@ -118,7 +118,15 @@ async function request<T>(
   const url = `${BASE_URL}${path}${buildQuery(query)}`
   const method = (rest.method ?? 'GET').toUpperCase()
   const cacheable = method === 'GET' || method === 'HEAD'
-  const cacheKey = `${method} ${url}`
+  const urlPath = url.split('?')[0]
+
+  // Estado de aplicación (por pestaña, 30 s, ligado al token), no una caché HTTP: el
+  // `no-store` del gateway no la gobierna. Si se quiere semántica HTTP estricta, se quita
+  // ese header en los GET públicos (backend), no aquí.
+  // Valida el vencimiento local antes de leer: si el token caducó, esto limpia la caché.
+  const sessionToken = loadToken()
+  // La identidad forma parte de la clave: dos cuentas nunca comparten una entrada.
+  const cacheKey = `${method} ${url} ${sessionToken ?? 'anon'}`
 
   if (cacheable) {
     const cached = readCache<T>(cacheKey)
@@ -200,16 +208,21 @@ async function request<T>(
     }
   }
 
-  const result = cacheable ? await dedupe(cacheKey, execute) : await execute()
+  // Compartir una petición con señal de aborto rompería el contrato del segundo llamador.
+  const share = cacheable && rest.signal === undefined
+  const outcome = share ? await dedupe(cacheKey, execute) : await execute()
 
   if (cacheable) {
-    writeCacheIfCurrent(cacheKey, result, generation)
-  } else if (!CACHE_NEUTRAL_WRITES.test(url)) {
+    // Un 200 vacío cacheado dejaría a todos los consumidores en fallo de zod.
+    if (outcome !== undefined) {
+      writeCacheIfCurrent(cacheKey, outcome, generation)
+    }
+  } else if (!CACHE_NEUTRAL_WRITES.test(urlPath)) {
     // Una mutación puede invalidar cualquier listado o ficha ya cacheada.
     clearCache()
   }
 
-  return result
+  return outcome
 }
 
 export const httpClient = {

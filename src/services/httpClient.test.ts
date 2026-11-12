@@ -29,6 +29,7 @@ describe('httpClient', () => {
 
   afterEach(() => {
     clearToken()
+    vi.useRealTimers()
     vi.unstubAllGlobals()
   })
 
@@ -197,6 +198,77 @@ describe('httpClient', () => {
       email: 'b@smxplore.local',
     })
     expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('cachea aunque el gateway ponga no-store (estado de aplicación, no caché HTTP)', async () => {
+    const fetchMock = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ email: 'a@smxplore.local' }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-store',
+          },
+        }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpClient.get('/users/me')
+    await httpClient.get('/users/me')
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('no cachea un 200 con cuerpo vacío', async () => {
+    const fetchMock = vi.fn(async () => new Response('', { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(httpClient.get('/vacio')).resolves.toBeUndefined()
+    await expect(httpClient.get('/vacio')).resolves.toBeUndefined()
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('no sirve caché con el token vencido', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+    saveToken('jwt', new Date(Date.now() + 1000).toISOString())
+
+    const fetchMock = vi.fn(async () => jsonResponse({ email: 'a@smxplore.local' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpClient.get('/users/me')
+    await httpClient.get('/users/me')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+
+    vi.setSystemTime(new Date(Date.now() + 2000))
+    await httpClient.get('/users/me')
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('la respuesta en vuelo anterior a una mutación no se cachea', async () => {
+    let release: (response: Response) => void = () => undefined
+    const pending = new Promise<Response>((resolve) => {
+      release = resolve
+    })
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(pending)
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ items: ['nuevo'] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const pendingGet = httpClient.get('/activities')
+
+    await httpClient.post('/activities')
+    release(jsonResponse({ items: ['viejo'] }))
+    await expect(pendingGet).resolves.toEqual({ items: ['viejo'] })
+
+    await expect(httpClient.get('/activities')).resolves.toEqual({
+      items: ['nuevo'],
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 
   it('no avisa de sesión caída si la petición iba sin token', async () => {
