@@ -1,6 +1,8 @@
 # Pendientes encontrados en auditorías
 
-Registro único de lo que sale en las auditorías (adversaria e independiente) de la ola 4.
+Registro único de lo que sale en las auditorías (adversaria e independiente) de la ola 4 y de
+las siguientes. Lo que está ABIERTO o CON DUEÑO se planifica en
+[`docs/plans/013-ola5.md`](plans/013-ola5.md); este archivo es el registro, no el plan.
 No se borra: un hallazgo se marca **CERRADO** con su commit/test, o queda **ABIERTO**,
 **ACEPTADO** (con motivo) o **CON DUEÑO** (bloque donde se resuelve).
 
@@ -69,7 +71,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B8-04 | MEDIA | CERRADO | La cola volcaba contactos APROBADOS a cualquier gestora | `60a96cd`; `status=APROBADO` → 400 |
 | B8-05 | MEDIA | CERRADO | La migración dejaba `DEFAULT PENDIENTE` (rollback silencioso) | `60a96cd`; V14 aplicada, sin default |
 | B8-06 | MEDIA | CERRADO | Correos de rechazo afirmaban cosas falsas | `60a96cd`; textos por rol |
-| B8-07 | MEDIA | EN CURSO | Reseñas de guías PENDIENTE/RECHAZADO seguían públicas y admitían nuevas | Misma regla que B8-01; carril B8 |
+| B8-07 | MEDIA | CERRADO | Reseñas de guías PENDIENTE/RECHAZADO seguían públicas y admitían nuevas | Fila duplicada: se cierra en B8-09 (`0d3d87e`, 400/404) |
 
 | ID | Sev | Estado | Hallazgo | Dueño / nota |
 | --- | --- | --- | --- | --- |
@@ -119,7 +121,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B4-03 | MEDIA | CERRADO | Se podía enviar mientras la geolocalización seguía buscando | `ddfd71e`; submit bloqueado |
 | B4-04 | BAJA | CERRADO | Quitar foto 28×28 | `ddfd71e`; 44×44 |
 | B4-05 | BAJA | CERRADO | Error de envío sin foco ni scroll | `ddfd71e`; ancla + focus |
-| B4-06 | ALTA | CON DUEÑO | Prod sin allowlist: ms-02 no arranca y el alta con foto da 400 | Backend #98 (`PHOTO_ALLOWED_HOSTS=res.cloudinary.com`); mergear antes de desplegar |
+| B4-06 | ALTA | CERRADO | Prod sin allowlist: ms-02 no arranca y el alta con foto da 400 | Backend #98 mergeado el 2026-11-12T16:57:54Z (`PHOTO_ALLOWED_HOSTS=res.cloudinary.com`); verificado en la API |
 | B4-07 | BAJA | ACEPTADO | 400 de foto sin `code`; el front muestra el genérico | Mitigado por la allowlist |
 | B4-08 | BAJA | ACEPTADO | Recursos huérfanos en Cloudinary al quitar/abandonar | Limpieza diferida |
 | B4-09 | INFO | ACEPTADO | `handleSubmit` no comprueba `isUploadingPhotos` | Solo defensa visual; Chrome no permite Enter |
@@ -151,7 +153,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B8a-06 | MEDIA | CERRADO | Invariante de página solo en el éxito de review | `d8f4c6d`; por respuesta |
 | B8a-07 | BAJA | ABIERTO | Tipos duplicados (registration vs user, labels) | Seguimiento |
 | B8a-08 | BAJA | ABIERTO | Pestaña/estado/página fuera de la URL | Seguimiento |
-| B8a-09 | MEDIA | ABIERTO | RECHAZADO→APROBADO permite que una lista cacheada revierta un rechazo reciente | Backend; ver B8-R1 |
+| B8a-09 | MEDIA | ABIERTO | RECHAZADO→APROBADO permite que una lista cacheada revierta un rechazo reciente | Mismo hallazgo que B8-10 (canónico); se cierra allí |
 | B8a-10 | INFO | ABIERTO | No probado con DESTINATION_MANAGER real (solo ADMIN) | Deuda de verificación |
 
 ## B8b — Onboarding (PR #13, firmado PASA CON RESERVAS)
@@ -211,7 +213,7 @@ Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones pr
 | B6-07 | BAJA | CERRADO | `<th>` sin `scope` y región de tabla enfocable aunque no desbordara. | `796872e` `src/components/DataTable/DataTable.tsx:113,121`; test en `DataTable.test.tsx` |
 | B6-08 | BAJA | CON DUEÑO | El menú móvil solo se alcanza con la página arriba: el panel no tiene cabecera fija y en un listado largo hay que volver al inicio para navegar. No es regresión del bloque. | `src/components/TopBar/TopBar.module.css` (sin `position: sticky`); medido a 375 en `/app/usuarios` |
 | B6-09 | BAJA | CERRADO | `docs/diseno/ola4`: 203 PNG y 19,38 MB (7,16 antes + 12,18 después), ~98 kB por imagen y dos copias de lo mismo. | `796872e`: 12 JPEG, 0,91 MB, generados por `e2e/ola4-capturas.spec.ts` |
-| B6-10 | MEDIA | ABIERTO | `B2-09`: los `<select>` nativos de auth, solicitudes, onboarding, reportes y recomendaciones no se migraron en este pase aunque el plan lo prometía; `FormField` es compartido y migrarlo arrastra los formularios de tres PR apilados. | `src/components/FormField/FormField.tsx:107,127`; `RegistrationsQueuePage.tsx:281`; `RecommendationsPage.tsx:207`; `MyReportsPage.tsx:138` |
+| B6-10 | MEDIA | ABIERTO | `B2-09`: los `<select>` nativos de auth, solicitudes, onboarding, reportes y recomendaciones no se migraron en este pase aunque el plan lo prometía; `FormField` es compartido y migrarlo arrastra los formularios de tres PR apilados. Mismo hallazgo que B2-09 (canónico); se cierra allí. | `src/components/FormField/FormField.tsx:107,127`; `RegistrationsQueuePage.tsx:281`; `RecommendationsPage.tsx:207`; `MyReportsPage.tsx:138` |
 | B6-11 | BAJA | ACEPTADO | Al cruzar 768→1280 con el menú abierto el foco cae en `<body>`: el disparador queda `display:none` en escritorio y no hay dónde devolverlo. | `src/components/TopBar/TopBar.tsx:291-315` |
 | B6-12 | BAJA | CERRADO | `e2e/ola4-capturas.spec.ts` escribía 12 JPEG en `docs/` en cada `npm run test:e2e` (ensuciaba el árbol) y el comentario decía 16 ficheros. | `ddc00ee`: salta salvo `CAPTURAS=1`; comentario corregido |
 | B6-13 | INFO | ABIERTO | La tabla de `/app/reportes` no se pudo medir: el entorno del auditor renderiza 0 filas. El armazón sí (240/660-1040). | Deuda de verificación con datos sembrados |
