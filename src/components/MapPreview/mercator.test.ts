@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   MAX_LATITUDE,
   TILE_SIZE,
+  clampZoom,
   coordinatePoint,
   mercatorFrame,
   projectPoint,
@@ -50,7 +51,36 @@ describe('projectPoint (Web Mercator, z/x/y)', () => {
   })
 })
 
+describe('clampZoom', () => {
+  it('recorta al rango 0-19 y trunca decimales', () => {
+    expect(clampZoom(14.9)).toBe(14)
+    expect(clampZoom(-3)).toBe(0)
+    expect(clampZoom(31)).toBe(19)
+  })
+
+  it('cae al valor por defecto cuando el zoom no es un número', () => {
+    expect(clampZoom(Number.NaN, 14)).toBe(14)
+    expect(clampZoom(Number.POSITIVE_INFINITY, 14)).toBe(14)
+  })
+})
+
 describe('mercatorFrame', () => {
+  it('nunca devuelve un zoom NaN: sin zoom válido no hay tiles ni enlace roto', () => {
+    const frame = mercatorFrame(0, 0, Number.NaN)
+
+    expect(Number.isFinite(frame.zoom)).toBe(true)
+    expect(frame.zoom).toBe(0)
+    expect(frame.tiles.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('en el borde del mundo repite el tile de x pero lo deja identificable por índice', () => {
+    const frame = mercatorFrame(0, 180, 0)
+
+    expect(frame.tiles.length).toBe(2)
+    expect(frame.tiles[0].x).toBe(frame.tiles[1].x)
+    expect(frame.tiles[0].y).toBe(frame.tiles[1].y)
+  })
+
   it('devuelve 1-4 tiles que cubren la ventana y centran el marcador', () => {
     const frame = mercatorFrame(11.2404, -74.199, 14)
 

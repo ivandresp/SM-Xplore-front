@@ -92,7 +92,7 @@ describe('SiteDetailPage', () => {
     ).toBeTruthy()
     expect(mapImages().length).toBeGreaterThanOrEqual(1)
     expect(
-      screen.getByRole('link', { name: '© OpenStreetMap contributors' }),
+      screen.getByRole('link', { name: /© OpenStreetMap contributors/ }),
     ).toBeTruthy()
   })
 })

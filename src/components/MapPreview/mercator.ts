@@ -23,6 +23,18 @@ export interface MapFrame {
 }
 
 /**
+ * Zoom utilizable: entero dentro de 0-19. Un valor no numérico cae al
+ * `fallback` para no producir tiles ni enlaces con `NaN`.
+ */
+export function clampZoom(zoom: number, fallback = 0): number {
+  if (!Number.isFinite(zoom)) {
+    return fallback
+  }
+
+  return Math.max(0, Math.min(MAX_ZOOM, Math.trunc(zoom)))
+}
+
+/**
  * Coordenada de tile fraccionaria (Web Mercator "slippy map"): la parte entera es
  * el tile z/x/y y la decimal, el píxel dentro de él.
  */
@@ -31,7 +43,7 @@ export function projectPoint(
   longitude: number,
   zoom: number,
 ): { x: number; y: number } {
-  const world = 2 ** Math.max(0, Math.min(MAX_ZOOM, Math.trunc(zoom)))
+  const world = 2 ** clampZoom(zoom)
   const lat = Math.max(-MAX_LATITUDE, Math.min(MAX_LATITUDE, latitude))
   const rad = (lat * Math.PI) / 180
 
@@ -69,7 +81,7 @@ export function mercatorFrame(
   longitude: number,
   zoom: number,
 ): MapFrame {
-  const frameZoom = Math.max(0, Math.min(MAX_ZOOM, Math.trunc(zoom)))
+  const frameZoom = clampZoom(zoom)
   const world = 2 ** frameZoom
   const point = projectPoint(latitude, longitude, frameZoom)
   const windowLeft = point.x * TILE_SIZE - TILE_SIZE / 2

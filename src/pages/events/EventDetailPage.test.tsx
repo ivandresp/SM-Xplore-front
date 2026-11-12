@@ -65,6 +65,18 @@ function page(content: unknown[]) {
   return { content, page: 0, size: 100, total: content.length, totalPages: 1 }
 }
 
+function renderEvent() {
+  return render(
+    <AuthContext.Provider value={AUTH}>
+      <MemoryRouter initialEntries={['/eventos/e-1']}>
+        <Routes>
+          <Route path="/eventos/:eventId" element={<EventDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    </AuthContext.Provider>,
+  )
+}
+
 describe('EventDetailPage', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -82,22 +94,60 @@ describe('EventDetailPage', () => {
       }),
     )
 
-    render(
-      <AuthContext.Provider value={AUTH}>
-        <MemoryRouter initialEntries={['/eventos/e-1']}>
-          <Routes>
-            <Route path="/eventos/:eventId" element={<EventDetailPage />} />
-          </Routes>
-        </MemoryRouter>
-      </AuthContext.Provider>,
-    )
+    renderEvent()
 
     expect(await screen.findByRole('heading', { name: 'Festival del Mar' })).toBeTruthy()
     expect(
       screen.getByRole('img', { name: /Mapa de Playa Blanca en 11\.24040, -74\.19900/ }),
     ).toBeTruthy()
     expect(
-      screen.getByRole('link', { name: '© OpenStreetMap contributors' }),
+      screen.getByRole('link', { name: /© OpenStreetMap contributors/ }),
     ).toBeTruthy()
   })
+  it('distingue un lugar que ya no existe de una petición que falló', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/events/')) return jsonResponse(EVENT)
+        if (url.includes('/sites/')) {
+          return jsonResponse({ detail: 'Not found', code: 'SITE_NOT_FOUND' }, 404)
+        }
+        return jsonResponse(page([]))
+      }),
+    )
+
+    renderEvent()
+
+    expect(
+      await screen.findByText('Este evento no tiene un lugar publicado asociado.'),
+    ).toBeTruthy()
+    expect(screen.queryByRole('img', { name: /Mapa de/ })).toBeNull()
+  })
+
+  it('si la consulta del lugar falla, lo dice en vez de inventar que no tiene lugar', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/events/')) return jsonResponse(EVENT)
+        if (url.includes('/sites/')) {
+          return jsonResponse({ detail: 'boom', code: 'INTERNAL_ERROR' }, 500)
+        }
+        return jsonResponse(page([]))
+      }),
+    )
+
+    renderEvent()
+
+    expect(
+      await screen.findByText(
+        'No pudimos cargar la ubicación del evento. Vuelve a intentarlo en un momento.',
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.queryByText('Este evento no tiene un lugar publicado asociado.'),
+    ).toBeNull()
+  })
 })
+

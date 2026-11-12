@@ -137,11 +137,11 @@ describe('ActivityDetailPage', () => {
       }),
     ).toBeTruthy()
     expect(
-      screen.getByRole('link', { name: '© OpenStreetMap contributors' }),
+      screen.getByRole('link', { name: /© OpenStreetMap contributors/ }),
     ).toBeTruthy()
   })
 
-  it('sin atractivo publicado avisa que no hay coordenadas en vez de romper el mapa', async () => {
+  it('distingue un atractivo que ya no existe de una petición que falló', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -157,10 +157,36 @@ describe('ActivityDetailPage', () => {
     renderDetail()
 
     expect(
-      await screen.findByText('Esta ficha todavía no tiene coordenadas publicadas.'),
+      await screen.findByText(
+        'Esta actividad no tiene un atractivo publicado asociado.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByRole('img', { name: /Mapa de/ })).toBeNull()
+    expect(screen.queryByText(/No pudimos cargar la ubicación/)).toBeNull()
+  })
+
+  it('si la consulta del atractivo falla, lo dice en vez de inventar que no tiene ubicación', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/activities/')) return jsonResponse(ACTIVITY)
+        if (url.includes('/sites/')) {
+          return jsonResponse({ detail: 'boom', code: 'INTERNAL_ERROR' }, 500)
+        }
+        return jsonResponse(page([]))
+      }),
+    )
+
+    renderDetail()
+
+    expect(
+      await screen.findByText(
+        'No pudimos cargar la ubicación del atractivo. Vuelve a intentarlo en un momento.',
+      ),
     ).toBeTruthy()
     expect(
-      screen.queryByRole('img', { name: /Mapa de/ }),
+      screen.queryByText('Esta actividad no tiene un atractivo publicado asociado.'),
     ).toBeNull()
   })
 

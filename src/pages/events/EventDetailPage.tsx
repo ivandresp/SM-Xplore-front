@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useItinerary } from '@/hooks/useItinerary'
 import { useTrackView } from '@/hooks/useTrackView'
 import { eventsApi } from '@/services/eventsApi'
+import { isApiError } from '@/services/httpClient'
 import { reservationsApi } from '@/services/reservationsApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -49,6 +50,10 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<EventResponse | null>(null)
   const [site, setSite] = useState<Site | null>(null)
   const [zone, setZone] = useState<Zone | null>(null)
+  /** Por qué no hay ubicación: el sitio ya no existe (404) o falló la consulta. */
+  const [siteProblem, setSiteProblem] = useState<
+    'missing' | 'unavailable' | null
+  >(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
@@ -87,6 +92,7 @@ export default function EventDetailPage() {
 
         if (siteResult.status === 'fulfilled') {
           setSite(siteResult.value)
+          setSiteProblem(null)
 
           if (zonesResult.status === 'fulfilled') {
             setZone(
@@ -95,6 +101,13 @@ export default function EventDetailPage() {
               ) ?? null,
             )
           }
+        } else {
+          setSite(null)
+          setSiteProblem(
+            isApiError(siteResult.reason) && siteResult.reason.status === 404
+              ? 'missing'
+              : 'unavailable',
+          )
         }
       } catch (cause) {
         if (!cancelled) setError(describeApiError(cause))
@@ -257,7 +270,9 @@ export default function EventDetailPage() {
             <h2 className={styles.cardTitle}>Ubicación</h2>
             {site === null ? (
               <p className={styles.meta}>
-                Este evento no tiene un lugar publicado asociado.
+                {siteProblem === 'unavailable'
+                  ? 'No pudimos cargar la ubicación del evento. Vuelve a intentarlo en un momento.'
+                  : 'Este evento no tiene un lugar publicado asociado.'}
               </p>
             ) : (
               <MapPreview
