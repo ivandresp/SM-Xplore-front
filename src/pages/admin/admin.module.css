@@ -17,8 +17,15 @@
   gap: 0.5rem;
 }
 
-.sort {
+.sortGroup {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
   margin-left: auto;
+}
+
+.sort {
   padding: 0.6rem 1.1rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;

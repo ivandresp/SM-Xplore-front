@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { eventsApi } from '@/services/eventsApi'
@@ -221,32 +222,28 @@ export default function EventFormPage() {
               />
             </label>
 
-            <label className={styles.full}>
-              <span className={styles.fieldLabel}>Lugar / atractivo</span>
-              <select
-                className={styles.control}
+            <div className={styles.full}>
+              <SelectField
+                label="Lugar / atractivo"
                 required
+                placeholder="Selecciona un atractivo…"
                 value={siteId}
                 onChange={(changeEvent) => setSiteId(changeEvent.target.value)}
-              >
-                <option value="">Selecciona un atractivo…</option>
-                {groupedSites.map((group) => (
-                  <optgroup key={group.label} label={group.label}>
-                    {group.sites.map((site) => (
-                      <option key={site.id} value={site.id}>
-                        {site.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+                groups={groupedSites.map((group) => ({
+                  label: group.label,
+                  options: group.sites.map((site) => ({
+                    value: site.id,
+                    label: site.name,
+                  })),
+                }))}
+              />
               {sites.length === 0 && (
                 <p className={styles.helper}>
                   Todavía no hay atractivos registrados: una gestora debe
                   crearlos en Zonas.
                 </p>
               )}
-            </label>
+            </div>
             <Field
               label="Precio de entrada (COP)"
               type="number"

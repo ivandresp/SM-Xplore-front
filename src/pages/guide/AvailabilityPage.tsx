@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
@@ -272,20 +273,17 @@ export default function AvailabilityPage() {
             <h2 className={styles.cardTitle}>Fechas y cupos</h2>
 
             <div className={`${styles.grid} ${styles.twoColumns}`}>
-              <label className={styles.full}>
-                <span className={styles.fieldLabel}>Actividad</span>
-                <select
-                  className={styles.control}
+              <div className={styles.full}>
+                <SelectField
+                  label="Actividad"
                   value={selectedId}
                   onChange={(event) => selectActivity(event.target.value)}
-                >
-                  {activities.map((activity) => (
-                    <option key={activity.id} value={activity.id}>
-                      {activity.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                  options={activities.map((activity) => ({
+                    value: activity.id,
+                    label: activity.name,
+                  }))}
+                />
+              </div>
 
               <Field
                 label="Fecha"

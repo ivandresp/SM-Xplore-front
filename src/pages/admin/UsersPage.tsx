@@ -8,6 +8,7 @@ import type { Column } from '@/components/DataTable/DataTable'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
+import { SelectField } from '@/components/SelectField'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
@@ -230,52 +231,45 @@ export default function UsersPage() {
           ))}
         </div>
 
-        <select
-          className={styles.sort}
-          value={status}
-          onChange={(event) => {
-            setStatus(event.target.value as '' | UserStatus)
-            setPage(1)
-          }}
-          aria-label="Filtrar por estado de la cuenta"
-        >
-          {STATUS_FILTERS.map((option) => (
-            <option key={option.label} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <div className={styles.sortGroup}>
+          <SelectField
+            className={styles.sort}
+            aria-label="Filtrar por estado de la cuenta"
+            options={STATUS_FILTERS}
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value as '' | UserStatus)
+              setPage(1)
+            }}
+          />
 
-        <select
-          className={styles.sort}
-          value={providerStatus}
-          onChange={(event) => {
-            setProviderStatus(
-              event.target.value as '' | ProviderRegistrationStatus,
-            )
-            setPage(1)
-          }}
-          aria-label="Filtrar por estado de la prestadora"
-        >
-          {PROVIDER_FILTERS.map((option) => (
-            <option key={option.label} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+          <SelectField
+            className={styles.sort}
+            aria-label="Filtrar por estado de la prestadora"
+            options={PROVIDER_FILTERS}
+            value={providerStatus}
+            onChange={(event) => {
+              setProviderStatus(
+                event.target.value as '' | ProviderRegistrationStatus,
+              )
+              setPage(1)
+            }}
+          />
 
-        <select
-          className={styles.sort}
-          value={sort}
-          onChange={(event) => {
-            setSort(event.target.value as 'recent' | 'oldest')
-            setPage(1)
-          }}
-          aria-label="Ordenar"
-        >
-          <option value="recent">Ordenar: más recientes</option>
-          <option value="oldest">Ordenar: más antiguos</option>
-        </select>
+          <SelectField
+            className={styles.sort}
+            aria-label="Ordenar"
+            options={[
+              { value: 'recent', label: 'Ordenar: más recientes' },
+              { value: 'oldest', label: 'Ordenar: más antiguos' },
+            ]}
+            value={sort}
+            onChange={(event) => {
+              setSort(event.target.value as 'recent' | 'oldest')
+              setPage(1)
+            }}
+          />
+        </div>
       </div>
 
       {error !== null ? (

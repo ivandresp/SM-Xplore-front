@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { SelectField } from '@/components/SelectField'
 import { useAuth } from '@/hooks/useAuth'
 import { activitiesApi } from '@/services/activitiesApi'
 import { sitesApi } from '@/services/sitesApi'
@@ -190,30 +191,26 @@ export default function ActivityFormPage() {
               />
             </label>
 
-            <label className={styles.full}>
-              <span className={styles.fieldLabel}>Atractivo asociado</span>
-              <select
-                className={styles.control}
+            <div className={styles.full}>
+              <SelectField
+                label="Atractivo asociado"
                 required
+                placeholder={
+                  isLoadingSites
+                    ? 'Cargando atractivos…'
+                    : 'Selecciona un atractivo…'
+                }
                 value={siteId}
                 disabled={isLoadingSites}
                 onChange={(event) => setSiteId(event.target.value)}
-              >
-                <option value="">
-                  {isLoadingSites
-                    ? 'Cargando atractivos…'
-                    : 'Selecciona un atractivo…'}
-                </option>
-                {groupedSites.map((group) => (
-                  <optgroup key={group.label} label={group.label}>
-                    {group.sites.map((site) => (
-                      <option key={site.id} value={site.id}>
-                        {site.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
+                groups={groupedSites.map((group) => ({
+                  label: group.label,
+                  options: group.sites.map((site) => ({
+                    value: site.id,
+                    label: site.name,
+                  })),
+                }))}
+              />
               {sitesError !== null && (
                 <p className={styles.muted}>{sitesError}</p>
               )}
@@ -223,7 +220,7 @@ export default function ActivityFormPage() {
                   crearlos en Zonas.
                 </p>
               )}
-            </label>
+            </div>
             <Field
               label="Precio por persona (COP)"
               type="number"

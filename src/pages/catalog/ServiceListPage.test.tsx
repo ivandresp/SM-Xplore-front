@@ -90,6 +90,36 @@ describe('ServiceListPage', () => {
     expect(servicesCall).toContain('status=PUBLISHED')
   })
 
+  it('filtra por tipo con un combobox accesible y sin selects nativos', async () => {
+    const fetchStub = servicesFetch()
+    vi.stubGlobal('fetch', fetchStub)
+
+    const user = userEvent.setup()
+    const { container } = renderServices()
+
+    await screen.findByText('Alquiler de kayak')
+    expect(container.querySelectorAll('select')).toHaveLength(0)
+
+    const combobox = screen.getByRole('combobox', { name: 'Tipo de servicio' })
+    combobox.focus()
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}')
+
+    expect(combobox.getAttribute('aria-expanded')).toBe('false')
+    expect(combobox.textContent).toContain('Alojamiento')
+    expect(
+      screen.getByRole('button', { name: /Quitar filtro Tipo/ }),
+    ).toBeTruthy()
+
+    await waitFor(() => {
+      const urls = fetchStub.mock.calls.map(([input]) => String(input))
+      expect(
+        urls.some(
+          (url) => url.includes('/services?') && url.includes('type=LODGING'),
+        ),
+      ).toBe(true)
+    })
+  })
+
   it('quita el parámetro al limpiar los filtros', async () => {
     const fetchStub = servicesFetch()
     vi.stubGlobal('fetch', fetchStub)

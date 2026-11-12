@@ -97,6 +97,67 @@ describe('UsersPage', () => {
     })
   })
 
+  it('filtra por estado con un combobox accesible y sin selects nativos', async () => {
+    const fetchMock = vi.fn(async (_url: string) =>
+      jsonResponse({
+        content: [GUIDE],
+        page: 0,
+        size: 10,
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    const { container } = renderUsers()
+
+    await screen.findByText('Ana Guía')
+    expect(container.querySelectorAll('select')).toHaveLength(0)
+    expect(screen.getAllByRole('combobox')).toHaveLength(3)
+
+    const combobox = screen.getByRole('combobox', {
+      name: 'Filtrar por estado de la cuenta',
+    })
+    await user.click(combobox)
+    expect(combobox.getAttribute('aria-expanded')).toBe('true')
+
+    await user.click(screen.getByRole('option', { name: 'Bloqueados' }))
+
+    expect(combobox.textContent).toContain('Bloqueados')
+    await waitFor(() => {
+      const urls = fetchMock.mock.calls.map(([url]) => String(url))
+      expect(urls.at(-1)).toContain('status=BLOQUEADO')
+    })
+  })
+
+  it('ordena con el combobox del encabezado', async () => {
+    const fetchMock = vi.fn(async (_url: string) =>
+      jsonResponse({
+        content: [GUIDE],
+        page: 0,
+        size: 10,
+        totalElements: 1,
+        totalPages: 1,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    renderUsers()
+
+    await screen.findByText('Ana Guía')
+
+    const sortBox = screen.getByRole('combobox', { name: 'Ordenar' })
+    sortBox.focus()
+    await user.keyboard('{ArrowDown}{ArrowDown}{Enter}')
+
+    await waitFor(() => {
+      const urls = fetchMock.mock.calls.map(([url]) => String(url))
+      expect(urls.at(-1)).toContain('sortOrder=ASC')
+    })
+  })
+
   it('pide la siguiente página al servidor', async () => {
     const fetchMock = vi.fn(async (_url: string) =>
       jsonResponse({

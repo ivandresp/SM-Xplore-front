@@ -7,6 +7,7 @@ import type { ActiveFilter } from '@/components/FilterBar'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
+import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { MAX_PRICE_OPTIONS } from '@/config/catalog'
@@ -258,23 +259,16 @@ export default function ExplorePage() {
         serif
         title="Actividades turísticas en Santa Marta"
         actions={
-          <>
-            <label className="visually-hidden" htmlFor="explorar-sort">
-              Ordenar resultados
-            </label>
-            <select
-              id="explorar-sort"
-              className={styles.sort}
-              value={sort}
-              onChange={(event) => setSortParam(event.target.value)}
-            >
-              {SORT_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  Ordenar: {option.label}
-                </option>
-              ))}
-            </select>
-          </>
+          <SelectField
+            aria-label="Ordenar resultados"
+            className={styles.sort}
+            options={SORT_OPTIONS.map((option) => ({
+              value: option.value,
+              label: `Ordenar: ${option.label}`,
+            }))}
+            value={sort}
+            onChange={(event) => setSortParam(event.target.value)}
+          />
         }
       />
 
@@ -306,46 +300,35 @@ export default function ExplorePage() {
           />
         </label>
 
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Atractivo</span>
-          <select
-            className={styles.control}
-            value={siteId}
-            disabled={siteOptions.length === 0}
-            onChange={(event) => setSiteId(event.target.value)}
-          >
-            <option value="">Todos los atractivos</option>
-            {zoneOptions.map((zone) => {
-              const zoneSites = sitesByZone.get(zone.id)
-              if (zoneSites === undefined || zoneSites.length === 0) return null
-              return (
-                <optgroup key={zone.id} label={zone.name}>
-                  {zoneSites.map((site) => (
-                    <option key={site.id} value={site.id}>
-                      {site.name}
-                    </option>
-                  ))}
-                </optgroup>
-              )
-            })}
-          </select>
-        </label>
+        <SelectField
+          label="Atractivo"
+          className={styles.control}
+          placeholder="Todos los atractivos"
+          value={siteId}
+          disabled={siteOptions.length === 0}
+          onChange={(event) => setSiteId(event.target.value)}
+          groups={zoneOptions
+            .map((zone) => ({
+              label: zone.name,
+              options: (sitesByZone.get(zone.id) ?? []).map((site) => ({
+                value: site.id,
+                label: site.name,
+              })),
+            }))
+            .filter((group) => group.options.length > 0)}
+        />
 
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Precio</span>
-          <select
-            className={styles.control}
-            value={maxPrice}
-            onChange={(event) => setMaxPrice(event.target.value)}
-          >
-            <option value="">Cualquier precio</option>
-            {MAX_PRICE_OPTIONS.map((value) => (
-              <option key={value} value={value}>
-                Hasta {formatCurrency(value)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Precio"
+          className={styles.control}
+          placeholder="Cualquier precio"
+          value={maxPrice}
+          onChange={(event) => setMaxPrice(event.target.value)}
+          options={MAX_PRICE_OPTIONS.map((value) => ({
+            value: String(value),
+            label: `Hasta ${formatCurrency(value)}`,
+          }))}
+        />
 
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Desde</span>

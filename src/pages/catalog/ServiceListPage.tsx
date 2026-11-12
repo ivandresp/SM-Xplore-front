@@ -6,6 +6,7 @@ import type { ActiveFilter } from '@/components/FilterBar'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
+import { SelectField } from '@/components/SelectField'
 import { ServiceCard } from '@/components/ServiceCard/ServiceCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -205,54 +206,42 @@ export default function ServiceListPage() {
           />
         </label>
 
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Tipo de servicio</span>
-          <select
-            className={styles.control}
-            value={type}
-            onChange={(event) => setType(event.target.value)}
-          >
-            <option value="">Todos los tipos</option>
-            {SERVICE_TYPES.map((serviceType) => (
-              <option key={serviceType} value={serviceType}>
-                {serviceTypeLabel(serviceType)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Tipo de servicio"
+          className={styles.control}
+          placeholder="Todos los tipos"
+          value={type}
+          onChange={(event) => setType(event.target.value)}
+          options={SERVICE_TYPES.map((serviceType) => ({
+            value: serviceType,
+            label: serviceTypeLabel(serviceType),
+          }))}
+        />
 
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Zona</span>
-          <select
-            className={styles.control}
-            value={zoneId}
-            disabled={zoneOptions.length === 0}
-            onChange={(event) => setZoneId(event.target.value)}
-          >
-            <option value="">Todas las zonas</option>
-            {zoneOptions.map((zone) => (
-              <option key={zone.id} value={zone.id}>
-                {zone.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Zona"
+          className={styles.control}
+          placeholder="Todas las zonas"
+          value={zoneId}
+          disabled={zoneOptions.length === 0}
+          onChange={(event) => setZoneId(event.target.value)}
+          options={zoneOptions.map((zone) => ({
+            value: zone.id,
+            label: zone.name,
+          }))}
+        />
 
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Precio</span>
-          <select
-            className={styles.control}
-            value={maxPrice}
-            onChange={(event) => setMaxPrice(event.target.value)}
-          >
-            <option value="">Cualquier precio</option>
-            {MAX_PRICE_OPTIONS.map((value) => (
-              <option key={value} value={value}>
-                Hasta {formatCurrency(value)}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Precio"
+          className={styles.control}
+          placeholder="Cualquier precio"
+          value={maxPrice}
+          onChange={(event) => setMaxPrice(event.target.value)}
+          options={MAX_PRICE_OPTIONS.map((value) => ({
+            value: String(value),
+            label: `Hasta ${formatCurrency(value)}`,
+          }))}
+        />
       </FilterBar>
 
       <section className={styles.results}>
