@@ -10,6 +10,7 @@ import { SiteCard } from '@/components/SiteCard/SiteCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { useFilterParam, useSearchParamTerm } from '@/hooks/useFilterParam'
+import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { categoriesApi } from '@/services/categoriesApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -42,6 +43,8 @@ export default function SiteListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
+  const showSkeleton = useDelayedLoading(isLoading)
+  const isWaiting = isLoading || showSkeleton
 
   useEffect(() => {
     let cancelled = false
@@ -171,7 +174,7 @@ export default function SiteListPage() {
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isLoading
+  const resultSummary = isWaiting
     ? 'Buscando…'
     : `${total} ${total === 1 ? 'atractivo' : 'atractivos'}`
 
@@ -231,12 +234,12 @@ export default function SiteListPage() {
         </label>
       </FilterBar>
 
-      <section className={styles.results}>
-        {isLoading && (
-          <Skeleton variant="card" count={6} label="Cargando atractivos…" />
+      <section className={styles.results} aria-busy={isLoading}>
+        {isWaiting && (
+          <Skeleton visible={showSkeleton} variant="site-card" count={PAGE_SIZE} label="Cargando atractivos…" />
         )}
 
-        {!isLoading && error !== null && (
+        {!isWaiting && error !== null && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los atractivos"
@@ -249,7 +252,7 @@ export default function SiteListPage() {
           />
         )}
 
-        {!isLoading && error === null && result !== null && total === 0 && (
+        {!isWaiting && error === null && result !== null && total === 0 && (
           <StateMessage
             title={
               hasActiveFilters
@@ -271,7 +274,7 @@ export default function SiteListPage() {
           />
         )}
 
-        {!isLoading && result !== null && result.content.length > 0 && (
+        {!isWaiting && result !== null && result.content.length > 0 && (
           <div className={styles.cards}>
             {result.content.map((site) => (
               <SiteCard

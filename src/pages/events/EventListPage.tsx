@@ -15,6 +15,7 @@ import {
   useSearchParamTerm,
   useSearchParamText,
 } from '@/hooks/useFilterParam'
+import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { eventsApi } from '@/services/eventsApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -103,6 +104,8 @@ export default function EventListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
+  const showSkeleton = useDelayedLoading(isLoading)
+  const isWaiting = isLoading || showSkeleton
 
   useEffect(() => {
     let cancelled = false
@@ -266,7 +269,7 @@ export default function EventListPage() {
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isLoading
+  const resultSummary = isWaiting
     ? 'Buscando…'
     : `${total} ${total === 1 ? 'evento' : 'eventos'}`
 
@@ -391,12 +394,12 @@ export default function EventListPage() {
         </label>
       </FilterBar>
 
-      <section className={styles.results}>
-        {isLoading && (
-          <Skeleton variant="table" count={5} label="Cargando eventos…" />
+      <section className={styles.results} aria-busy={isLoading}>
+        {isWaiting && (
+          <Skeleton visible={showSkeleton} variant="row" count={PAGE_SIZE} label="Cargando eventos…" />
         )}
 
-        {!isLoading && error !== null && (
+        {!isWaiting && error !== null && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los eventos"
@@ -409,7 +412,7 @@ export default function EventListPage() {
           />
         )}
 
-        {!isLoading && error === null && result !== null && total === 0 && (
+        {!isWaiting && error === null && result !== null && total === 0 && (
           <StateMessage
             title={
               hasActiveFilters
@@ -431,7 +434,7 @@ export default function EventListPage() {
           />
         )}
 
-        {!isLoading && result !== null && result.content.length > 0 && (
+        {!isWaiting && result !== null && result.content.length > 0 && (
           <div className={styles.list}>
             {result.content.map((event) => {
               const { day, month, time } = dateParts(event.startsAt)

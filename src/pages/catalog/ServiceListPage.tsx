@@ -15,6 +15,7 @@ import {
   useFilterParam,
   useSearchParamTerm,
 } from '@/hooks/useFilterParam'
+import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { servicesApi } from '@/services/servicesApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
@@ -47,6 +48,8 @@ export default function ServiceListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
+  const showSkeleton = useDelayedLoading(isLoading)
+  const isWaiting = isLoading || showSkeleton
 
   useEffect(() => {
     let cancelled = false
@@ -180,7 +183,7 @@ export default function ServiceListPage() {
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isLoading
+  const resultSummary = isWaiting
     ? 'Buscando…'
     : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
 
@@ -255,12 +258,12 @@ export default function ServiceListPage() {
         </label>
       </FilterBar>
 
-      <section className={styles.results}>
-        {isLoading && (
-          <Skeleton variant="card" count={6} label="Cargando servicios…" />
+      <section className={styles.results} aria-busy={isLoading}>
+        {isWaiting && (
+          <Skeleton visible={showSkeleton} variant="service-card" count={PAGE_SIZE} label="Cargando servicios…" />
         )}
 
-        {!isLoading && error !== null && (
+        {!isWaiting && error !== null && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los servicios"
@@ -273,7 +276,7 @@ export default function ServiceListPage() {
           />
         )}
 
-        {!isLoading && error === null && result !== null && total === 0 && (
+        {!isWaiting && error === null && result !== null && total === 0 && (
           <StateMessage
             title={
               hasActiveFilters
@@ -295,7 +298,7 @@ export default function ServiceListPage() {
           />
         )}
 
-        {!isLoading && result !== null && result.content.length > 0 && (
+        {!isWaiting && result !== null && result.content.length > 0 && (
           <div className={styles.cards}>
             {result.content.map((service) => (
               <ServiceCard key={service.id} service={service} />

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -129,6 +129,48 @@ describe('ExplorePage', () => {
 
     const urls = fetchStub.mock.calls.map(([input]) => String(input))
     expect(urls.some((url) => url.includes('category=Aventura'))).toBe(true)
+  })
+
+  it('no pinta el esqueleto si la respuesta llega antes de 200 ms', async () => {
+    vi.useFakeTimers()
+    try {
+      let resolveActivities: ((response: Response) => void) | null = null
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((input: RequestInfo | URL) => {
+          const url = String(input)
+          if (url.includes('/activities?')) {
+            return new Promise<Response>((resolve) => {
+              resolveActivities = resolve
+            })
+          }
+          return Promise.resolve(jsonResponse(page([])))
+        }),
+      )
+
+      renderExplore()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(150)
+      })
+      expect(
+        screen.queryByRole('status', { name: 'Cargando actividades…' }),
+      ).toBeNull()
+
+      await act(async () => {
+        resolveActivities?.(jsonResponse(page([ACTIVITY])))
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(400)
+      })
+
+      expect(
+        screen.queryByRole('status', { name: 'Cargando actividades…' }),
+      ).toBeNull()
+      expect(screen.getByText('Snorkel en Taganga')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('muestra el error y reintenta la carga', async () => {
