@@ -21,10 +21,17 @@ const CATEGORY_PAGE = {
       parentId: null,
       updatedAt: '2026-11-07T12:00:00Z',
     },
+    {
+      categoryId: 'c2',
+      name: 'Museos',
+      scope: 'GENERAL',
+      parentId: null,
+      updatedAt: '2026-11-07T12:00:00Z',
+    },
   ],
   page: 0,
   size: 100,
-  total: 1,
+  total: 2,
   totalPages: 1,
 }
 
@@ -51,14 +58,71 @@ function recommendation(count: number) {
   }
 }
 
-function stubApi(handler: (url: string) => Response) {
-  const fetchMock = vi.fn(async (input: RequestInfo | URL) => handler(String(input)))
-  vi.stubGlobal('fetch', fetchMock)
-  return fetchMock
+interface StubOptions {
+  /** Cuántos items devuelve el backend para cada limit pedido. */
+  itemsForLimit?: (limit: number) => number
+  /** Limit que el backend rechaza (corte por encima del max-limit desplegado). */
+  rejectLimit?: number
+  rejectStatus?: number
+  preferences?: unknown[]
 }
 
-function limitOf(url: string): number {
-  return Number(new URL(url, 'http://localhost').searchParams.get('limit'))
+function stubApi({
+  itemsForLimit = (limit) => limit,
+  rejectLimit,
+  rejectStatus = 400,
+  preferences = [],
+}: StubOptions = {}) {
+  const limits: number[] = []
+
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input)
+
+    if (url === '/api/v1/preferences' && init?.method === 'POST') {
+      return jsonResponse(
+        {
+          touristId: 't1',
+          categoryId: 'c1',
+          weight: 1,
+          source: 'EXPLICIT',
+          updatedAt: '2026-11-12T05:10:00Z',
+        },
+        201,
+      )
+    }
+
+    if (url.includes('/recommendations')) {
+      const limit = Number(new URL(url, 'http://localhost').searchParams.get('limit'))
+      limits.push(limit)
+
+      if (limit === rejectLimit) {
+        return jsonResponse(
+          {
+            title: 'Error',
+            status: rejectStatus,
+            detail: 'limit must be between 1 and 20',
+            instance: '/api/v1/recommendations',
+          },
+          rejectStatus,
+        )
+      }
+
+      return jsonResponse(recommendation(itemsForLimit(limit)))
+    }
+
+    if (url.includes('/preferences') && url !== '/api/v1/preferences') {
+      return new Response(null, { status: 204 })
+    }
+
+    if (url === '/api/v1/preferences') {
+      return jsonResponse(preferences)
+    }
+
+    return jsonResponse(CATEGORY_PAGE)
+  })
+
+  vi.stubGlobal('fetch', fetchMock)
+  return { fetchMock, limits }
 }
 
 function renderPage() {
@@ -79,15 +143,19 @@ describe('RecommendationsPage', () => {
   it('muestra un mensaje accionable y deja el cause en consola cuando el contrato cambia', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    stubApi((url) => {
-      if (url.includes('/recommendations')) {
-        return jsonResponse({ ...recommendation(2), source: 'PERSONALIZED' })
-      }
-      if (url.includes('/preferences')) {
-        return jsonResponse([])
-      }
-      return jsonResponse(CATEGORY_PAGE)
-    })
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/recommendations')) {
+          return jsonResponse({ ...recommendation(2), source: 'PERSONALIZED' })
+        }
+        if (url === '/api/v1/preferences') {
+          return jsonResponse([])
+        }
+        return jsonResponse(CATEGORY_PAGE)
+      }),
+    )
 
     renderPage()
 
@@ -101,19 +169,7 @@ describe('RecommendationsPage', () => {
   })
 
   it('sube el limit de 12 en 12 y muestra la fuente y cuantas sugerencias hay', async () => {
-    const limits: number[] = []
-
-    stubApi((url) => {
-      if (url.includes('/recommendations')) {
-        const limit = limitOf(url)
-        limits.push(limit)
-        return jsonResponse(recommendation(limit))
-      }
-      if (url.includes('/preferences')) {
-        return jsonResponse([])
-      }
-      return jsonResponse(CATEGORY_PAGE)
-    })
+    const { limits } = stubApi()
 
     renderPage()
 
@@ -126,37 +182,23 @@ describe('RecommendationsPage', () => {
 
     await waitFor(() => expect(screen.getByText('24 sugerencias')).toBeTruthy())
     expect(limits).toEqual([12, 24])
-    expect(screen.getByText(/no hay páginas/i)).toBeTruthy()
+    expect(screen.getByText(/ni informa un total/i)).toBeTruthy()
   })
 
   it('se detiene en el maximo de 50 que acepta el servicio y lo dice', async () => {
-    const limits: number[] = []
-
-    stubApi((url) => {
-      if (url.includes('/recommendations')) {
-        const limit = limitOf(url)
-        limits.push(limit)
-        return jsonResponse(recommendation(limit))
-      }
-      if (url.includes('/preferences')) {
-        return jsonResponse([])
-      }
-      return jsonResponse(CATEGORY_PAGE)
-    })
+    const { limits } = stubApi()
 
     renderPage()
 
     expect(await screen.findByText('12 sugerencias')).toBeTruthy()
 
-    for (let click = 0; click < 6; click += 1) {
-      const button = screen.queryByRole('button', { name: /ver más sugerencias/i })
-      if (button === null) {
-        break
-      }
-
-      const before = limits.length
-      await userEvent.click(button)
-      await waitFor(() => expect(limits.length).toBeGreaterThan(before))
+    for (const expected of [24, 36, 48, 50]) {
+      await userEvent.click(
+        screen.getByRole('button', { name: /ver más sugerencias/i }),
+      )
+      await waitFor(() =>
+        expect(screen.getByText(`${expected} sugerencias`)).toBeTruthy(),
+      )
     }
 
     expect(limits).toEqual([12, 24, 36, 48, 50])
@@ -167,15 +209,7 @@ describe('RecommendationsPage', () => {
   })
 
   it('deja de ofrecer mas cuando el servicio devuelve menos de lo pedido', async () => {
-    stubApi((url) => {
-      if (url.includes('/recommendations')) {
-        return jsonResponse(recommendation(limitOf(url) === 12 ? 12 : 13))
-      }
-      if (url.includes('/preferences')) {
-        return jsonResponse([])
-      }
-      return jsonResponse(CATEGORY_PAGE)
-    })
+    stubApi({ itemsForLimit: (limit) => (limit === 12 ? 12 : 13) })
 
     renderPage()
 
@@ -189,6 +223,108 @@ describe('RecommendationsPage', () => {
     expect(
       screen.queryByRole('button', { name: /ver más sugerencias/i }),
     ).toBeNull()
-    expect(screen.getByText(/No hay más sugerencias/)).toBeTruthy()
+    expect(screen.getByText(/no quedan más candidatas/i)).toBeTruthy()
+  })
+
+  it('conserva las tarjetas y no escala el limit cuando falla «ver más»', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { limits } = stubApi({ rejectLimit: 24 })
+
+    renderPage()
+
+    expect(await screen.findByText('12 sugerencias')).toBeTruthy()
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /ver más sugerencias/i }),
+    )
+
+    // Siguen las 12 tarjetas y el error se queda inline.
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.getByText('12 sugerencias')).toBeTruthy()
+    expect(
+      screen.queryByRole('button', { name: /^Reintentar$/ }),
+    ).toBeNull()
+    expect(consoleSpy).toHaveBeenCalled()
+
+    // Otro intento repite el mismo corte: nunca salta a 48 con la lista vacia.
+    await userEvent.click(
+      screen.getByRole('button', { name: /ver más sugerencias/i }),
+    )
+    await waitFor(() => expect(limits).toEqual([12, 24, 24]))
+  })
+
+  it('vuelve al corte inicial al reintentar tras un fallo de carga', async () => {
+    const { limits } = stubApi({ rejectLimit: 12, rejectStatus: 500 })
+
+    renderPage()
+
+    expect(await screen.findByText(/error interno/i)).toBeTruthy()
+    await userEvent.click(screen.getByRole('button', { name: /^Reintentar$/ }))
+
+    await waitFor(() => expect(limits).toEqual([12, 12]))
+  })
+
+  it('limpia el select al anadir y no permite un POST duplicado', async () => {
+    const { fetchMock } = stubApi()
+
+    renderPage()
+
+    expect(await screen.findByText('12 sugerencias')).toBeTruthy()
+
+    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
+    await userEvent.selectOptions(select, 'c1')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+
+    await waitFor(() => expect(select.value).toBe(''))
+    expect(
+      (screen.getByRole('button', { name: 'Añadir' }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+
+    const posts = fetchMock.mock.calls.filter(
+      ([input, init]) =>
+        String(input) === '/api/v1/preferences' &&
+        (init as RequestInit | undefined)?.method === 'POST',
+    )
+    expect(posts).toHaveLength(1)
+  })
+
+  it('no pierde el foco de teclado cuando el boton sigue disponible', async () => {
+    stubApi()
+
+    renderPage()
+
+    const button = await screen.findByRole('button', {
+      name: /ver más sugerencias/i,
+    })
+    button.focus()
+    expect(document.activeElement).toBe(button)
+
+    await userEvent.keyboard('{Enter}')
+
+    await waitFor(() => expect(screen.getByText('24 sugerencias')).toBeTruthy())
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: /ver más sugerencias/i }),
+    )
+  })
+
+  it('lleva el foco al encabezado cuando el boton desaparece tras cargar', async () => {
+    stubApi({ itemsForLimit: (limit) => (limit === 12 ? 12 : 13) })
+
+    renderPage()
+
+    const button = await screen.findByRole('button', {
+      name: /ver más sugerencias/i,
+    })
+    button.focus()
+    await userEvent.keyboard('{Enter}')
+
+    await waitFor(() => expect(screen.getByText('13 sugerencias')).toBeTruthy())
+    expect(
+      screen.queryByRole('button', { name: /ver más sugerencias/i }),
+    ).toBeNull()
+    expect(document.activeElement).toBe(
+      screen.getByRole('heading', { name: /^Sugerencias$/ }),
+    )
   })
 })

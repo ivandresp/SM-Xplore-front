@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -52,11 +52,13 @@ export default function RecommendationsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [limit, setLimit] = useState(RECOMMENDATION_INITIAL_LIMIT)
-  // El corte con el que llegó `data`: mientras sube `limit` la lista vieja sigue visible.
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null)
+  // Corte con el que llegó `data`: es el que se puede volver a pedir sin fallar.
   const [loadedLimit, setLoadedLimit] = useState(RECOMMENDATION_INITIAL_LIMIT)
+  const [statusMessage, setStatusMessage] = useState('')
   const [reloadToken, setReloadToken] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState('')
+  const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
 
   const {
     preferences,
@@ -72,11 +74,14 @@ export default function RecommendationsPage() {
 
     async function run() {
       try {
-        const result = await recommendationsApi.list({ limit })
+        const result = await recommendationsApi.list({
+          limit: RECOMMENDATION_INITIAL_LIMIT,
+        })
 
         if (!cancelled) {
           setData(result)
-          setLoadedLimit(limit)
+          setLoadedLimit(RECOMMENDATION_INITIAL_LIMIT)
+          setLoadMoreError(null)
           setError(null)
         }
       } catch (cause) {
@@ -89,7 +94,6 @@ export default function RecommendationsPage() {
       } finally {
         if (!cancelled) {
           setIsLoading(false)
-          setIsLoadingMore(false)
         }
       }
     }
@@ -99,29 +103,65 @@ export default function RecommendationsPage() {
     return () => {
       cancelled = true
     }
-  }, [limit, reloadToken])
+  }, [reloadToken])
 
   function retry() {
+    // Siempre desde el corte inicial: reintentar el mismo limit que el backend rechaza
+    // dejaba el botón en un bucle que solo se rompía recargando.
     setIsLoading(true)
     setError(null)
+    setLoadMoreError(null)
     setReloadToken((current) => current + 1)
   }
 
-  function loadMore() {
+  async function loadMore() {
+    if (isLoadingMore) {
+      return
+    }
+
     const nextLimit = Math.min(
-      limit + RECOMMENDATION_LIMIT_STEP,
+      loadedLimit + RECOMMENDATION_LIMIT_STEP,
       RECOMMENDATION_MAX_LIMIT,
     )
-    if (nextLimit === limit) {
+    if (nextLimit === loadedLimit) {
       return
     }
 
     setIsLoadingMore(true)
-    setLimit(nextLimit)
+    setLoadMoreError(null)
+
+    try {
+      const result = await recommendationsApi.list({ limit: nextLimit })
+      setData(result)
+      setLoadedLimit(nextLimit)
+      setStatusMessage(
+        `${result.items.length} ${result.items.length === 1 ? 'sugerencia' : 'sugerencias'} en pantalla.`,
+      )
+
+      const stillHasMore =
+        result.items.length >= nextLimit && nextLimit < RECOMMENDATION_MAX_LIMIT
+      if (!stillHasMore) {
+        // El botón desaparece: sin esto Chrome manda el foco a <body> y el usuario de
+        // teclado no puede seguir.
+        resultsHeadingRef.current?.focus()
+      }
+    } catch (cause) {
+      // La lista que ya estaba en pantalla se queda; solo se avisa y no se sube el corte.
+      logApiError(cause, 'recomendaciones: ver más')
+      setLoadMoreError(describeApiError(cause))
+    } finally {
+      setIsLoadingMore(false)
+    }
   }
 
-  async function addPreference(categoryId: string) {
-    if (await add(categoryId)) {
+  async function addPreference() {
+    if (selectedCategory === '') {
+      return
+    }
+
+    if (await add(selectedCategory)) {
+      // Sin limpiar el select, «Añadir» quedaba habilitado con una opción ya inexistente.
+      setSelectedCategory('')
       setReloadToken((current) => current + 1)
     }
   }
@@ -209,7 +249,7 @@ export default function RecommendationsPage() {
             <Button
               size="sm"
               disabled={selectedCategory === '' || savingCategory !== null}
-              onClick={() => void addPreference(selectedCategory)}
+              onClick={() => void addPreference()}
             >
               Añadir
             </Button>
@@ -251,6 +291,14 @@ export default function RecommendationsPage() {
         <>
           <p className={styles.note}>{SOURCE_NOTE[data.source]}</p>
 
+          <h2
+            ref={resultsHeadingRef}
+            tabIndex={-1}
+            className={styles.resultsTitle}
+          >
+            Sugerencias
+          </h2>
+
           <p className={styles.summary}>
             <span className={styles.summarySource}>
               Fuente: {SOURCE_LABEL[data.source]}
@@ -262,6 +310,10 @@ export default function RecommendationsPage() {
             </span>
           </p>
 
+          <p role="status" aria-live="polite" className={styles.srOnly}>
+            {statusMessage}
+          </p>
+
           <div className={styles.cards}>
             {data.items.map((item) => {
               const meta = TYPE_META[item.itemType]
@@ -269,7 +321,7 @@ export default function RecommendationsPage() {
               return (
                 <article key={`${item.itemType}-${item.itemId}`} className={styles.card}>
                   <StatusBadge tone="info">{meta.label}</StatusBadge>
-                  <h2 className={styles.cardTitle}>{item.name}</h2>
+                  <h3 className={styles.cardTitle}>{item.name}</h3>
                   <p className={styles.reason}>{item.reason}</p>
                   <Link className={styles.cardLink} to={meta.to}>
                     {meta.action}
@@ -282,27 +334,39 @@ export default function RecommendationsPage() {
           <div className={styles.more}>
             {hasMore && (
               <>
-                <Button variant="outline" onClick={loadMore} disabled={isLoadingMore}>
+                <Button
+                  variant="outline"
+                  onClick={() => void loadMore()}
+                  aria-busy={isLoadingMore}
+                >
                   {isLoadingMore ? 'Cargando…' : 'Ver más sugerencias'}
                 </Button>
                 <p className={styles.moreNote}>
-                  El servicio no pagina: «Ver más» vuelve a pedir el mismo ranking con
-                  un corte más amplio, hasta el máximo de {RECOMMENDATION_MAX_LIMIT}{' '}
-                  sugerencias. No hay páginas.
+                  El servicio no pagina ni informa un total: «Ver más» vuelve a pedir
+                  el mismo ranking con un corte más amplio, hasta el máximo de{' '}
+                  {RECOMMENDATION_MAX_LIMIT} sugerencias.
                 </p>
               </>
+            )}
+
+            {loadMoreError !== null && (
+              <p className={styles.moreError} role="alert">
+                {loadMoreError}
+              </p>
             )}
 
             {!hasMore && isAtMaxLimit && (
               <p className={styles.moreNote}>
                 Estás viendo el máximo de {RECOMMENDATION_MAX_LIMIT} sugerencias que
-                devuelve el servicio.
+                acepta el servicio. El servicio no informa cuántas más podría haber.
               </p>
             )}
 
             {!hasMore && !isAtMaxLimit && (
               <p className={styles.moreNote}>
-                No hay más sugerencias disponibles por ahora.
+                El servicio no informa un total. Devolvió {data.items.length} de las{' '}
+                {loadedLimit} pedidas: no quedan más candidatas para tu perfil por
+                ahora.
               </p>
             )}
           </div>
