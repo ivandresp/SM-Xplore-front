@@ -192,14 +192,35 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B2-06 | BAJA | CERRADO | Clic en el label abría el desplegable | `6723b41`; solo enfoca |
 | B2-07 | INFO | ACEPTADO | Grupo vacío pinta `role=group` | Las páginas filtran grupos |
 | B2-08 | BAJA | ABIERTO | Abrir una lista larga con el trigger abajo desplaza la página (+287 px a 375) | Observación del auditor final |
-| B2-09 | — | CON DUEÑO | Auth, solicitudes, onboarding, reportes y recomendaciones siguen con `<select>` nativo | Pase de B6 |
+| B2-09 | MEDIA | ABIERTO | Auth, solicitudes, onboarding, reportes y recomendaciones siguen con `<select>` nativo. B6 no lo migró (ver B6-10). | `src/components/FormField/FormField.tsx:107,127` |
+
+## B6 — Responsive (PR #15)
+
+Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones propias (13 rutas ×
+320/375/768/900/1280 × base/menú/filtros, más landscape 667×375). Primer veredicto **BLOQUEA**;
+`796872e` cierra los hallazgos y los guards se prueban por mutación.
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| B6-01 | CRÍTICA | CERRADO | Desde 900 px la barra lateral nunca se mostraba: el `@media` de escritorio iba antes de `.sidebar{display:none}` y a igual especificidad ganaba la posterior. El panel se quedaba sin navegación y el contenido en 240 px. | `064a3f2` `src/layouts/AppLayout.module.css:13-31`; `796872e` línea 23-36; captura `docs/diseno/ola4/app-1280-dark.jpg`; guard `e2e/panel-shell.spec.ts` |
+| B6-02 | ALTA | CERRADO | La evidencia de «0 desbordes» era ciega: `scrollWidth === clientWidth` se cumplía con el layout roto, el spec permanente solo cubría 4 rutas públicas y las capturas 1280 del propio commit contradecían el PR. | `796872e`: `e2e/panel-shell.spec.ts` mide ancho de `aside` y `main`; `e2e/responsive.spec.ts` pasa a 320. Prueba de mutación del reauditor: repuesto el `@media` antes de `.sidebar`, el guard falla 2/2 |
+| B6-03 | MEDIA | CERRADO | A 320 px `/eventos` desbordaba 10 px (330 vs 320): la fila de acciones de `PageHeader` no bajaba de su `min-content` por el valor `nowrap` del desplegable. | `796872e` `src/components/PageHeader/PageHeader.module.css:78-79` (`max-width:100%`; solo `min-width:0` no bastaba, probado) |
+| B6-04 | MEDIA | CERRADO | Cruzar 900 px con el menú abierto dejaba `aria-expanded=true` con el panel oculto y el foco en `<body>` (caso real: iPad 768↔1024). | `796872e` `src/components/TopBar/TopBar.tsx:44,296-315`; guard «cruzar a escritorio» |
+| B6-05 | BAJA | CERRADO | `aria-controls` apuntaba a un id inexistente con el menú cerrado. | `796872e` `src/components/TopBar/TopBar.tsx:416` |
+| B6-06 | BAJA | CON DUEÑO | Objetivos táctiles por debajo de 44 px fuera de los componentes del bloque: píldora de rol 37 px, disparadores de `SelectField` 40 px, chip de filtro activo 29 px. Pasan el mínimo AA de 24 px (WCAG 2.5.8); subirlos a 44 es AAA y cambia el alto de todos los formularios. | `src/components/Chip/Chip.module.css:1-19`; `src/components/SelectField/SelectField.module.css:31-39`; `src/components/FilterBar/FilterBar.module.css:100-115` |
+| B6-07 | BAJA | CERRADO | `<th>` sin `scope` y región de tabla enfocable aunque no desbordara. | `796872e` `src/components/DataTable/DataTable.tsx:113,121`; test en `DataTable.test.tsx` |
+| B6-08 | BAJA | CON DUEÑO | El menú móvil solo se alcanza con la página arriba: el panel no tiene cabecera fija y en un listado largo hay que volver al inicio para navegar. No es regresión del bloque. | `src/components/TopBar/TopBar.module.css` (sin `position: sticky`); medido a 375 en `/app/usuarios` |
+| B6-09 | BAJA | CERRADO | `docs/diseno/ola4`: 203 PNG y 19,38 MB (7,16 antes + 12,18 después), ~98 kB por imagen y dos copias de lo mismo. | `796872e`: 12 JPEG, 0,91 MB, generados por `e2e/ola4-capturas.spec.ts` |
+| B6-10 | MEDIA | ABIERTO | `B2-09`: los `<select>` nativos de auth, solicitudes, onboarding, reportes y recomendaciones no se migraron en este pase aunque el plan lo prometía; `FormField` es compartido y migrarlo arrastra los formularios de tres PR apilados. | `src/components/FormField/FormField.tsx:107,127`; `RegistrationsQueuePage.tsx:281`; `RecommendationsPage.tsx:207`; `MyReportsPage.tsx:138` |
+| B6-11 | BAJA | ACEPTADO | Al cruzar 768→1280 con el menú abierto el foco cae en `<body>`: el disparador queda `display:none` en escritorio y no hay dónde devolverlo. | `src/components/TopBar/TopBar.tsx:291-315` |
+| B6-12 | BAJA | CERRADO | `e2e/ola4-capturas.spec.ts` escribía 12 JPEG en `docs/` en cada `npm run test:e2e` (ensuciaba el árbol) y el comentario decía 16 ficheros. | `ddc00ee`: salta salvo `CAPTURAS=1`; comentario corregido |
+| B6-13 | INFO | ABIERTO | La tabla de `/app/reportes` no se pudo medir: el entorno del auditor renderiza 0 filas. El armazón sí (240/660-1040). | Deuda de verificación con datos sembrados |
 
 ## B2 y B6
 
-- **B2** firmado PASA (PR #14). Excluye auth, solicitudes, onboarding, reportes y recomendaciones;
-  esos selects se migran en el pase de B6.
-- **B6** pendiente tras los merges: toca layouts, cabecera y todas las páginas; hacerlo sobre 7 PR
-  apilados garantiza conflictos.
+- **B2** firmado PASA (PR #14). Excluye auth, solicitudes, onboarding, reportes y recomendaciones.
+- **B6** entregado en PR #15 (`796872e`): responsive y menú móvil. **No** migró esos selects
+  (B6-10); esa deuda sigue abierta y necesita un pase propio sobre `FormField`.
 
 ## Entorno y operación (no son bugs de código)
 
@@ -213,4 +234,3 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | OPS-06 | ABIERTO | Tiles de OSM: URL hardcodeada; proveedor o self-host antes de desplegar |
 | OPS-07 | ABIERTO | Cuentas de prueba nuevas (audit-b8b*, b3-r2*, b4*) en la BD local |
 | OPS-08 | ABIERTO | Worktrees en `%TEMP%` (b2, b4, b7, b8a, b8b, ms02-photos) para borrar tras los merges |
-
