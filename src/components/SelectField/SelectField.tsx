@@ -442,7 +442,13 @@ export function SelectField({
         </p>
       )}
       {error !== undefined && (
-        <p className={styles.error} id={`${fieldId}-error`} role="alert">
+        // aria-live="polite": el error se anuncia sin competir con el resumen
+        // del formulario, que es el único role="alert".
+        <p
+          className={styles.error}
+          id={`${fieldId}-error`}
+          aria-live="polite"
+        >
           {error}
         </p>
       )}

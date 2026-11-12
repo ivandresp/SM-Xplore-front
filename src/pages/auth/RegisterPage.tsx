@@ -214,9 +214,15 @@ export default function RegisterPage({
     if (focusRequest === null) {
       return
     }
-    formRef.current
-      ?.querySelector<HTMLElement>(`[name="${focusRequest.key}"]`)
-      ?.focus()
+    const field = formRef.current?.querySelector<HTMLElement>(
+      `[name="${focusRequest.key}"]`,
+    )
+    // El combobox pone el name en un input hidden: hay que enfocar el trigger.
+    const target =
+      field instanceof HTMLInputElement && field.type === 'hidden'
+        ? field.parentElement?.querySelector<HTMLElement>('[role="combobox"]')
+        : field
+    target?.focus()
   }, [focusRequest])
 
   function requestFocus(key: RegisterFieldKey) {
