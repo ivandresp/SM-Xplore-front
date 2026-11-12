@@ -33,13 +33,13 @@ function jsonResponse(body: unknown, status = 200) {
   })
 }
 
-function page(content: unknown[]) {
+function page(content: unknown[], totalPages = 1) {
   return {
     content,
     page: 0,
     size: 12,
     total: content.length,
-    totalPages: 1,
+    totalPages,
   }
 }
 
@@ -333,6 +333,136 @@ describe('ExplorePage', () => {
       })
       expect(document.querySelector('[data-skeleton]')).toBeNull()
       expect(screen.getByText('Snorkel en Taganga')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('la paginacion aparece junto al contenido, no durante el esqueleto', async () => {
+    vi.useFakeTimers()
+    try {
+      let resolveActivities: ((response: Response) => void) | null = null
+      const items = Array.from({ length: 12 }, (_, index) => ({
+        ...ACTIVITY,
+        id: `a-${index + 1}`,
+        name: `Actividad ${index + 1}`,
+      }))
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((input: RequestInfo | URL) => {
+          const url = String(input)
+          if (url.includes('/activities?')) {
+            return new Promise<Response>((resolve) => {
+              resolveActivities = resolve
+            })
+          }
+          return Promise.resolve(jsonResponse(page([])))
+        }),
+      )
+
+      renderExplore()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200)
+      })
+      expect(document.querySelector('[data-skeleton="visible"]')).not.toBeNull()
+      expect(
+        screen.queryByRole('navigation', { name: 'Paginación' }),
+      ).toBeNull()
+
+      // La respuesta llega a los 210 ms, pero el esqueleto retiene 250 ms.
+      await act(async () => {
+        resolveActivities?.(jsonResponse(page(items, 2)))
+      })
+      expect(
+        screen.queryByRole('navigation', { name: 'Paginación' }),
+      ).toBeNull()
+      expect(screen.queryByText('Actividad 1')).toBeNull()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(249)
+      })
+      expect(
+        screen.queryByRole('navigation', { name: 'Paginación' }),
+      ).toBeNull()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1)
+      })
+      expect(screen.getByText('Actividad 1')).toBeTruthy()
+      expect(
+        screen.getByRole('navigation', { name: 'Paginación' }),
+      ).toBeTruthy()
+      expect(document.querySelector('[data-skeleton]')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('al reintentar mantiene el mensaje de error hasta que aparece el esqueleto', async () => {
+    vi.useFakeTimers()
+    try {
+      let calls = 0
+      let resolveRetry: ((response: Response) => void) | null = null
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((input: RequestInfo | URL) => {
+          const url = String(input)
+          if (!url.includes('/activities?')) {
+            return Promise.resolve(jsonResponse(page([])))
+          }
+          calls += 1
+          if (calls === 1) {
+            return Promise.resolve(jsonResponse({ code: 'ERROR' }, 500))
+          }
+          return new Promise<Response>((resolve) => {
+            resolveRetry = resolve
+          })
+        }),
+      )
+
+      renderExplore()
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(50)
+      })
+      expect(
+        screen.getByText('No pudimos cargar las actividades'),
+      ).toBeTruthy()
+
+      await act(async () => {
+        screen.getByRole('button', { name: 'Reintentar' }).click()
+      })
+
+      // t=0..199: el mensaje sigue montado y el esqueleto aun no se pinta.
+      expect(
+        screen.getByText('No pudimos cargar las actividades'),
+      ).toBeTruthy()
+      expect(document.querySelector('[data-skeleton="visible"]')).toBeNull()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(199)
+      })
+      expect(
+        screen.getByText('No pudimos cargar las actividades'),
+      ).toBeTruthy()
+      expect(document.querySelector('[data-skeleton="visible"]')).toBeNull()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1)
+      })
+      expect(
+        screen.queryByText('No pudimos cargar las actividades'),
+      ).toBeNull()
+      expect(document.querySelector('[data-skeleton="visible"]')).not.toBeNull()
+
+      await act(async () => {
+        resolveRetry?.(jsonResponse(page([ACTIVITY])))
+      })
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(250)
+      })
+      expect(screen.getByText('Snorkel en Taganga')).toBeTruthy()
+      expect(document.querySelector('[data-skeleton]')).toBeNull()
     } finally {
       vi.useRealTimers()
     }

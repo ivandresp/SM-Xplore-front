@@ -9,7 +9,7 @@ import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
-import { MAX_PRICE_OPTIONS } from '@/config/catalog'
+import { CATALOG_SKELETON_COUNT, MAX_PRICE_OPTIONS } from '@/config/catalog'
 import {
   useFilterParam,
   useSearchParamTerm,
@@ -32,12 +32,6 @@ import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
 
-/**
- * Una fila de tarjetas en 1280 px. El total real no se conoce hasta que responde
- * el servidor: con 0-4 resultados el esqueleto casi no salta, con 12 se acepta un
- * salto residual en la primera carga (documentado en el PR).
- */
-const SKELETON_COUNT = 4
 
 const SORT_OPTIONS: Array<{ value: ActivitySort; label: string }> = [
   { value: 'name', label: 'Nombre (A–Z)' },
@@ -95,7 +89,7 @@ export default function ExplorePage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
-  const isFirstLoad = result === null && error === null
+  const isFirstLoad = result === null
   // El retardo y el minimo visible solo aplican a la primera carga. En recargas
   // la lista anterior se queda en pantalla y no se desmonta.
   const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
@@ -127,7 +121,6 @@ export default function ExplorePage() {
     const current = new URLSearchParams(queryKey)
 
     setIsLoading(true)
-    setError(null)
 
     activitiesApi
       .list({
@@ -143,6 +136,7 @@ export default function ExplorePage() {
       })
       .then((page) => {
         if (!cancelled) setResult(page)
+        if (!cancelled) setError(null)
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
@@ -256,7 +250,6 @@ export default function ExplorePage() {
 
   function retry() {
     setIsLoading(true)
-    setError(null)
     setReloadToken((token) => token + 1)
   }
 
@@ -379,11 +372,11 @@ export default function ExplorePage() {
             visible={showSkeleton}
             variant="card"
             metaLines={2}
-            count={SKELETON_COUNT}
+            count={CATALOG_SKELETON_COUNT}
           />
         )}
 
-        {!isLoading && error !== null && !holdSkeleton && (
+        {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
             title="No pudimos cargar las actividades"
@@ -426,11 +419,13 @@ export default function ExplorePage() {
           </div>
         )}
 
-        <Pagination
-          page={page}
-          totalPages={result?.totalPages ?? 0}
-          onChange={goToPage}
-        />
+        {!holdSkeleton && (
+          <Pagination
+            page={page}
+            totalPages={result?.totalPages ?? 0}
+            onChange={goToPage}
+          />
+        )}
       </section>
     </div>
   )

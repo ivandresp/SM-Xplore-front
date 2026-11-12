@@ -9,7 +9,7 @@ import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { ServiceCard } from '@/components/ServiceCard/ServiceCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
-import { MAX_PRICE_OPTIONS } from '@/config/catalog'
+import { CATALOG_SKELETON_COUNT, MAX_PRICE_OPTIONS } from '@/config/catalog'
 import { serviceTypeLabel } from '@/config/roles'
 import {
   useFilterParam,
@@ -25,12 +25,6 @@ import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
 
-/**
- * Una fila de tarjetas en 1280 px. El total real no se conoce hasta que responde
- * el servidor: con 0-4 resultados el esqueleto casi no salta, con 12 se acepta un
- * salto residual en la primera carga (documentado en el PR).
- */
-const SKELETON_COUNT = 4
 
 // El backend filtra por `type` como texto libre; estos son los que ofrece la UI.
 const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
@@ -55,7 +49,7 @@ export default function ServiceListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
-  const isFirstLoad = result === null && error === null
+  const isFirstLoad = result === null
   // El retardo y el minimo visible solo aplican a la primera carga. En recargas
   // la lista anterior se queda en pantalla y no se desmonta.
   const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
@@ -84,7 +78,6 @@ export default function ServiceListPage() {
     const current = new URLSearchParams(queryKey)
 
     setIsLoading(true)
-    setError(null)
 
     servicesApi
       .list({
@@ -98,6 +91,7 @@ export default function ServiceListPage() {
       })
       .then((servicePage) => {
         if (!cancelled) setResult(servicePage)
+        if (!cancelled) setError(null)
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
@@ -188,7 +182,6 @@ export default function ServiceListPage() {
 
   function retry() {
     setIsLoading(true)
-    setError(null)
     setReloadToken((token) => token + 1)
   }
 
@@ -275,11 +268,11 @@ export default function ServiceListPage() {
             decorative
             visible={showSkeleton}
             variant="card"
-            count={SKELETON_COUNT}
+            count={CATALOG_SKELETON_COUNT}
           />
         )}
 
-        {!isLoading && error !== null && !holdSkeleton && (
+        {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los servicios"
@@ -322,11 +315,13 @@ export default function ServiceListPage() {
           </div>
         )}
 
-        <Pagination
-          page={page}
-          totalPages={result?.totalPages ?? 0}
-          onChange={goToPage}
-        />
+        {!holdSkeleton && (
+          <Pagination
+            page={page}
+            totalPages={result?.totalPages ?? 0}
+            onChange={goToPage}
+          />
+        )}
       </section>
     </div>
   )

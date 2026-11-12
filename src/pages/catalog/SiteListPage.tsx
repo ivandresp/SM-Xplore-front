@@ -9,6 +9,7 @@ import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { SiteCard } from '@/components/SiteCard/SiteCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import { CATALOG_SKELETON_COUNT } from '@/config/catalog'
 import { useFilterParam, useSearchParamTerm } from '@/hooks/useFilterParam'
 import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { categoriesApi } from '@/services/categoriesApi'
@@ -25,12 +26,6 @@ import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
 
-/**
- * Una fila de tarjetas en 1280 px. El total real no se conoce hasta que responde
- * el servidor: con 0-4 resultados el esqueleto casi no salta, con 12 se acepta un
- * salto residual en la primera carga (documentado en el PR).
- */
-const SKELETON_COUNT = 4
 
 const FILTER_KEYS = ['search', 'zona', 'categoria'] as const
 
@@ -50,7 +45,7 @@ export default function SiteListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
-  const isFirstLoad = result === null && error === null
+  const isFirstLoad = result === null
   // El retardo y el minimo visible solo aplican a la primera carga. En recargas
   // la lista anterior se queda en pantalla y no se desmonta.
   const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
@@ -81,7 +76,6 @@ export default function SiteListPage() {
     const current = new URLSearchParams(queryKey)
 
     setIsLoading(true)
-    setError(null)
 
     sitesApi
       .list({
@@ -94,6 +88,7 @@ export default function SiteListPage() {
       })
       .then((sitePage) => {
         if (!cancelled) setResult(sitePage)
+        if (!cancelled) setError(null)
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
@@ -179,7 +174,6 @@ export default function SiteListPage() {
 
   function retry() {
     setIsLoading(true)
-    setError(null)
     setReloadToken((token) => token + 1)
   }
 
@@ -252,11 +246,11 @@ export default function SiteListPage() {
             visible={showSkeleton}
             variant="card"
             showPrice={false}
-            count={SKELETON_COUNT}
+            count={CATALOG_SKELETON_COUNT}
           />
         )}
 
-        {!isLoading && error !== null && !holdSkeleton && (
+        {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los atractivos"
@@ -303,11 +297,13 @@ export default function SiteListPage() {
           </div>
         )}
 
-        <Pagination
-          page={page}
-          totalPages={result?.totalPages ?? 0}
-          onChange={goToPage}
-        />
+        {!holdSkeleton && (
+          <Pagination
+            page={page}
+            totalPages={result?.totalPages ?? 0}
+            onChange={goToPage}
+          />
+        )}
       </section>
     </div>
   )

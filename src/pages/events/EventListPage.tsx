@@ -8,7 +8,7 @@ import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
-import { MAX_PRICE_OPTIONS } from '@/config/catalog'
+import { CATALOG_SKELETON_COUNT, MAX_PRICE_OPTIONS } from '@/config/catalog'
 import { useAuth } from '@/hooks/useAuth'
 import {
   useFilterParam,
@@ -32,8 +32,6 @@ import styles from './events.module.css'
 
 const PAGE_SIZE = 10
 
-/** Cuatro filas de evento: aproxima el caso filtrado sin saber el total real. */
-const SKELETON_COUNT = 4
 
 const SORT_OPTIONS: Array<{ value: EventSort; label: string }> = [
   { value: 'dateAsc', label: 'Fecha: próximos primero' },
@@ -107,7 +105,7 @@ export default function EventListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
-  const isFirstLoad = result === null && error === null
+  const isFirstLoad = result === null
   // El retardo y el minimo visible solo aplican a la primera carga. En recargas
   // la lista anterior se queda en pantalla y no se desmonta.
   const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
@@ -138,7 +136,6 @@ export default function EventListPage() {
     const current = new URLSearchParams(queryKey)
 
     setIsLoading(true)
-    setError(null)
 
     eventsApi
       .list({
@@ -155,6 +152,7 @@ export default function EventListPage() {
       })
       .then((eventPage) => {
         if (!cancelled) setResult(eventPage)
+        if (!cancelled) setError(null)
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
@@ -270,7 +268,6 @@ export default function EventListPage() {
 
   function retry() {
     setIsLoading(true)
-    setError(null)
     setReloadToken((token) => token + 1)
   }
 
@@ -407,11 +404,11 @@ export default function EventListPage() {
             decorative
             visible={showSkeleton}
             variant="row"
-            count={SKELETON_COUNT}
+            count={CATALOG_SKELETON_COUNT}
           />
         )}
 
-        {!isLoading && error !== null && !holdSkeleton && (
+        {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los eventos"
@@ -490,11 +487,13 @@ export default function EventListPage() {
           </div>
         )}
 
-        <Pagination
-          page={page}
-          totalPages={result?.totalPages ?? 0}
-          onChange={goToPage}
-        />
+        {!holdSkeleton && (
+          <Pagination
+            page={page}
+            totalPages={result?.totalPages ?? 0}
+            onChange={goToPage}
+          />
+        )}
       </section>
     </div>
   )
