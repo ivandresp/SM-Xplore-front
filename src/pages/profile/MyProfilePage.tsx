@@ -6,6 +6,7 @@ import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { SelectField } from '@/components/SelectField'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
@@ -288,22 +289,19 @@ export default function MyProfilePage() {
 
                 {availableCategories.length > 0 && (
                   <div className={styles.prefsForm}>
-                    <label className={styles.prefsLabel} htmlFor="profile-pref-category">
-                      Añadir categoría
-                    </label>
-                    <select
+                    <SelectField
                       id="profile-pref-category"
-                      className={styles.select}
+                      aria-label="Añadir categoría"
+                      placeholder="Selecciona una categoría…"
+                      options={availableCategories.map((category) => ({
+                        value: category.id,
+                        label: category.name,
+                      }))}
                       value={selectedCategory}
-                      onChange={(event) => setSelectedCategory(event.target.value)}
-                    >
-                      <option value="">Selecciona una categoría…</option>
-                      {availableCategories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={(event) =>
+                        setSelectedCategory(event.target.value)
+                      }
+                    />
                     <Button
                       size="sm"
                       disabled={
