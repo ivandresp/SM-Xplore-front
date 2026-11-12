@@ -55,6 +55,10 @@ export const MyReservationsPage = lazy(
   () => import('@/pages/reservations/MyReservationsPage'),
 )
 
+export const OnboardingPage = lazy(
+  () => import('@/pages/onboarding/OnboardingPage'),
+)
+
 export const RecommendationsPage = lazy(
   () => import('@/pages/recommendations/RecommendationsPage'),
 )
