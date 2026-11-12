@@ -180,10 +180,24 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B8-13 | BAJA | ABIERTO | La regla vive en el servicio, no en el dominio | Si otro llamador entra, APROBADO deja de ser terminal |
 | B8-14 | BAJA | ABIERTO | Un RECHAZADO sin motivo sobre una APROBADA da 400 antes que 409 | Orden de guardas |
 
+## B2 — Combobox y ruta activa (PR #14, firmado PASA)
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| B2-01 | ALTA | CERRADO | La opción activa no se desplazaba a la vista en listas largas | `6723b41`; scrollIntoView; Chrome 41 opciones End 0→1069 |
+| B2-02 | MEDIA | CERRADO | `/actividades/:id` dejaba el header sin `aria-current` | `6723b41`; alias /explorar→/actividades |
+| B2-03 | BAJA | ACEPTADO | `required` se anuncia pero el hidden no valida | Forms con noValidate + chequeo manual |
+| B2-04 | BAJA | ACEPTADO | `form.reset()` no restaura | No hay reset en src |
+| B2-05 | BAJA | ACEPTADO | `name`/`innerValue` sin uso hoy | Documentado en JSDoc |
+| B2-06 | BAJA | CERRADO | Clic en el label abría el desplegable | `6723b41`; solo enfoca |
+| B2-07 | INFO | ACEPTADO | Grupo vacío pinta `role=group` | Las páginas filtran grupos |
+| B2-08 | BAJA | ABIERTO | Abrir una lista larga con el trigger abajo desplaza la página (+287 px a 375) | Observación del auditor final |
+| B2-09 | — | CON DUEÑO | Auth, solicitudes, onboarding, reportes y recomendaciones siguen con `<select>` nativo | Pase de B6 |
+
 ## B2 y B6
 
-- **B2** en curso (rama `feat/b2-combobox`, apilada sobre B8b). Excluye auth, solicitudes, onboarding y
-  reportes; esos selects se migran en el pase de B6.
+- **B2** firmado PASA (PR #14). Excluye auth, solicitudes, onboarding, reportes y recomendaciones;
+  esos selects se migran en el pase de B6.
 - **B6** pendiente tras los merges: toca layouts, cabecera y todas las páginas; hacerlo sobre 7 PR
   apilados garantiza conflictos.
 
