@@ -58,3 +58,20 @@ Las cuentas de guía y prestadora se provisionan desde la propia suite: la guía
 /admin/users` y la invitación de Mailpit, la prestadora con el registro público y la aprobación
 del admin. Si el entorno no permite ese ciclo, el test se marca como omitido en lugar de fingir la
 captura.
+## Ola 4 (2026-11-12)
+
+Bloque B6: responsive a 375/768/1280 y zoom 200 %, menú móvil real, filtros
+colapsables con resumen, tablas con scroll controlado y formularios a una
+columna. El detalle, el método de medición y la tabla de hallazgos están en
+[`ola4/README.md`](ola4/README.md).
+
+- `ola4/antes/`: 70 capturas del commit `6723b41`, 10 pantallas × 3 anchos ×
+  claro/oscuro + zoom 200 %.
+- `ola4/despues/`: 128 capturas de la rama `feat/b6-responsive`, incluidas las
+  de menú abierto, filtros desplegados, filtro activo y foco de teclado.
+- `ola4/antes-reporte.json` y `ola4/despues-reporte.json`: `scrollWidth`,
+  `clientWidth` y elementos fuera del viewport por combinación.
+
+Resultado: 0 desbordes horizontales de página en las 60 mediciones de después
+(12 rutas × 3 anchos × 3 estados) y en las 12 de zoom 200 %. `npm run dev`
+levantó Vite en el puerto 5185 durante la medición y se detuvo al terminar.
