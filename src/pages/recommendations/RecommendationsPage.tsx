@@ -134,6 +134,13 @@ export default function RecommendationsPage() {
     setReloadToken((current) => current + 1)
   }
 
+  function retryInline() {
+    // Recarga con el corte que hay en pantalla (loadedLimitRef): el reintento no debe
+    // devolver al usuario al corte inicial y perder lo que ya tenía abierto.
+    setInlineError(null)
+    setReloadToken((current) => current + 1)
+  }
+
   async function loadMore() {
     if (isLoadingMore) {
       return
@@ -306,6 +313,15 @@ export default function RecommendationsPage() {
         </div>
       )}
 
+      {!isLoading && error === null && data !== null && inlineError !== null && (
+        <div className={styles.inlineError} role="alert">
+          <p className={styles.inlineErrorText}>{inlineError}</p>
+          <Button variant="outline" size="sm" onClick={retryInline}>
+            Reintentar
+          </Button>
+        </div>
+      )}
+
       {isLoading && (
         <Skeleton variant="card" count={4} label="Cargando recomendaciones" />
       )}
@@ -380,12 +396,6 @@ export default function RecommendationsPage() {
                   {RECOMMENDATION_MAX_LIMIT} sugerencias.
                 </p>
               </>
-            )}
-
-            {inlineError !== null && (
-              <p className={styles.moreError} role="alert">
-                {inlineError}
-              </p>
             )}
 
             {!hasMore && isAtMaxLimit && (

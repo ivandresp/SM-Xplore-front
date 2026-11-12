@@ -250,9 +250,9 @@ describe('RecommendationsPage', () => {
     // Siguen las 12 tarjetas y el error se queda inline.
     expect(await screen.findByRole('alert')).toBeTruthy()
     expect(screen.getByText('12 sugerencias')).toBeTruthy()
-    expect(
-      screen.queryByRole('button', { name: /^Reintentar$/ }),
-    ).toBeNull()
+    // El estado de error completo no aparece; el aviso es inline y trae su propio reintento.
+    expect(screen.queryByText('No pudimos cargar tus recomendaciones')).toBeNull()
+    expect(screen.getByRole('button', { name: /^Reintentar$/ })).toBeTruthy()
     expect(consoleSpy).toHaveBeenCalled()
 
     // Otro intento repite el mismo corte: nunca salta a 48 con la lista vacia.
@@ -363,7 +363,8 @@ describe('RecommendationsPage', () => {
 
     expect(await screen.findByRole('alert')).toBeTruthy()
     expect(screen.getByText('12 sugerencias')).toBeTruthy()
-    expect(screen.queryByRole('button', { name: /^Reintentar$/ })).toBeNull()
+    expect(screen.queryByText('No pudimos cargar tus recomendaciones')).toBeNull()
+    expect(screen.getByRole('button', { name: /^Reintentar$/ })).toBeTruthy()
     expect(screen.queryByText(/Cypher/)).toBeNull()
   })
 
@@ -403,6 +404,78 @@ describe('RecommendationsPage', () => {
 
     expect(screen.getByText('9 sugerencias')).toBeTruthy()
     expect(screen.queryByText('24 sugerencias')).toBeNull()
+  })
+
+  it('avisa de una recarga fallida aunque la lista este vacia', async () => {
+    stubApi({
+      recommendationsCall: (callIndex) =>
+        callIndex === 1
+          ? jsonResponse(recommendation(0))
+          : jsonResponse(
+              {
+                title: 'Internal error',
+                status: 500,
+                detail: 'Internal detail: Cypher query failed at line 12',
+                instance: '/api/v1/recommendations',
+              },
+              500,
+            ),
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('Aún no hay recomendaciones')).toBeTruthy()
+
+    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
+    await userEvent.selectOptions(select, 'c1')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+
+    // Sin tarjetas también se ve el fallo: antes solo quedaba el vacío.
+    expect(await screen.findByRole('alert')).toBeTruthy()
+    expect(screen.getByText(/error interno/i)).toBeTruthy()
+    expect(screen.queryByText(/Cypher/)).toBeNull()
+  })
+
+  it('el reintento inline repite el corte actual, no el inicial', async () => {
+    const { limits } = stubApi({
+      recommendationsCall: (callIndex) => {
+        if (callIndex === 1) return jsonResponse(recommendation(12))
+        if (callIndex === 2) return jsonResponse(recommendation(24))
+        if (callIndex === 3) {
+          return jsonResponse(
+            {
+              title: 'Internal error',
+              status: 500,
+              detail: 'boom',
+              instance: '/api/v1/recommendations',
+            },
+            500,
+          )
+        }
+        return jsonResponse(recommendation(24))
+      },
+    })
+
+    renderPage()
+
+    expect(await screen.findByText('12 sugerencias')).toBeTruthy()
+    await userEvent.click(
+      screen.getByRole('button', { name: /ver más sugerencias/i }),
+    )
+    await waitFor(() => expect(screen.getByText('24 sugerencias')).toBeTruthy())
+
+    // La recarga que falla llega desde una preferencia, con 24 en pantalla.
+    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
+    await userEvent.selectOptions(select, 'c1')
+    await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
+
+    const retryInline = await screen.findByRole('button', { name: /^Reintentar$/ })
+    await userEvent.click(retryInline)
+
+    // 12 (inicial), 24 (ver más), 24 (recarga fallida), 24 (reintento inline).
+    await waitFor(() => expect(limits).toEqual([12, 24, 24, 24]))
+    expect(await screen.findByText('24 sugerencias')).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('lleva el foco al encabezado cuando el boton desaparece tras cargar', async () => {
