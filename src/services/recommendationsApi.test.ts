@@ -50,6 +50,22 @@ describe('recommendationsApi', () => {
     )
   })
 
+  it('rechaza un source que el contrato no conoce y deja la etiqueta del endpoint', async () => {
+    stubFetch({ ...recommendationBody, source: 'PERSONALIZED' })
+
+    await expect(recommendationsApi.list()).rejects.toThrow(
+      /^Respuesta inesperada de GET \/recommendations: /,
+    )
+  })
+
+  it('rechaza un 200 sin cuerpo en vez de devolver undefined', async () => {
+    stubFetch(undefined, 200)
+
+    await expect(recommendationsApi.list()).rejects.toThrow(
+      /Respuesta inesperada de GET \/recommendations/,
+    )
+  })
+
   it('rechaza una respuesta sin items', async () => {
     stubFetch({ touristId: 'x', generatedAt: 'y', source: 'MIXED' })
 
