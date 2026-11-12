@@ -173,6 +173,32 @@ describe('httpClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
   })
 
+  it('la respuesta en vuelo de una cuenta no se sirve a la siguiente', async () => {
+    saveToken('jwt-A', '2100-01-01T00:00:00Z')
+
+    let releaseA: (response: Response) => void = () => undefined
+    const pendingA = new Promise<Response>((resolve) => {
+      releaseA = resolve
+    })
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(pendingA)
+      .mockResolvedValueOnce(jsonResponse({ email: 'b@smxplore.local' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const requestA = httpClient.get('/users/me')
+
+    // La cuenta B entra antes de que responda la petición de A.
+    saveToken('jwt-B', '2100-01-01T00:00:00Z')
+    releaseA(jsonResponse({ email: 'a@smxplore.local' }))
+
+    await expect(requestA).resolves.toEqual({ email: 'a@smxplore.local' })
+    await expect(httpClient.get('/users/me')).resolves.toEqual({
+      email: 'b@smxplore.local',
+    })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
   it('no avisa de sesión caída si la petición iba sin token', async () => {
     const handler = vi.fn()
     onUnauthorized(handler)

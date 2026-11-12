@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_TTL_MS,
+  cacheGeneration,
   cacheSize,
   clearCache,
   dedupe,
   readCache,
   writeCache,
+  writeCacheIfCurrent,
 } from './cache'
 
 afterEach(() => {
@@ -73,6 +75,59 @@ describe('cache', () => {
       }),
     ).resolves.toBe('ok')
     expect(calls).toBe(1)
+  })
+
+  it('no escribe una respuesta que empezó antes de limpiar (cambio de cuenta)', () => {
+    const startedIn = cacheGeneration()
+    clearCache()
+    const written = writeCacheIfCurrent('GET /users/me', 'de A', startedIn)
+    expect(written).toBe(false)
+    expect(readCache('GET /users/me').found).toBe(false)
+  })
+
+  it('sí escribe si nadie limpió entre el inicio y la respuesta', () => {
+    const startedIn = cacheGeneration()
+    expect(writeCacheIfCurrent('GET /a', 'valor', startedIn)).toBe(true)
+    expect(readCache('GET /a').value).toBe('valor')
+  })
+
+  it('limpiar en vuelo no deja colgada la clave de la petición siguiente', async () => {
+    let releaseFirst: (value: string) => void = () => undefined
+    let releaseSecond: (value: string) => void = () => undefined
+    const first = dedupe(
+      'GET /a',
+      () => new Promise<string>((resolve) => (releaseFirst = resolve)),
+    )
+
+    clearCache()
+
+    const second = dedupe(
+      'GET /a',
+      () => new Promise<string>((resolve) => (releaseSecond = resolve)),
+    )
+    releaseFirst('viejo')
+    await expect(first).resolves.toBe('viejo')
+
+    let calls = 0
+    const third = dedupe('GET /a', async () => {
+      calls += 1
+      return 'tercero'
+    })
+    releaseSecond('nuevo')
+
+    await expect(second).resolves.toBe('nuevo')
+    await expect(third).resolves.toBe('nuevo')
+    expect(calls).toBe(0)
+  })
+
+  it('no crece sin tope: purga expiradas y luego la más antigua', () => {
+    vi.useFakeTimers()
+    for (let index = 0; index < 250; index += 1) {
+      writeCache(`GET /item-${index}`, index, DEFAULT_TTL_MS)
+    }
+    expect(cacheSize()).toBe(200)
+    expect(readCache('GET /item-0').found).toBe(false)
+    expect(readCache('GET /item-249').found).toBe(true)
   })
 
   it('vacía todo al limpiar (logout o cambio de usuario)', () => {

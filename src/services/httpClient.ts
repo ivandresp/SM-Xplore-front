@@ -1,6 +1,12 @@
 import type { ProblemDetail } from '@/types'
 import { loadToken, notifyUnauthorized } from './authToken'
-import { clearCache, dedupe, readCache, writeCache } from './cache'
+import {
+  cacheGeneration,
+  clearCache,
+  dedupe,
+  readCache,
+  writeCacheIfCurrent,
+} from './cache'
 
 const BASE_URL: string = import.meta.env.VITE_API_URL ?? '/api/v1'
 
@@ -121,6 +127,10 @@ async function request<T>(
     }
   }
 
+  // Se captura antes de pedir: si mientras tanto cambia la cuenta o se muta algo,
+  // esta respuesta ya no vale para la caché compartida.
+  const generation = cacheGeneration()
+
   const execute = async (): Promise<T> => {
     const payload = body === undefined ? undefined : JSON.stringify(body)
     const effectiveTimeout =
@@ -193,7 +203,7 @@ async function request<T>(
   const result = cacheable ? await dedupe(cacheKey, execute) : await execute()
 
   if (cacheable) {
-    writeCache(cacheKey, result)
+    writeCacheIfCurrent(cacheKey, result, generation)
   } else if (!CACHE_NEUTRAL_WRITES.test(url)) {
     // Una mutación puede invalidar cualquier listado o ficha ya cacheada.
     clearCache()
