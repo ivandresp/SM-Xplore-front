@@ -308,10 +308,10 @@ export default function RegisterPage({
         }
       >
         <p className={styles.notice}>
-          Revisa tu correo: escribimos a {created.email}.{' '}
+          Aviso por correo: revisa la bandeja de {created.email}.{' '}
           {isGuide
-            ? 'Una gestora revisará tu solicitud y te avisaremos por correo; hasta entonces no podrás iniciar sesión.'
-            : 'Un administrador debe aprobar el registro antes de que puedas iniciar sesión.'}
+            ? 'Una gestora revisará tu solicitud y, si la aprueba, podrás iniciar sesión.'
+            : 'Un administrador revisará el registro; la cuenta sigue activa y el perfil no se publica en el catálogo hasta que se apruebe.'}
         </p>
       </AuthShell>
     )

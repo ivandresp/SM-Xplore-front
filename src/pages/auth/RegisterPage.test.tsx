@@ -332,6 +332,12 @@ describe('RegisterPage', () => {
     ).toBeTruthy()
     expect(screen.getByText(/hotel@correo.com/)).toBeTruthy()
 
+    const providerNotice = screen.getByText(/aviso por correo/i)
+    expect(providerNotice.textContent).not.toMatch(
+      /antes de que puedas iniciar sesión/i,
+    )
+    expect(providerNotice.textContent).toMatch(/sigue activa/i)
+
     const call = fetchMock.mock.calls.find(([input]) =>
       String(input).endsWith('/auth/register/prestadora'),
     )
@@ -546,7 +552,9 @@ describe('RegisterPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Solicitud enviada' }),
     ).toBeTruthy()
-    expect(screen.getByText(/revisa tu correo/i)).toBeTruthy()
+    const notice = screen.getByText(/aviso por correo/i)
+    expect(notice.textContent).toContain('ana@correo.com')
+    expect(notice.textContent).not.toMatch(/escribimos|Se avisó/)
     expect(screen.getByText(/ana@correo.com/)).toBeTruthy()
 
     const call = fetchMock.mock.calls.find(([input]) =>

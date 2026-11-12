@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { DataTable } from '@/components/DataTable/DataTable'
@@ -75,6 +75,14 @@ export default function RegistrationsQueuePage() {
   const [isWorking, setIsWorking] = useState(false)
   const [reloadToken, setReloadToken] = useState(0)
 
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const statusSelectRef = useRef<HTMLSelectElement | null>(null)
+  /**
+   * Una mutación fallida no invalida la caché de 30 s de `httpClient`; la
+   * recarga manual la salta con `_=<marca>` y se limpia al leer bien.
+   */
+  const cacheBusterRef = useRef<number | undefined>(undefined)
+
   useEffect(() => {
     let cancelled = false
 
@@ -88,7 +96,9 @@ export default function RegistrationsQueuePage() {
           status,
           page: page - 1,
           size: PAGE_SIZE,
+          cacheBust: cacheBusterRef.current,
         })
+        cacheBusterRef.current = undefined
 
         if (!cancelled) {
           setRows(result.content)
@@ -116,9 +126,40 @@ export default function RegistrationsQueuePage() {
     }
   }, [role, status, page, reloadToken])
 
+  /**
+   * El panel se abre debajo de la tabla: hay que llevar el foco y la vista al
+   * motivo, o en pantallas pequeñas queda fuera del pliegue.
+   */
+  useEffect(() => {
+    if (rejecting === null) {
+      return
+    }
+    const field = textareaRef.current
+    if (field === null) {
+      return
+    }
+    field.focus()
+    if (typeof field.scrollIntoView === 'function') {
+      field.scrollIntoView({ block: 'center' })
+    }
+  }, [rejecting])
+
+  function closeRejection(restoreTrigger: boolean) {
+    const trigger =
+      rejecting === null
+        ? null
+        : document.getElementById(`rechazar-${rejecting.id}`)
+    setRejecting(null)
+    setReason('')
+    if (restoreTrigger) {
+      trigger?.focus()
+    }
+  }
+
   function retry() {
     setIsLoading(true)
     setLoadError(null)
+    cacheBusterRef.current = Date.now()
     setReloadToken((token) => token + 1)
   }
 
@@ -160,15 +201,27 @@ export default function RegistrationsQueuePage() {
           ? { decision, reason: rejectionReason.trim() }
           : { decision },
       )
+      // El backend no confirma la entrega del correo: no se promete.
+      // Y solo el guía queda sin poder entrar; la prestadora sigue activa.
+      const aviso = `Aviso por correo a ${row.email}; revisa la bandeja de entrada.`
       setFeedback(
         decision === 'APROBADO'
-          ? `Solicitud de ${row.fullName} aprobada. Se avisó por correo.`
-          : `Solicitud de ${row.fullName} rechazada. Se avisó por correo con el motivo.`,
+          ? `Solicitud de ${row.fullName} aprobada. ${aviso}`
+          : row.role === 'SERVICE_PROVIDER'
+            ? `Solicitud de ${row.fullName} rechazada con motivo. ${aviso} El perfil no se publica en el catálogo y la cuenta sigue activa.`
+            : `Solicitud de ${row.fullName} rechazada con motivo. ${aviso}`,
       )
       setRejecting(null)
       setReason('')
-      // La fila deja de estar pendiente: se vuelve a pedir la página actual.
-      setReloadToken((token) => token + 1)
+      // El filtro de estado siempre existe: es el punto estable de vuelta.
+      statusSelectRef.current?.focus()
+      // Si era la última fila visible, la página actual quedaría vacía: se
+      // retrocede una antes de recargar.
+      if (rows.length <= 1 && page > 1) {
+        setPage(page - 1)
+      } else {
+        setReloadToken((token) => token + 1)
+      }
     } catch (cause) {
       setActionError(describeApiError(cause))
     } finally {
@@ -229,12 +282,20 @@ export default function RegistrationsQueuePage() {
             Aprobar
           </Button>
           <Button
+            id={`rechazar-${row.id}`}
             variant="outline"
             size="sm"
             disabled={isWorking || row.registrationStatus !== 'PENDIENTE'}
             aria-expanded={rejecting?.id === row.id}
+            aria-controls={
+              rejecting?.id === row.id ? 'motivo-rechazo' : undefined
+            }
             onClick={() => {
-              setRejecting(rejecting?.id === row.id ? null : row)
+              if (rejecting?.id === row.id) {
+                closeRejection(true)
+                return
+              }
+              setRejecting(row)
               setReason('')
               setActionError(null)
               setFeedback(null)
@@ -279,6 +340,7 @@ export default function RegistrationsQueuePage() {
         <label className={styles.filter}>
           <span className={styles.filterLabel}>Estado</span>
           <select
+            ref={statusSelectRef}
             className={styles.select}
             value={status}
             onChange={(event) =>
@@ -295,9 +357,12 @@ export default function RegistrationsQueuePage() {
       </div>
 
       {actionError !== null && (
-        <p className={styles.error} role="alert">
-          {actionError}
-        </p>
+        <div className={styles.actionError}>
+          <p className={styles.error} role="alert">
+            {actionError}
+          </p>
+          <Button onClick={retry}>Vuelve a cargar la lista</Button>
+        </div>
       )}
       {feedback !== null && (
         <p className={styles.success} role="status">
@@ -310,7 +375,7 @@ export default function RegistrationsQueuePage() {
           title="No se pudieron cargar las solicitudes"
           description={loadError}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>Vuelve a cargar la lista</Button>}
         />
       ) : (
         <>
@@ -323,6 +388,63 @@ export default function RegistrationsQueuePage() {
             emptyMessage={emptyMessage}
           />
 
+          {/* El panel viaja pegado a la tabla, antes del paginador, para que
+              el botón Rechazar y su motivo no se separen. */}
+          {rejecting !== null && (
+            <article
+              className={styles.panel}
+              aria-labelledby="motivo-titulo"
+            >
+              <h2 className={styles.panelTitle} id="motivo-titulo">
+                Rechazar la solicitud de {rejecting.fullName}
+              </h2>
+              <p className={styles.panelText}>
+                El motivo es obligatorio y viaja en el aviso por correo de la
+                decisión.
+              </p>
+              {rejecting.role === 'SERVICE_PROVIDER' && (
+                <p className={styles.panelText}>
+                  La prestadora sigue activa y podrá iniciar sesión; su perfil no
+                  se publica en el catálogo.
+                </p>
+              )}
+
+              <label className={styles.panelLabel} htmlFor="motivo-rechazo">
+                Motivo del rechazo
+              </label>
+              <textarea
+                ref={textareaRef}
+                id="motivo-rechazo"
+                className={styles.textarea}
+                rows={3}
+                maxLength={REASON_MAX_LENGTH}
+                value={reason}
+                aria-describedby="motivo-ayuda"
+                onChange={(event) => setReason(event.target.value)}
+              />
+              <p className={styles.panelHint} id="motivo-ayuda">
+                {reasonTrimmed.length}/{REASON_MAX_LENGTH} caracteres ·
+                obligatorio
+              </p>
+
+              <div className={styles.panelActions}>
+                <Button
+                  variant="outline"
+                  disabled={isWorking || reasonTrimmed === ''}
+                  onClick={() => void review(rejecting, 'RECHAZADO', reason)}
+                >
+                  Confirmar rechazo
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => closeRejection(true)}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            </article>
+          )}
+
           {total > PAGE_SIZE && (
             <Pagination
               page={page}
@@ -331,52 +453,6 @@ export default function RegistrationsQueuePage() {
             />
           )}
         </>
-      )}
-
-      {rejecting !== null && (
-        <article className={styles.panel} aria-labelledby="motivo-titulo">
-          <h2 className={styles.panelTitle} id="motivo-titulo">
-            Rechazar la solicitud de {rejecting.fullName}
-          </h2>
-          <p className={styles.panelText}>
-            El motivo es obligatorio y llega en el correo de la decisión.
-          </p>
-
-          <label className={styles.panelLabel} htmlFor="motivo-rechazo">
-            Motivo del rechazo
-          </label>
-          <textarea
-            id="motivo-rechazo"
-            className={styles.textarea}
-            rows={3}
-            maxLength={REASON_MAX_LENGTH}
-            value={reason}
-            aria-describedby="motivo-ayuda"
-            onChange={(event) => setReason(event.target.value)}
-          />
-          <p className={styles.panelHint} id="motivo-ayuda">
-            {reasonTrimmed.length}/{REASON_MAX_LENGTH} caracteres · obligatorio
-          </p>
-
-          <div className={styles.panelActions}>
-            <Button
-              variant="outline"
-              disabled={isWorking || reasonTrimmed === ''}
-              onClick={() => void review(rejecting, 'RECHAZADO', reason)}
-            >
-              Confirmar rechazo
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setRejecting(null)
-                setReason('')
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
-        </article>
       )}
     </section>
   )

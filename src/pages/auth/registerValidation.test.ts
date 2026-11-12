@@ -38,6 +38,12 @@ const TOURIST_FORM: RegisterFormValues = {
   startOperationDate: '',
 }
 
+const GUIDE_FORM: RegisterFormValues = {
+  ...TOURIST_FORM,
+  license: 'LIC-B8A-001',
+  startOperationDate: '2024-02-01',
+}
+
 const PROVIDER_FORM: RegisterFormValues = {
   ...TOURIST_FORM,
   nit: '900123456-7',
@@ -161,6 +167,46 @@ describe('validateRegisterForm', () => {
       dniNumber: '',
     })
     expect(Object.keys(errors).sort()).toEqual(['dniNumber', 'email', 'fullName'])
+  })
+
+  it('acepta datos válidos de guía con su licencia', () => {
+    expect(validateRegisterForm('GUIDE', GUIDE_FORM)).toEqual({})
+  })
+
+  it('exige la licencia del guía y su máximo de RegisterGuideRequest.java:20', () => {
+    expect(
+      validateRegisterForm('GUIDE', { ...GUIDE_FORM, license: '   ' }).license,
+    ).toMatch(/licencia de guía/i)
+    expect(
+      validateRegisterForm('GUIDE', { ...GUIDE_FORM, license: 'L'.repeat(51) })
+        .license,
+    ).toMatch(/50/)
+  })
+
+  it('no deja que el guía declare una fecha de inicio futura', () => {
+    expect(
+      validateRegisterForm('GUIDE', {
+        ...GUIDE_FORM,
+        startOperationDate: '2999-01-01',
+      }).startOperationDate,
+    ).toMatch(/futuro/)
+    expect(
+      validateRegisterForm('GUIDE', {
+        ...GUIDE_FORM,
+        startOperationDate: '',
+      }).startOperationDate,
+    ).toBeUndefined()
+  })
+
+  it('el guía no arrastra los campos del turista ni el NIT de la prestadora', () => {
+    const errors = validateRegisterForm('GUIDE', {
+      ...GUIDE_FORM,
+      nationality: 'a'.repeat(81),
+      nit: 'x',
+      birthDate: '2999-01-01',
+    })
+
+    expect(Object.keys(errors)).toEqual([])
   })
 
   it('aplica el NIT de RegisterProviderRequest.java:21', () => {

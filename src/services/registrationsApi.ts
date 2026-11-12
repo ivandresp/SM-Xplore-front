@@ -31,9 +31,14 @@ export const registrationsApi = {
    * `200` con la página; `400` si el rol no se revisa o el estado es
    * `APROBADO`; `403` para el resto de roles.
    */
-  list: (params: RegistrationQueueParams) =>
+  list: ({ cacheBust, ...params }: RegistrationQueueParams) =>
     httpClient
-      .get<unknown>('/registrations', { query: { ...params } })
+      .get<unknown>('/registrations', {
+        query: {
+          ...params,
+          ...(cacheBust === undefined ? {} : { _: cacheBust }),
+        },
+      })
       .then((response) =>
         parseResponse(registrationPageSchema, response, 'GET /registrations'),
       ),
