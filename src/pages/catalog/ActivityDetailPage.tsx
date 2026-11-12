@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
+import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -272,17 +273,21 @@ export default function ActivityDetailPage() {
             <h2 className={styles.sectionTitle}>
               Ubicación y punto de encuentro
             </h2>
-            <div className={styles.map}>
-              {site === null ? (
-                'Esta actividad no tiene un atractivo publicado asociado.'
-              ) : (
-                <>
-                  <strong>{site.name}</strong>
-                  {zone !== null ? `${zone.name} · ` : ''}
-                  {site.latitude.toFixed(5)}, {site.longitude.toFixed(5)}
-                </>
-              )}
-            </div>
+            {site !== null ? (
+              <p className={styles.paragraph}>
+                <strong>{site.name}</strong>
+                {zone !== null ? ` · ${zone.name}` : ''}
+              </p>
+            ) : (
+              <p className={styles.paragraphMuted}>
+                Esta actividad no tiene un atractivo publicado asociado.
+              </p>
+            )}
+            <MapPreview
+              label={site?.name ?? activity.name}
+              latitude={site?.latitude ?? null}
+              longitude={site?.longitude ?? null}
+            />
           </section>
         </div>
 

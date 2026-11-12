@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
+import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -250,6 +251,21 @@ export default function EventDetailPage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Información del evento</h2>
             <DefList items={infoItems} />
+          </article>
+
+          <article className={styles.card}>
+            <h2 className={styles.cardTitle}>Ubicación</h2>
+            {site === null ? (
+              <p className={styles.meta}>
+                Este evento no tiene un lugar publicado asociado.
+              </p>
+            ) : (
+              <MapPreview
+                label={site.name}
+                latitude={site.latitude}
+                longitude={site.longitude}
+              />
+            )}
           </article>
         </div>
 

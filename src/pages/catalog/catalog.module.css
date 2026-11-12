@@ -213,21 +213,6 @@
   font-weight: 700;
 }
 
-.map {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  align-items: center;
-  justify-content: center;
-  min-height: 14rem;
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-md);
-  background-color: var(--color-primary-soft);
-  color: var(--color-text);
-  font-size: 0.95rem;
-  text-align: center;
-}
-
 /* Panel de reserva */
 .booking {
   display: grid;

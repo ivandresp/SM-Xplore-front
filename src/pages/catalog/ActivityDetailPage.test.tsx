@@ -118,6 +118,52 @@ describe('ActivityDetailPage', () => {
     ).toBeTruthy()
   })
 
+  it('muestra el mapa del atractivo donde ocurre la actividad', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/activities/')) return jsonResponse(ACTIVITY)
+        if (url.includes('/sites/')) return jsonResponse(SITE)
+        return jsonResponse(page([]))
+      }),
+    )
+
+    renderDetail()
+
+    expect(
+      await screen.findByRole('img', {
+        name: /Mapa de Playa Blanca en 11\.26000, -74\.19000/,
+      }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('link', { name: '© OpenStreetMap contributors' }),
+    ).toBeTruthy()
+  })
+
+  it('sin atractivo publicado avisa que no hay coordenadas en vez de romper el mapa', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/activities/')) return jsonResponse(ACTIVITY)
+        if (url.includes('/sites/')) {
+          return jsonResponse({ detail: 'Site not found', code: 'SITE_NOT_FOUND' }, 404)
+        }
+        return jsonResponse(page([]))
+      }),
+    )
+
+    renderDetail()
+
+    expect(
+      await screen.findByText('Esta ficha todavía no tiene coordenadas publicadas.'),
+    ).toBeTruthy()
+    expect(
+      screen.queryByRole('img', { name: /Mapa de/ }),
+    ).toBeNull()
+  })
+
   it('traduce el 404 y no muestra el detail crudo del backend', async () => {
     vi.stubGlobal(
       'fetch',
