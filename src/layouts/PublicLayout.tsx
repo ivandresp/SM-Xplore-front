@@ -47,6 +47,7 @@ export function PublicLayout() {
         tone={isCatalog ? 'dark' : 'light'}
         search={!isAuthPage}
         links={links}
+        currentPath={pathname}
         right={
           isAuthenticated ? (
             <>

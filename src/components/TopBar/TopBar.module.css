@@ -239,6 +239,21 @@
   color: var(--color-link);
 }
 
+.link:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Ruta activa: estilo persistente, sin depender del hover ni del foco. */
+.link[aria-current='page'] {
+  color: var(--color-link);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.35rem;
+}
+
 .right {
   display: flex;
   align-items: center;
@@ -284,6 +299,14 @@
 }
 
 .dark .link:hover {
+  color: #c9f2ec;
+}
+
+.dark .link:focus-visible {
+  outline-color: #c9f2ec;
+}
+
+.dark .link[aria-current='page'] {
   color: #c9f2ec;
 }
 

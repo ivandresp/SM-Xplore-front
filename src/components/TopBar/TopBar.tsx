@@ -26,6 +26,8 @@ export interface TopBarProps {
   /** Píldora junto al logo (p. ej. "Panel de gestión"). */
   badge?: string
   links?: TopBarLink[]
+  /** Ruta actual: marca el enlace activo con `aria-current="page"`. */
+  currentPath?: string
   /** Acciones del extremo derecho (botón, avatar, menú…). */
   right?: ReactNode
 }
@@ -237,11 +239,17 @@ function GlobalSearch() {
   )
 }
 
+/** Activo si la ruta coincide exacta o es una subruta suya. */
+function isCurrentPath(pathname: string, to: string): boolean {
+  return pathname === to || pathname.startsWith(`${to}/`)
+}
+
 export function TopBar({
   tone = 'light',
   search = false,
   badge,
   links = [],
+  currentPath,
   right,
 }: TopBarProps) {
   return (
@@ -257,7 +265,17 @@ export function TopBar({
       {links.length > 0 && (
         <nav className={styles.links}>
           {links.map((link) => (
-            <Link key={link.label} to={link.to} className={styles.link}>
+            <Link
+              key={link.label}
+              to={link.to}
+              className={styles.link}
+              aria-current={
+                currentPath !== undefined &&
+                isCurrentPath(currentPath, link.to)
+                  ? 'page'
+                  : undefined
+              }
+            >
               {link.label}
             </Link>
           ))}
