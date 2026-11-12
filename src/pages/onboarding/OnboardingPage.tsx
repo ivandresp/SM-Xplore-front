@@ -53,11 +53,20 @@ export default function OnboardingPage() {
   const [preferredLanguage, setPreferredLanguage] = useState('')
   const [profileError, setProfileError] = useState<string | null>(null)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [profileSavedNow, setProfileSavedNow] = useState(false)
   const [draftOwner, setDraftOwner] = useState<string | null>(null)
 
   const touristProfile = user !== null && user.role === 'TOURIST' ? user.profile : null
+  /**
+   * Solo cuentan las preferencias EXPLICIT: abrir una ficha crea una INFERRED
+   * con peso 0.15 (ms-05), así que una vista no puede encender el progreso ni
+   * marcar cápsulas como elegidas.
+   */
+  const explicitPreferences = (savedPreferences ?? []).filter(
+    (preference) => preference.source === 'EXPLICIT',
+  )
   const progress = deriveOnboardingProgress({
-    preferenceCount: savedPreferences?.length ?? 0,
+    preferenceCount: explicitPreferences.length,
     profile: touristProfile,
   })
 
@@ -139,7 +148,7 @@ export default function OnboardingPage() {
       return
     }
 
-    const isSaved = savedPreferences.some(
+    const isSaved = explicitPreferences.some(
       (preference) => preference.categoryId === categoryId,
     )
 
@@ -190,6 +199,7 @@ export default function OnboardingPage() {
     try {
       const updated = await usersApi.updateMe(patch)
       updateSessionUser(updated)
+      setProfileSavedNow(true)
       setStatusMessage(null)
       setManualStep(3)
     } catch (cause) {
@@ -214,12 +224,21 @@ export default function OnboardingPage() {
   }
 
   const savedIds = new Set(
-    (savedPreferences ?? []).map((preference) => preference.categoryId),
+    explicitPreferences.map((preference) => preference.categoryId),
   )
   const selectedCategories = (categories ?? []).filter((category) =>
     savedIds.has(category.id),
   )
-  const isStep1Loading = categories === null || savedPreferences === null
+  const isSavingPreference = pendingCategoryId !== null
+  /**
+   * Cargando solo mientras no hay respuesta ni error de esa fuente: un fallo se
+   * pinta como error con reintento y no deja el paso 1 girando para siempre.
+   */
+  const isStep1Loading =
+    (categories === null && categoryError === null) ||
+    (savedPreferences === null && preferencesError === null)
+  /** Sin preferencias conocidas no se puede saber qué está marcado: se pausa. */
+  const canPickCategories = categories !== null && savedPreferences !== null
   const targets = finishTargets(progress)
   const firstName = user.fullName.split(' ')[0] ?? ''
   const canSubmitProfile =
@@ -316,12 +335,15 @@ export default function OnboardingPage() {
               )}
 
               {preferencesError !== null && (
-                <p className={styles.error} role="alert">
-                  {preferencesError}
-                </p>
+                <div className={styles.inlineError}>
+                  <p role="alert">{preferencesError}</p>
+                  <Button variant="outline" size="sm" onClick={retryLoad}>
+                    Reintentar
+                  </Button>
+                </div>
               )}
 
-              {isStep1Loading && categoryError === null && (
+              {isStep1Loading && (
                 <p className={styles.status} role="status">
                   Cargando intereses…
                 </p>
@@ -346,10 +368,15 @@ export default function OnboardingPage() {
                           className={classNames(
                             styles.capsule,
                             isSaved && styles.capsuleSelected,
+                            !canPickCategories && styles.capsuleBusy,
                           )}
                           aria-pressed={isSaved}
                           aria-busy={isPending ? true : undefined}
-                          disabled={isPending}
+                          aria-disabled={
+                            !canPickCategories || isSavingPreference
+                              ? true
+                              : undefined
+                          }
                           onClick={() => void toggleCategory(category.id)}
                         >
                           <span className={styles.emoji} aria-hidden="true">
@@ -368,12 +395,17 @@ export default function OnboardingPage() {
                 </ul>
               )}
 
+              {isSavingPreference && (
+                <p className={styles.status} role="status">
+                  Guardando… espera un momento.
+                </p>
+              )}
               {actionError !== null && (
                 <p className={styles.error} role="alert">
                   {actionError}
                 </p>
               )}
-              {statusMessage !== null && (
+              {!isSavingPreference && statusMessage !== null && (
                 <p className={styles.status} role="status">
                   {statusMessage}
                 </p>
@@ -401,8 +433,8 @@ export default function OnboardingPage() {
                 Cuéntanos de ti
               </h1>
               <p className={styles.lead}>
-                Tu nacionalidad y tu idioma nos ayudan a afinar el catálogo. Es
-                opcional: puedes omitirlo y completarlo después en Mi perfil.
+                Estos son tus datos de registro; puedes cambiarlos aquí o en tu
+                perfil.
               </p>
 
               <form className={styles.form} onSubmit={handleProfileSubmit} noValidate>
@@ -475,10 +507,10 @@ export default function OnboardingPage() {
               </h1>
               <p className={styles.lead}>
                 {progress.ready
-                  ? 'Tus intereses y tu perfil ya están guardados. Desde aquí puedes entrar al catálogo o ver lo que preparamos para ti.'
+                  ? 'Tus intereses están guardados y tu perfil está completo. Elige por dónde seguir.'
                   : progress.interestsDone
-                    ? 'Tus intereses ya están guardados. El perfil quedó pendiente: puedes completarlo cuando quieras en Mi perfil.'
-                    : 'Guardamos tu perfil. Los intereses quedaron pendientes: elígelos cuando quieras para personalizar tus recomendaciones.'}
+                    ? 'Tus intereses están guardados. El perfil quedó pendiente: puedes completarlo cuando quieras en Mi perfil.'
+                    : 'Tu perfil está completo. Los intereses quedaron pendientes: elígelos cuando quieras para personalizar tus recomendaciones.'}
               </p>
 
               {selectedCategories.length > 0 && (
@@ -499,8 +531,10 @@ export default function OnboardingPage() {
 
               <p className={styles.status}>
                 {progress.profileDone
-                  ? 'Perfil: nacionalidad e idioma guardados.'
-                  : 'Perfil: pendiente.'}
+                  ? profileSavedNow
+                    ? 'Perfil completo: guardamos la nacionalidad y el idioma de este paso.'
+                    : 'Perfil completo: usamos los datos de tu cuenta.'
+                  : 'Perfil pendiente.'}
               </p>
 
               {statusMessage !== null && (
