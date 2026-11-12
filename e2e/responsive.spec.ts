@@ -1,7 +1,9 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
-const WIDTHS = [375, 768, 1280] as const
+/* 320 px es un iPhone SE de primera generación: si la fila de acciones no
+   encoge, aquí se ve el desborde. */
+const WIDTHS = [320, 375, 768, 1280] as const
 
 /** Rutas públicas: no dependen de una sesión para montar el layout. */
 const PUBLIC_ROUTES = ['/explorar', '/eventos', '/servicios', '/atractivos']
@@ -15,7 +17,7 @@ async function clientWidth(page: Page): Promise<number> {
 }
 
 test.describe('responsive', () => {
-  test('ninguna ruta publica desborda en horizontal a 375/768/1280', async ({
+  test('ninguna ruta publica desborda en horizontal a 320/375/768/1280', async ({
     page,
   }) => {
     for (const route of PUBLIC_ROUTES) {
