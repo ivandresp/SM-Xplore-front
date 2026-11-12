@@ -30,9 +30,9 @@ export function readCache<T>(key: string): CachedValue<T> {
 }
 
 export function writeCache(key: string, value: unknown, ttlMs = DEFAULT_TTL_MS): void {
-  prune(Date.now())
   // Reescribir una clave la rejuvenece: Map conserva el orden de insercion.
   entries.delete(key)
+  prune(Date.now())
   entries.set(key, { expiresAt: Date.now() + ttlMs, value })
 }
 

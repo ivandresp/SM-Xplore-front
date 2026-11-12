@@ -1,5 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ApiError, RequestTimeoutError, httpClient } from './httpClient'
+import {
+  ApiError,
+  RequestTimeoutError,
+  httpClient,
+  tokenFingerprint,
+} from './httpClient'
 import { clearToken, loadToken, onUnauthorized, saveToken } from './authToken'
 
 function jsonResponse(body: unknown, status = 200) {
@@ -268,6 +273,63 @@ describe('httpClient', () => {
     await expect(httpClient.get('/activities')).resolves.toEqual({
       items: ['nuevo'],
     })
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('la clave de caché no lleva el token en claro', () => {
+    const fingerprint = tokenFingerprint('jwt-secreto-de-prueba')
+    expect(fingerprint).not.toContain('jwt-secreto-de-prueba')
+    expect(tokenFingerprint('jwt-secreto-de-prueba')).toBe(fingerprint)
+  })
+
+  it('una señal ya abortada rechaza sin tocar la red ni la caché', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({ items: [] }))
+    vi.stubGlobal('fetch', fetchMock)
+    await httpClient.get('/activities')
+
+    const controller = new AbortController()
+    controller.abort()
+
+    await expect(
+      httpClient.get('/activities', { signal: controller.signal }),
+    ).rejects.toMatchObject({ name: 'AbortError' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('no comparte dedupe cuando el llamador pasa una señal', async () => {
+    let release: (response: Response) => void = () => undefined
+    const pending = new Promise<Response>((resolve) => {
+      release = resolve
+    })
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(pending)
+      .mockResolvedValueOnce(jsonResponse({ items: ['segundo'] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const controller = new AbortController()
+    const withSignal = httpClient.get('/activities', { signal: controller.signal })
+    const withoutSignal = httpClient.get('/activities')
+    release(jsonResponse({ items: ['primero'] }))
+
+    await expect(withSignal).resolves.toEqual({ items: ['primero'] })
+    await expect(withoutSignal).resolves.toEqual({ items: ['segundo'] })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('una URL con interactions/view en el query sí invalida la caché', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ items: [] }))
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(jsonResponse({ items: [9] }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await httpClient.get('/activities')
+    await httpClient.post('/foo?next=/interactions/view/A/B')
+    const refreshed = await httpClient.get('/activities')
+
+    expect(refreshed).toEqual({ items: [9] })
     expect(fetchMock).toHaveBeenCalledTimes(3)
   })
 

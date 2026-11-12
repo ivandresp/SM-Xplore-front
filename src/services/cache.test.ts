@@ -130,6 +130,18 @@ describe('cache', () => {
     expect(readCache('GET /item-249').found).toBe(true)
   })
 
+  it('refrescar una clave en el tope no desaloja a la refrescada', () => {
+    for (let index = 0; index < 199; index += 1) {
+      writeCache(`GET /item-${index}`, index)
+    }
+    writeCache('GET /item-0', 'refrescado')
+    writeCache('GET /item-199', 199)
+    writeCache('GET /item-200', 200)
+
+    expect(cacheSize()).toBe(200)
+    expect(readCache('GET /item-0').value).toBe('refrescado')
+  })
+
   it('vacía todo al limpiar (logout o cambio de usuario)', () => {
     writeCache('GET /a', 1)
     writeCache('GET /b', 2)

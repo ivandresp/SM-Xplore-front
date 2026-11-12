@@ -106,6 +106,16 @@ async function toApiError(response: Response): Promise<ApiError> {
   return new ApiError(message, response.status, payload)
 }
 
+/** Huella estable del token: la clave de caché nunca guarda el bearer en claro. */
+export function tokenFingerprint(token: string): string {
+  let hash = 0x811c9dc5
+  for (let index = 0; index < token.length; index += 1) {
+    hash ^= token.charCodeAt(index)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return `${token.length}:${(hash >>> 0).toString(36)}`
+}
+
 async function request<T>(
   path: string,
   { body, query, headers: rawHeaders, timeoutMs, ...rest }: RequestOptions = {},
@@ -123,10 +133,15 @@ async function request<T>(
   // Estado de aplicación (por pestaña, 30 s, ligado al token), no una caché HTTP: el
   // `no-store` del gateway no la gobierna. Si se quiere semántica HTTP estricta, se quita
   // ese header en los GET públicos (backend), no aquí.
+  if (rest.signal?.aborted === true) {
+    throw new DOMException('Aborted', 'AbortError')
+  }
   // Valida el vencimiento local antes de leer: si el token caducó, esto limpia la caché.
   const sessionToken = loadToken()
   // La identidad forma parte de la clave: dos cuentas nunca comparten una entrada.
-  const cacheKey = `${method} ${url} ${sessionToken ?? 'anon'}`
+  const cacheKey = `${method} ${url} ${
+    sessionToken === null ? 'anon' : tokenFingerprint(sessionToken)
+  }`
 
   if (cacheable) {
     const cached = readCache<T>(cacheKey)

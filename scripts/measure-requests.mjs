@@ -31,6 +31,8 @@ const ROUTES = [
   { route: '/atractivos', detail: 'a[href^="/atractivos/"]' },
   { route: '/servicios', detail: 'a[href^="/servicios/"]' },
   { route: '/recomendaciones', detail: 'a[href="/explorar"]' },
+  // Con credenciales de ADMIN mide /app; con un turista da 404 y no cuenta.
+  { route: '/app', detail: 'a[href="/app/usuarios"]' },
 ]
 
 const browser = await chromium.launch({ channel: 'chrome' })
