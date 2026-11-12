@@ -139,18 +139,19 @@
 
 .remove {
   position: absolute;
-  top: 0.35rem;
-  right: 0.35rem;
+  top: 0.25rem;
+  right: 0.25rem;
   display: grid;
   place-items: center;
-  width: 1.75rem;
-  height: 1.75rem;
+  /* Objetivo táctil de 44x44 CSS px (WCAG 2.5.5 / HIG). */
+  width: 2.75rem;
+  height: 2.75rem;
   padding: 0;
   border: 1px solid var(--color-on-action);
   border-radius: 999px;
   background-color: var(--color-ink);
   color: var(--color-on-action);
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
   transition:

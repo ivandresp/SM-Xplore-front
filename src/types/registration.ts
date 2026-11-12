@@ -44,6 +44,11 @@ export interface RegistrationQueueParams {
   page?: number
   /** 1..100: el backend responde 400 fuera de ese rango. */
   size?: number
+  /**
+   * Marca de tiempo que se manda como `_=` para saltar la caché de 30 s de
+   * `httpClient` en una recarga manual (una mutación fallida no la invalida).
+   */
+  cacheBust?: number
 }
 
 /** `RegistrationReviewRequest.java:7-9`: `reason` obligatorio al rechazar. */

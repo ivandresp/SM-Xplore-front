@@ -332,6 +332,12 @@ describe('RegisterPage', () => {
     ).toBeTruthy()
     expect(screen.getByText(/hotel@correo.com/)).toBeTruthy()
 
+    const providerNotice = screen.getByText(/puede llegar un aviso/i)
+    expect(providerNotice.textContent).not.toMatch(
+      /antes de que puedas iniciar sesión/i,
+    )
+    expect(providerNotice.textContent).toMatch(/sigue activa/i)
+
     const call = fetchMock.mock.calls.find(([input]) =>
       String(input).endsWith('/auth/register/prestadora'),
     )
@@ -423,12 +429,13 @@ describe('RegisterPage', () => {
       .join(' ')
     expect(described).toContain('Escribe tu nombre completo.')
 
-    const warns = screen
-      .getAllByRole('alert')
-      .map((node) => node.textContent ?? '')
-    expect(warns.some((text) => text.includes('Escribe tu nombre completo.'))).toBe(
-      true,
-    )
+    // Un solo alert (el resumen); el error del campo se anuncia en polite.
+    const alerts = screen.getAllByRole('alert')
+    expect(alerts).toHaveLength(1)
+    expect(alerts[0].textContent).toContain('Revisa los datos')
+
+    const fieldError = screen.getByText('Escribe tu nombre completo.')
+    expect(fieldError.getAttribute('aria-live')).toBe('polite')
   })
 
   it('explica el DATA_CONFLICT sin hablar de campos no válidos', async () => {
@@ -546,7 +553,9 @@ describe('RegisterPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Solicitud enviada' }),
     ).toBeTruthy()
-    expect(screen.getByText(/revisa tu correo/i)).toBeTruthy()
+    const notice = screen.getByText(/puede llegar un aviso/i)
+    expect(notice.textContent).toContain('ana@correo.com')
+    expect(notice.textContent).not.toMatch(/escribimos|Se avisó/)
     expect(screen.getByText(/ana@correo.com/)).toBeTruthy()
 
     const call = fetchMock.mock.calls.find(([input]) =>

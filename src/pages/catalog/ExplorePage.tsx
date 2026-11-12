@@ -10,12 +10,13 @@ import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
-import { MAX_PRICE_OPTIONS } from '@/config/catalog'
+import { CATALOG_SKELETON_COUNT, MAX_PRICE_OPTIONS } from '@/config/catalog'
 import {
   useFilterParam,
   useSearchParamTerm,
   useSearchParamText,
 } from '@/hooks/useFilterParam'
+import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { activitiesApi } from '@/services/activitiesApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -31,6 +32,7 @@ import type {
 import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
+
 
 const SORT_OPTIONS: Array<{ value: ActivitySort; label: string }> = [
   { value: 'name', label: 'Nombre (A–Z)' },
@@ -88,6 +90,12 @@ export default function ExplorePage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
+  const isFirstLoad = result === null
+  // El retardo y el minimo visible solo aplican a la primera carga. En recargas
+  // la lista anterior se queda en pantalla y no se desmonta.
+  const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
+  const holdSkeleton = showSkeleton || (isLoading && isFirstLoad)
+  const isBusy = isLoading || showSkeleton
 
   // Opciones de los desplegables: catálogo pequeño y estable.
   useEffect(() => {
@@ -114,7 +122,6 @@ export default function ExplorePage() {
     const current = new URLSearchParams(queryKey)
 
     setIsLoading(true)
-    setError(null)
 
     activitiesApi
       .list({
@@ -130,6 +137,7 @@ export default function ExplorePage() {
       })
       .then((page) => {
         if (!cancelled) setResult(page)
+        if (!cancelled) setError(null)
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
@@ -243,13 +251,12 @@ export default function ExplorePage() {
 
   function retry() {
     setIsLoading(true)
-    setError(null)
     setReloadToken((token) => token + 1)
   }
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isLoading
+  const resultSummary = isBusy
     ? 'Buscando…'
     : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
 
@@ -341,12 +348,18 @@ export default function ExplorePage() {
         </label>
       </FilterBar>
 
-      <section className={styles.results}>
-        {isLoading && (
-          <Skeleton variant="card" count={6} label="Cargando actividades…" />
+      <section className={styles.results} aria-busy={isBusy}>
+        {holdSkeleton && (
+          <Skeleton
+            decorative
+            visible={showSkeleton}
+            variant="card"
+            metaLines={2}
+            count={CATALOG_SKELETON_COUNT}
+          />
         )}
 
-        {!isLoading && error !== null && (
+        {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
             title="No pudimos cargar las actividades"
@@ -359,7 +372,7 @@ export default function ExplorePage() {
           />
         )}
 
-        {!isLoading && error === null && result !== null && total === 0 && (
+        {!isLoading && error === null && result !== null && total === 0 && !holdSkeleton && (
           <StateMessage
             title={
               hasActiveFilters
@@ -381,7 +394,7 @@ export default function ExplorePage() {
           />
         )}
 
-        {!isLoading && result !== null && result.content.length > 0 && (
+        {result !== null && error === null && result.content.length > 0 && !holdSkeleton && (
           <div className={styles.cards}>
             {result.content.map((activity) => (
               <ActivityCard key={activity.id} activity={activity} />
@@ -389,11 +402,13 @@ export default function ExplorePage() {
           </div>
         )}
 
-        <Pagination
-          page={page}
-          totalPages={result?.totalPages ?? 0}
-          onChange={goToPage}
-        />
+        {!holdSkeleton && (
+          <Pagination
+            page={page}
+            totalPages={result?.totalPages ?? 0}
+            onChange={goToPage}
+          />
+        )}
       </section>
     </div>
   )

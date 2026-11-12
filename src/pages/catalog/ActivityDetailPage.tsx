@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
+import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
@@ -12,6 +13,7 @@ import { useItinerary } from '@/hooks/useItinerary'
 import { useTrackView } from '@/hooks/useTrackView'
 import { activitiesApi } from '@/services/activitiesApi'
 import { describeApiError } from '@/utils/errors'
+import { isApiError } from '@/services/httpClient'
 import { reservationsApi } from '@/services/reservationsApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -52,6 +54,10 @@ export default function ActivityDetailPage() {
   const [activity, setActivity] = useState<ActivityResponse | null>(null)
   const [site, setSite] = useState<Site | null>(null)
   const [zone, setZone] = useState<Zone | null>(null)
+  /** Por qué no hay ubicación: el sitio ya no existe (404) o falló la consulta. */
+  const [siteProblem, setSiteProblem] = useState<
+    'missing' | 'unavailable' | null
+  >(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
@@ -92,6 +98,7 @@ export default function ActivityDetailPage() {
 
         if (siteResult.status === 'fulfilled') {
           setSite(siteResult.value)
+          setSiteProblem(null)
 
           if (zonesResult.status === 'fulfilled') {
             setZone(
@@ -100,6 +107,13 @@ export default function ActivityDetailPage() {
               ) ?? null,
             )
           }
+        } else {
+          setSite(null)
+          setSiteProblem(
+            isApiError(siteResult.reason) && siteResult.reason.status === 404
+              ? 'missing'
+              : 'unavailable',
+          )
         }
       } catch (cause) {
         if (!cancelled) {
@@ -273,17 +287,25 @@ export default function ActivityDetailPage() {
             <h2 className={styles.sectionTitle}>
               Ubicación y punto de encuentro
             </h2>
-            <div className={styles.map}>
-              {site === null ? (
-                'Esta actividad no tiene un atractivo publicado asociado.'
-              ) : (
-                <>
+            {site !== null ? (
+              <>
+                <p className={styles.paragraph}>
                   <strong>{site.name}</strong>
-                  {zone !== null ? `${zone.name} · ` : ''}
-                  {site.latitude.toFixed(5)}, {site.longitude.toFixed(5)}
-                </>
-              )}
-            </div>
+                  {zone !== null ? ` · ${zone.name}` : ''}
+                </p>
+                <MapPreview
+                  label={site.name}
+                  latitude={site.latitude}
+                  longitude={site.longitude}
+                />
+              </>
+            ) : (
+              <p className={styles.paragraphMuted}>
+                {siteProblem === 'unavailable'
+                  ? 'No pudimos cargar la ubicación del atractivo. Vuelve a intentarlo en un momento.'
+                  : 'Esta actividad no tiene un atractivo publicado asociado.'}
+              </p>
+            )}
           </section>
         </div>
 

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ApiError, RequestTimeoutError } from '@/services/httpClient'
-import { describeApiError } from './errors'
+import { describeApiError, logApiError } from './errors'
 
 function apiError(status: number, code?: string, detail = 'English detail') {
   return new ApiError(detail, status, {
@@ -126,5 +126,71 @@ describe('describeApiError', () => {
 
     expect(message).not.toContain('COMPLETED')
     expect(message).toContain('conflicto')
+  })
+})
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
+/** Lo que lanza `parseResponse` (services/validate.ts) cuando el wire no cuadra. */
+function contractError(label = 'GET /recommendations') {
+  return new Error(
+    `Respuesta inesperada de ${label}: [{"code":"invalid_value","path":["source"],"message":"Invalid option"}] `,
+  )
+}
+
+describe('contrato roto', () => {
+  it('da un mensaje accionable en vez del genérico de error inesperado', () => {
+    const message = describeApiError(contractError())
+
+    expect(message).toContain('formato que no reconocemos')
+    expect(message).not.toContain('error inesperado')
+    expect(message).toContain('Vuelve a intentarlo')
+  })
+
+  it('deja el cause en consola con la etiqueta del endpoint y los issues', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    logApiError(contractError(), 'recomendaciones')
+
+    expect(spy).toHaveBeenCalledTimes(1)
+    const printed = JSON.stringify(spy.mock.calls.map((call) => call[1]))
+    expect(printed).toContain('GET /recommendations')
+    expect(printed).toContain('invalid_value')
+    expect(spy.mock.calls[0][0]).toContain('recomendaciones')
+  })
+
+  it('nunca escribe el detail crudo del backend en consola', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    logApiError(
+      apiError(500, undefined, 'Cypher query failed at line 12 of Neo4jQueries'),
+      'recomendaciones',
+    )
+
+    const printed = JSON.stringify(spy.mock.calls)
+    expect(printed).not.toContain('Cypher')
+    expect(printed).not.toContain('Neo4jQueries')
+    expect(printed).toContain('500')
+  })
+
+  it('registra un fallo de red como red, no como bug', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    logApiError(new TypeError('Failed to fetch'), 'recomendaciones')
+
+    const detail = spy.mock.calls[0][1] as { kind: string }
+    expect(detail.kind).toBe('network')
+  })
+
+  it('registra el error desconocido tal cual para conservar el stack', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const bug = new TypeError('activities.filter is not a function')
+
+    logApiError(bug, 'recomendaciones')
+
+    const detail = spy.mock.calls[0][1] as { kind: string; error: unknown }
+    expect(detail.kind).toBe('unexpected')
+    expect(detail.error).toBe(bug)
   })
 })

@@ -10,7 +10,9 @@ import { SelectField } from '@/components/SelectField'
 import { SiteCard } from '@/components/SiteCard/SiteCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import { CATALOG_SKELETON_COUNT } from '@/config/catalog'
 import { useFilterParam, useSearchParamTerm } from '@/hooks/useFilterParam'
+import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { categoriesApi } from '@/services/categoriesApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -24,6 +26,7 @@ import type {
 import styles from './catalog.module.css'
 
 const PAGE_SIZE = 12
+
 
 const FILTER_KEYS = ['search', 'zona', 'categoria'] as const
 
@@ -43,6 +46,12 @@ export default function SiteListPage() {
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
+  const isFirstLoad = result === null
+  // El retardo y el minimo visible solo aplican a la primera carga. En recargas
+  // la lista anterior se queda en pantalla y no se desmonta.
+  const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
+  const holdSkeleton = showSkeleton || (isLoading && isFirstLoad)
+  const isBusy = isLoading || showSkeleton
 
   useEffect(() => {
     let cancelled = false
@@ -68,7 +77,6 @@ export default function SiteListPage() {
     const current = new URLSearchParams(queryKey)
 
     setIsLoading(true)
-    setError(null)
 
     sitesApi
       .list({
@@ -81,6 +89,7 @@ export default function SiteListPage() {
       })
       .then((sitePage) => {
         if (!cancelled) setResult(sitePage)
+        if (!cancelled) setError(null)
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
@@ -166,13 +175,12 @@ export default function SiteListPage() {
 
   function retry() {
     setIsLoading(true)
-    setError(null)
     setReloadToken((token) => token + 1)
   }
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isLoading
+  const resultSummary = isBusy
     ? 'Buscando…'
     : `${total} ${total === 1 ? 'atractivo' : 'atractivos'}`
 
@@ -224,12 +232,18 @@ export default function SiteListPage() {
         />
       </FilterBar>
 
-      <section className={styles.results}>
-        {isLoading && (
-          <Skeleton variant="card" count={6} label="Cargando atractivos…" />
+      <section className={styles.results} aria-busy={isBusy}>
+        {holdSkeleton && (
+          <Skeleton
+            decorative
+            visible={showSkeleton}
+            variant="card"
+            showPrice={false}
+            count={CATALOG_SKELETON_COUNT}
+          />
         )}
 
-        {!isLoading && error !== null && (
+        {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
             title="No pudimos cargar los atractivos"
@@ -242,7 +256,7 @@ export default function SiteListPage() {
           />
         )}
 
-        {!isLoading && error === null && result !== null && total === 0 && (
+        {!isLoading && error === null && result !== null && total === 0 && !holdSkeleton && (
           <StateMessage
             title={
               hasActiveFilters
@@ -264,7 +278,7 @@ export default function SiteListPage() {
           />
         )}
 
-        {!isLoading && result !== null && result.content.length > 0 && (
+        {result !== null && error === null && result.content.length > 0 && !holdSkeleton && (
           <div className={styles.cards}>
             {result.content.map((site) => (
               <SiteCard
@@ -276,11 +290,13 @@ export default function SiteListPage() {
           </div>
         )}
 
-        <Pagination
-          page={page}
-          totalPages={result?.totalPages ?? 0}
-          onChange={goToPage}
-        />
+        {!holdSkeleton && (
+          <Pagination
+            page={page}
+            totalPages={result?.totalPages ?? 0}
+            onChange={goToPage}
+          />
+        )}
       </section>
     </div>
   )

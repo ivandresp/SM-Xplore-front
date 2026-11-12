@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ActivityCard } from '@/components/ActivityCard/ActivityCard'
 import { Button } from '@/components/Button'
+import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -181,12 +182,11 @@ export default function SiteDetailPage() {
 
           <section>
             <h2 className={styles.sectionTitle}>Ubicación</h2>
-            <div className={styles.map}>
-              <strong>{site.name}</strong>
-              <br />
-              {zone !== null ? `${zone.name} · ` : ''}
-              {site.latitude.toFixed(5)}, {site.longitude.toFixed(5)}
-            </div>
+            <MapPreview
+              label={site.name}
+              latitude={site.latitude}
+              longitude={site.longitude}
+            />
           </section>
 
           <section>

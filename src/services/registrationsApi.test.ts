@@ -48,6 +48,21 @@ describe('registrationsApi', () => {
     expect(url).toContain('size=10')
   })
 
+  it('manda el cache-busting como _ cuando se recarga a mano', async () => {
+    const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
+      jsonResponse({ content: [], page: 0, size: 10, total: 0, totalPages: 0 }),
+    )
+    vi.stubGlobal('fetch', fetchStub)
+
+    await registrationsApi.list({
+      role: 'GUIDE',
+      status: 'PENDIENTE',
+      cacheBust: 1234567890,
+    })
+
+    expect(String(fetchStub.mock.calls[0][0])).toContain('_=1234567890')
+  })
+
   it('rechaza una respuesta que no trae el sobre de página de ms-01', async () => {
     vi.stubGlobal(
       'fetch',

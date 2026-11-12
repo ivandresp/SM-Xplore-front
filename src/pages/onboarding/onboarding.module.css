@@ -41,12 +41,18 @@
   margin-left: auto;
 }
 
+/* Objetivo táctil de 44 px aunque el texto mida menos. */
 .skip {
-  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
   color: var(--color-muted-strong);
+  font-size: 14px;
   text-decoration: underline;
   text-underline-offset: 3px;
-  border-radius: var(--radius-sm);
+  touch-action: manipulation;
 }
 
 .skip:hover {
@@ -195,9 +201,14 @@
   outline-offset: 2px;
 }
 
-.capsule:disabled {
+.capsule {
+  touch-action: manipulation;
+}
+
+/* Pausada por una escritura en curso o por preferencias sin cargar. */
+.capsuleBusy {
   cursor: progress;
-  opacity: 0.75;
+  opacity: 0.8;
 }
 
 .capsuleSelected {
@@ -250,7 +261,10 @@
 }
 
 .linkButton {
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 6px;
   border: 0;
   border-radius: var(--radius-sm);
   background: none;
@@ -260,6 +274,7 @@
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .linkButton:hover {

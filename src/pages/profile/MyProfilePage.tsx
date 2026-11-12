@@ -11,9 +11,16 @@ import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { usersApi } from '@/services/usersApi'
-import { describeApiError } from '@/utils/errors'
+import type { PreferenceSource } from '@/types'
+import { describeApiError, logApiError } from '@/utils/errors'
 import { formatMonthYear } from '@/utils/format'
+import { usePreferences } from './usePreferences'
 import styles from './profile.module.css'
+
+const PREFERENCE_SOURCE_LABEL: Record<PreferenceSource, string> = {
+  EXPLICIT: 'Elegida por ti',
+  INFERRED: 'Deducida de tus visitas',
+}
 
 interface ProfileDraft {
   fullName: string
@@ -27,6 +34,18 @@ export default function MyProfilePage() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState('')
+
+  // ms-05 solo acepta ROLE_TOURIST en /preferences (SecurityConfiguration:52-54).
+  const {
+    preferences,
+    categories,
+    isLoading: isPreferencesLoading,
+    error: preferencesError,
+    savingCategory,
+    add: addPreference,
+    remove: removePreference,
+  } = usePreferences({ enabled: user?.role === 'TOURIST' })
 
   if (user === null) {
     return null
@@ -34,6 +53,14 @@ export default function MyProfilePage() {
 
   const currentUser = user
   const isEditing = draft !== null
+  const isTourist = currentUser.role === 'TOURIST'
+  const categoryNames = new Map(
+    categories.map((category) => [category.id, category.name]),
+  )
+  const availableCategories = categories.filter(
+    (category) =>
+      !preferences.some((preference) => preference.categoryId === category.id),
+  )
 
   const personalItems: DefItem[] = [
     { label: 'Nombre completo', value: currentUser.fullName },
@@ -48,11 +75,6 @@ export default function MyProfilePage() {
     { label: 'Estado', value: ACCOUNT_STATUS_LABELS[currentUser.status] },
   ]
 
-  const preferenceItems: DefItem[] = [
-    { label: 'Idioma', value: '—' },
-    { label: 'Notificaciones', value: '—' },
-  ]
-
   function startEdit() {
     setDraft({
       fullName: currentUser.fullName,
@@ -65,6 +87,17 @@ export default function MyProfilePage() {
   function cancelEdit() {
     setDraft(null)
     setError(null)
+  }
+
+  async function handleAddPreference() {
+    if (selectedCategory === '') {
+      return
+    }
+
+    // Limpiar el select evita que «Añadir» repita una categoría que ya no está.
+    if (await addPreference(selectedCategory)) {
+      setSelectedCategory('')
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -87,6 +120,7 @@ export default function MyProfilePage() {
       setDraft(null)
       setFeedback('Perfil actualizado.')
     } catch (cause) {
+      logApiError(cause, 'perfil: guardar')
       setError(describeApiError(cause))
     } finally {
       setIsSaving(false)
@@ -191,11 +225,104 @@ export default function MyProfilePage() {
 
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Preferencias</h2>
-            <DefList items={preferenceItems} />
-            <p className={styles.note}>
-              Completa tu ciudad y tus preferencias desde la sección de
-              recomendaciones.
-            </p>
+
+            {!isTourist && (
+              <p className={styles.note}>
+                Las preferencias de categoría se guardan en cuentas de turista; tu
+                cuenta no las usa para armar recomendaciones.
+              </p>
+            )}
+
+            {isTourist && (
+              <>
+                <p className={styles.note}>
+                  Marca las categorías que te gustan: pesan en el orden de tus
+                  recomendaciones.
+                </p>
+
+                {isPreferencesLoading && (
+                  <p className={styles.empty}>Cargando preferencias…</p>
+                )}
+
+                {!isPreferencesLoading &&
+                  preferencesError === null &&
+                  preferences.length === 0 && (
+                    <p className={styles.empty}>
+                      Aún no has marcado ninguna categoría.
+                    </p>
+                  )}
+
+                {preferences.length > 0 && (
+                  <ul className={styles.prefsList}>
+                    {preferences.map((preference) => {
+                      const name =
+                        categoryNames.get(preference.categoryId) ?? 'Categoría'
+
+                      return (
+                        <li key={preference.categoryId} className={styles.prefRow}>
+                          <span className={styles.prefName}>{name}</span>
+                          <span className={styles.prefMeta}>
+                            {PREFERENCE_SOURCE_LABEL[preference.source]}
+                          </span>
+                          <button
+                            type="button"
+                            className={styles.prefChip}
+                            onClick={() => void removePreference(preference.categoryId)}
+                            disabled={savingCategory === preference.categoryId}
+                            aria-label={`Quitar ${name}`}
+                          >
+                            Quitar
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )}
+
+                {preferences.some((preference) => preference.source === 'INFERRED') && (
+                  <p className={styles.note}>
+                    Las deducidas salen de tus visitas y vuelven a aparecer si sigues
+                    abriendo esa categoría.
+                  </p>
+                )}
+
+                {availableCategories.length > 0 && (
+                  <div className={styles.prefsForm}>
+                    <label className={styles.prefsLabel} htmlFor="profile-pref-category">
+                      Añadir categoría
+                    </label>
+                    <select
+                      id="profile-pref-category"
+                      className={styles.select}
+                      value={selectedCategory}
+                      onChange={(event) => setSelectedCategory(event.target.value)}
+                    >
+                      <option value="">Selecciona una categoría…</option>
+                      {availableCategories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      size="sm"
+                      disabled={
+                        selectedCategory === '' || savingCategory !== null
+                      }
+                      onClick={() => void handleAddPreference()}
+                    >
+                      Añadir
+                    </Button>
+                  </div>
+                )}
+
+                {preferencesError !== null && (
+                  <p className={styles.prefsError} role="alert">
+                    {preferencesError}
+                  </p>
+                )}
+              </>
+            )}
           </article>
         </div>
       </div>

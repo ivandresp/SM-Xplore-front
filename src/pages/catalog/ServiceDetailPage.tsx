@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
+import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -167,12 +168,11 @@ export default function ServiceDetailPage() {
 
           <section>
             <h2 className={styles.sectionTitle}>Ubicación</h2>
-            <div className={styles.map}>
-              <strong>{service.providerName}</strong>
-              <br />
-              {service.latitude.toFixed(5)},{' '}
-              {service.longitude.toFixed(5)}
-            </div>
+            <MapPreview
+              label={service.name}
+              latitude={service.latitude}
+              longitude={service.longitude}
+            />
           </section>
         </div>
 
