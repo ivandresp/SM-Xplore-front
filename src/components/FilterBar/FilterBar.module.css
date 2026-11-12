@@ -28,14 +28,29 @@
   font-size: 0.9rem;
 }
 
+.summary {
+  margin: 0;
+  color: var(--color-link);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
 .actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
   margin-left: auto;
 }
 
 .toggle {
   display: inline-flex;
+}
+
+/* Objetivo táctil de 44 px en el ancho en que los filtros se colapsan. */
+@media (max-width: 767px) {
+  .toggle {
+    min-height: 2.75rem;
+  }
 }
 
 .panelCollapsed {

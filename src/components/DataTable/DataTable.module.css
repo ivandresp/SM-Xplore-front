@@ -1,14 +1,39 @@
+/* Scroll contenido: la tabla se desplaza dentro del contenedor, nunca la página. */
 .wrapper {
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background-color: var(--color-bg);
+}
+
+/* La región recibe el foco para poder desplazarse con el teclado. */
+.wrapper:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: 0 0 0.4rem;
+  color: var(--color-muted);
+  font-size: 0.82rem;
 }
 
 .table {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.95rem;
+}
+
+/*
+ * En pantallas estrechas la tabla conserva un ancho legible y se desplaza
+ * dentro del contenedor, en vez de aplastar las columnas hasta recortarlas.
+ */
+@media (max-width: 899px) {
+  .table {
+    min-width: 44rem;
+  }
 }
 
 .table thead th {
@@ -26,6 +51,7 @@
   padding: 0.85rem 1.25rem;
   border-bottom: 1px solid var(--color-border);
   vertical-align: middle;
+  overflow-wrap: anywhere;
 }
 
 .table tbody tr:last-child td {

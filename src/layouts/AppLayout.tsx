@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Skeleton } from '@/components/Skeleton'
 import { TopBar } from '@/components/TopBar'
 import { navItemsFor } from '@/config/navigation'
@@ -14,16 +14,29 @@ function linkClassName({ isActive }: { isActive: boolean }) {
 /** Shell del panel de gestión: barra navy + menú lateral según el rol. */
 export function AppLayout() {
   const { user, logout } = useAuth()
+  const { pathname } = useLocation()
 
   if (user === null) {
     return null
   }
+
+  // En pantallas estrechas la barra lateral no cabe: las mismas secciones
+  // viven en el menú móvil de la barra superior.
+  const sections = [
+    { to: '/app', label: 'Dashboard' },
+    ...navItemsFor(user.role).map((item) => ({
+      to: item.to,
+      label: item.label,
+    })),
+  ]
 
   return (
     <div className={styles.shell}>
       <TopBar
         tone="dark"
         badge="Panel de gestión"
+        currentPath={pathname}
+        menuLinks={sections}
         right={
           <>
             <span className={styles.role}>{ROLE_LABELS[user.role]}</span>

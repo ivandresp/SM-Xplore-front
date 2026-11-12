@@ -1,3 +1,4 @@
+import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { classNames } from '@/utils/format'
 import { Skeleton } from '@/components/Skeleton'
@@ -22,6 +23,49 @@ export interface DataTableProps<T> {
   /** Mientras la primera carga está en curso. */
   isLoading?: boolean
   loadingMessage?: string
+  /** Nombre accesible de la región desplazable. */
+  label?: string
+}
+
+/**
+ * Detecta si el contenedor desborda en horizontal. Sin esto la tabla ancha
+ * se recorta sin aviso en móvil; el aviso solo aparece cuando hace falta.
+ */
+function useHorizontalOverflow(rowCount: number) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [scrollable, setScrollable] = useState(false)
+
+  useEffect(() => {
+    const element = ref.current
+
+    if (element === null) {
+      return
+    }
+
+    function measure() {
+      if (element === null) {
+        return
+      }
+      setScrollable(element.scrollWidth > element.clientWidth + 1)
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+
+    if (typeof ResizeObserver === 'undefined') {
+      return () => window.removeEventListener('resize', measure)
+    }
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', measure)
+    }
+  }, [rowCount])
+
+  return { ref, scrollable }
 }
 
 /** Tabla de datos con encabezado, carga y estado vacío. */
@@ -33,7 +77,11 @@ export function DataTable<T>({
   emptyAction,
   isLoading = false,
   loadingMessage = 'Cargando…',
+  label = 'Tabla de datos',
 }: DataTableProps<T>) {
+  const hintId = useId()
+  const { ref, scrollable } = useHorizontalOverflow(rows.length)
+
   if (isLoading) {
     return (
       <div className={styles.wrapper}>
@@ -48,52 +96,69 @@ export function DataTable<T>({
   }
 
   return (
-    <div className={styles.wrapper}>
-      <table className={styles.table}>
-        <thead>
-          <tr>
-            {columns.map((column, index) => (
-              <th
-                key={index}
-                className={classNames(
-                  column.align === 'right' && styles.alignRight,
-                  column.className,
-                )}
-              >
-                {column.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 ? (
+    <>
+      {scrollable && (
+        <p id={hintId} className={styles.hint}>
+          Desliza la tabla en horizontal para ver todas las columnas.
+        </p>
+      )}
+
+      <div
+        ref={ref}
+        className={styles.wrapper}
+        role="region"
+        aria-label={label}
+        aria-describedby={scrollable ? hintId : undefined}
+        /* Solo se entra con Tab cuando hay algo que desplazar. */
+        tabIndex={scrollable ? 0 : -1}
+      >
+        <table className={styles.table}>
+          <thead>
             <tr>
-              <td className={styles.empty} colSpan={columns.length}>
-                {emptyMessage}
-                {emptyAction !== undefined && (
-                  <div className={styles.emptyAction}>{emptyAction}</div>
-                )}
-              </td>
+              {columns.map((column, index) => (
+                <th
+                  key={index}
+                  scope="col"
+                  className={classNames(
+                    column.align === 'right' && styles.alignRight,
+                    column.className,
+                  )}
+                >
+                  {column.header}
+                </th>
+              ))}
             </tr>
-          ) : (
-            rows.map((row) => (
-              <tr key={rowKey(row)}>
-                {columns.map((column, index) => (
-                  <td
-                    key={index}
-                    className={classNames(
-                      column.align === 'right' && styles.alignRight,
-                      column.className,
-                    )}
-                  >
-                    {column.render(row)}
-                  </td>
-                ))}
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr>
+                <td className={styles.empty} colSpan={columns.length}>
+                  {emptyMessage}
+                  {emptyAction !== undefined && (
+                    <div className={styles.emptyAction}>{emptyAction}</div>
+                  )}
+                </td>
               </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+            ) : (
+              rows.map((row) => (
+                <tr key={rowKey(row)}>
+                  {columns.map((column, index) => (
+                    <td
+                      key={index}
+                      className={classNames(
+                        column.align === 'right' && styles.alignRight,
+                        column.className,
+                      )}
+                    >
+                      {column.render(row)}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </>
   )
 }

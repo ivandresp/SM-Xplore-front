@@ -83,3 +83,10 @@
 .block {
   width: 100%;
 }
+/* En móvil todo botón alcanza el objetivo táctil de 44 px. */
+@media (max-width: 640px) {
+  .sm,
+  .md {
+    min-height: 2.75rem;
+  }
+}

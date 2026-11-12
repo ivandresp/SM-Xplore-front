@@ -1,0 +1,428 @@
+{
+  "mode": "antes",
+  "capturedAt": "2026-11-12T11:17:03.331Z",
+  "pages": {
+    "explorar": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    },
+    "login": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    },
+    "registro": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    },
+    "eventos": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    },
+    "app": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    },
+    "usuarios": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 789,
+            "cw": 325
+          }
+        ],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 789,
+            "cw": 718
+          }
+        ],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    },
+    "zonas": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 376,
+            "cw": 325
+          }
+        ],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    },
+    "eventos-gestion": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 718,
+            "cw": 325
+          }
+        ],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    },
+    "guia-actividades": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 648,
+            "cw": 325
+          }
+        ],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    },
+    "prestadora-servicios": {
+      "375": {
+        "vw": 375,
+        "docScroll": 375,
+        "docClient": 375,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 673,
+            "cw": 325
+          }
+        ],
+        "consoleErrors": []
+      },
+      "768": {
+        "vw": 768,
+        "docScroll": 768,
+        "docClient": 768,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      },
+      "1280": {
+        "vw": 1280,
+        "docScroll": 1280,
+        "docClient": 1280,
+        "offenders": [],
+        "scrollRegions": [],
+        "consoleErrors": []
+      }
+    }
+  },
+  "zoom": {
+    "explorar": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": []
+      }
+    },
+    "login": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": []
+      }
+    },
+    "registro": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": []
+      }
+    },
+    "eventos": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": []
+      }
+    },
+    "app": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": []
+      }
+    },
+    "usuarios": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 789,
+            "cw": 590
+          }
+        ]
+      }
+    },
+    "zonas": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": []
+      }
+    },
+    "eventos-gestion": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 718,
+            "cw": 590
+          }
+        ]
+      }
+    },
+    "guia-actividades": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 648,
+            "cw": 590
+          }
+        ]
+      }
+    },
+    "prestadora-servicios": {
+      "1280@200%": {
+        "vw": 640,
+        "docScroll": 640,
+        "docClient": 640,
+        "offenders": [],
+        "scrollRegions": [
+          {
+            "tag": "DIV",
+            "cls": "_wrapper_1b7qz_1",
+            "sw": 673,
+            "cw": 590
+          }
+        ]
+      }
+    }
+  }
+}

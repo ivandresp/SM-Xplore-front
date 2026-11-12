@@ -27,12 +27,21 @@ export interface TopBarProps {
   search?: boolean
   /** Píldora junto al logo (p. ej. "Panel de gestión"). */
   badge?: string
+  /** Navegación visible desde 900 px. */
   links?: TopBarLink[]
+  /**
+   * Navegación del menú móvil. Por defecto son los mismos `links`; el panel
+   * del rol la usa para no duplicar la barra lateral en pantallas estrechas.
+   */
+  menuLinks?: TopBarLink[]
   /** Ruta actual: marca el enlace activo con `aria-current="page"`. */
   currentPath?: string
   /** Acciones del extremo derecho (botón, avatar, menú…). */
   right?: ReactNode
 }
+
+/** Mismo corte que TopBar.module.css: desde aquí manda la barra lateral. */
+const DESKTOP_QUERY = '(min-width: 900px)'
 
 const SEARCH_GROUPS: Array<{ key: GlobalSearchGroup; label: string }> = [
   { key: 'activities', label: 'Actividades' },
@@ -252,17 +261,129 @@ function matchesLink(pathname: string, link: TopBarLink): boolean {
   )
 }
 
+function linkIsCurrent(pathname: string | undefined, link: TopBarLink): 'page' | undefined {
+  return pathname !== undefined && matchesLink(pathname, link) ? 'page' : undefined
+}
+
 export function TopBar({
   tone = 'light',
   search = false,
   badge,
   links = [],
+  menuLinks,
   currentPath,
   right,
 }: TopBarProps) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuId = useId()
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const items = menuLinks ?? links
+  const hasMenu = items.length > 0
+
+  // Atrás/adelante del navegador cambian la ruta por debajo del menú abierto.
+  useEffect(() => {
+    function handlePopState() {
+      setMenuOpen(false)
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  /*
+   * Al cruzar a escritorio (p. ej. girar una tableta de 768 a 1024) el botón y
+   * el panel se ocultan por CSS: si el menú estaba abierto se cerraría solo de
+   * forma visual, dejando aria-expanded=true sin panel. Se cierra de verdad.
+   */
+  useEffect(() => {
+    if (!menuOpen || typeof window.matchMedia !== 'function') {
+      return
+    }
+
+    const query = window.matchMedia(DESKTOP_QUERY)
+    function handleChange(event: MediaQueryListEvent) {
+      if (event.matches) {
+        setMenuOpen(false)
+      }
+    }
+
+    query.addEventListener('change', handleChange)
+    return () => query.removeEventListener('change', handleChange)
+  }, [menuOpen])
+
+  useEffect(() => {
+    if (!menuOpen) {
+      return
+    }
+
+    // El foco entra en el menú; el botón lo recupera al cerrar con Esc.
+    panelRef.current?.querySelector<HTMLAnchorElement>('a')?.focus()
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!(event.target instanceof Node)) {
+        return
+      }
+
+      if (
+        panelRef.current?.contains(event.target) === true ||
+        buttonRef.current?.contains(event.target) === true
+      ) {
+        return
+      }
+
+      setMenuOpen(false)
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown)
+    return () => document.removeEventListener('pointerdown', handlePointerDown)
+  }, [menuOpen])
+
+  function closeMenu(returnFocus = false) {
+    setMenuOpen(false)
+    if (returnFocus) {
+      buttonRef.current?.focus()
+    }
+  }
+
+  /** Esc cierra y devuelve el foco; Tab queda dentro del panel desplegado. */
+  function handleMenuKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key === 'Escape') {
+      event.stopPropagation()
+      closeMenu(true)
+      return
+    }
+
+    if (event.key !== 'Tab') {
+      return
+    }
+
+    const focusables = Array.from(
+      panelRef.current?.querySelectorAll<HTMLElement>('a[href]') ?? [],
+    )
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+
+    if (first === undefined || last === undefined) {
+      return
+    }
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault()
+      last.focus()
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault()
+      first.focus()
+    }
+  }
+
   return (
     <header className={classNames(styles.bar, tone === 'dark' && styles.dark)}>
-      <Link to="/" aria-label="SM-Xplore, ir al inicio">
+      <Link
+        to="/"
+        aria-label="SM-Xplore, ir al inicio"
+        className={styles.logoLink}
+      >
         <Logo tone={tone === 'dark' ? 'inverse' : 'default'} />
       </Link>
 
@@ -271,17 +392,13 @@ export function TopBar({
       {search && <GlobalSearch />}
 
       {links.length > 0 && (
-        <nav className={styles.links}>
+        <nav className={styles.links} aria-label="Navegación principal">
           {links.map((link) => (
             <Link
               key={link.label}
               to={link.to}
               className={styles.link}
-              aria-current={
-                currentPath !== undefined && matchesLink(currentPath, link)
-                  ? 'page'
-                  : undefined
-              }
+              aria-current={linkIsCurrent(currentPath, link)}
             >
               {link.label}
             </Link>
@@ -289,7 +406,50 @@ export function TopBar({
         </nav>
       )}
 
+      {hasMenu && (
+        <button
+          ref={buttonRef}
+          type="button"
+          className={styles.menuButton}
+          aria-expanded={menuOpen}
+          /* Cerrado no hay panel: no se apunta a un id inexistente. */
+          aria-controls={menuOpen ? menuId : undefined}
+          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span className={styles.menuIcon} aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className={styles.menuText}>Menú</span>
+        </button>
+      )}
+
       {right !== undefined && <div className={styles.right}>{right}</div>}
+
+      {hasMenu && menuOpen && (
+        <div
+          id={menuId}
+          ref={panelRef}
+          className={styles.menuPanel}
+          onKeyDown={handleMenuKeyDown}
+        >
+          <nav className={styles.menuNav} aria-label="Menú principal">
+            {items.map((link) => (
+              <Link
+                key={link.label}
+                to={link.to}
+                className={styles.menuLink}
+                aria-current={linkIsCurrent(currentPath, link)}
+                onClick={() => setMenuOpen(false)}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   )
 }
