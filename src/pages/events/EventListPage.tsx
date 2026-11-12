@@ -111,7 +111,7 @@ export default function EventListPage() {
   // El retardo y el minimo visible solo aplican a la primera carga. En recargas
   // la lista anterior se queda en pantalla y no se desmonta.
   const showSkeleton = useDelayedLoading(isLoading && isFirstLoad)
-  const holdSkeleton = isFirstLoad && (isLoading || showSkeleton)
+  const holdSkeleton = showSkeleton || (isLoading && isFirstLoad)
   const isBusy = isLoading || showSkeleton
 
   useEffect(() => {

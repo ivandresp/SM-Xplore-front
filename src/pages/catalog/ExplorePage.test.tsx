@@ -290,6 +290,54 @@ describe('ExplorePage', () => {
     expect(document.querySelector('[data-skeleton]')).toBeNull()
   })
 
+  it('si el esqueleto aparece, se mantiene 250 ms aunque la respuesta llegue a los 210 ms', async () => {
+    vi.useFakeTimers()
+    try {
+      let resolveActivities: ((response: Response) => void) | null = null
+      vi.stubGlobal(
+        'fetch',
+        vi.fn((input: RequestInfo | URL) => {
+          const url = String(input)
+          if (url.includes('/activities?')) {
+            return new Promise<Response>((resolve) => {
+              resolveActivities = resolve
+            })
+          }
+          return Promise.resolve(jsonResponse(page([])))
+        }),
+      )
+
+      renderExplore()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(200)
+      })
+      expect(document.querySelector('[data-skeleton="visible"]')).not.toBeNull()
+
+      // La respuesta llega a los 210 ms, pero el contenido no puede tapar el
+      // minimo visible de 250 ms.
+      await act(async () => {
+        resolveActivities?.(jsonResponse(page([ACTIVITY])))
+      })
+      expect(screen.queryByText('Snorkel en Taganga')).toBeNull()
+      expect(document.querySelector('[data-skeleton="visible"]')).not.toBeNull()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(249)
+      })
+      expect(document.querySelector('[data-skeleton="visible"]')).not.toBeNull()
+      expect(screen.queryByText('Snorkel en Taganga')).toBeNull()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1)
+      })
+      expect(document.querySelector('[data-skeleton]')).toBeNull()
+      expect(screen.getByText('Snorkel en Taganga')).toBeTruthy()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('muestra el error y reintenta la carga', async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ code: 'ERROR' }, 500))
     vi.stubGlobal('fetch', fetchMock)
