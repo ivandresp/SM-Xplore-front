@@ -227,6 +227,63 @@ describe('SelectField (combobox ARIA 1.2)', () => {
     expect(combobox.getAttribute('aria-invalid')).toBe('true')
   })
 
+  it('desplaza la opcion activa a la vista en listas largas', async () => {
+    const original = Element.prototype.scrollIntoView
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+
+    try {
+      const user = userEvent.setup()
+      const many: SelectOption[] = Array.from({ length: 40 }, (_, index) => ({
+        value: `v-${index}`,
+        label: `Opcion ${index}`,
+      }))
+
+      render(
+        <SelectField
+          label="Largo"
+          options={many}
+          value="v-0"
+          onChange={vi.fn()}
+        />,
+      )
+
+      const combobox = screen.getByRole('combobox', { name: 'Largo' })
+      combobox.focus()
+      await user.keyboard('{ArrowDown}')
+      scrollIntoView.mockClear()
+
+      await user.keyboard('{End}')
+      expect(scrollIntoView).toHaveBeenCalled()
+      const last = document.getElementById(
+        combobox.getAttribute('aria-activedescendant') ?? '',
+      )
+      expect(scrollIntoView.mock.instances.at(-1)).toBe(last)
+
+      scrollIntoView.mockClear()
+      await user.keyboard('{ArrowDown}')
+      await user.keyboard('{ArrowUp}')
+      expect(scrollIntoView.mock.calls.length).toBeGreaterThanOrEqual(2)
+    } finally {
+      if (original === undefined) {
+        delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
+      } else {
+        Element.prototype.scrollIntoView = original
+      }
+    }
+  })
+
+  it('el clic en la etiqueta solo enfoca, no abre el desplegable', async () => {
+    const user = userEvent.setup()
+    render(<Harness />)
+
+    const combobox = screen.getByRole('combobox', { name: 'Rol' })
+    await user.click(screen.getByText('Rol'))
+
+    expect(document.activeElement).toBe(combobox)
+    expect(combobox.getAttribute('aria-expanded')).toBe('false')
+  })
+
   it('no abre si esta deshabilitado', async () => {
     const user = userEvent.setup()
     render(

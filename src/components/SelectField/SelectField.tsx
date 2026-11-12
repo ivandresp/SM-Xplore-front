@@ -95,6 +95,14 @@ function describedBy(
  * el foco se queda en el disparador y la opción activa se anuncia con
  * `aria-activedescendant`. Teclado: flechas, Home/End, Enter/Espacio,
  * Escape, Tab y escritura para saltar a una opción.
+ *
+ * Límites conocidos (los formularios del repo validan a mano con `noValidate`):
+ * - `required` solo se anuncia (`aria-required`); no hay validación nativa y el
+ *   input oculto de `name` siempre pasa `checkValidity()`.
+ * - No implementa `form.reset()`: es un campo controlado, el valor vive en el
+ *   estado de la página y hoy ninguna pantalla resetea formularios.
+ * - `name` y el modo no controlado (`value` ausente) están por paridad con
+ *   `SelectField` de `FormField`, pero ninguna página los usa todavía.
  */
 export function SelectField({
   label,
@@ -135,6 +143,20 @@ export function SelectField({
   useEffect(() => {
     return () => window.clearTimeout(typeaheadTimer.current)
   }, [])
+
+  // La lista puede desbordar (max-height): la opción activa se mantiene visible
+  // sin mover el foco. En jsdom no hay layout y `scrollIntoView` no existe.
+  useEffect(() => {
+    if (!open || activeIndex < 0) {
+      return
+    }
+
+    const option = document.getElementById(`${fieldId}-opt-${activeIndex}`)
+
+    if (option !== null && typeof option.scrollIntoView === 'function') {
+      option.scrollIntoView({ block: 'nearest' })
+    }
+  }, [open, activeIndex, fieldId])
 
   useEffect(() => {
     if (!open) {
@@ -315,7 +337,18 @@ export function SelectField({
   return (
     <div className={styles.field} ref={rootRef}>
       {label !== undefined && (
-        <label className={styles.label} htmlFor={fieldId} id={labelId}>
+        <label
+          className={styles.label}
+          htmlFor={fieldId}
+          id={labelId}
+          onClick={(event) => {
+            // Como un <select> nativo: el clic en la etiqueta enfoca, no abre.
+            if (event.target === event.currentTarget) {
+              event.preventDefault()
+              triggerRef.current?.focus()
+            }
+          }}
+        >
           {label}
         </label>
       )}

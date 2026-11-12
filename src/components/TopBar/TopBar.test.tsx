@@ -48,6 +48,23 @@ describe('TopBar', () => {
     ).toBeNull()
   })
 
+  it('acepta alias de ruta para los detalles que no comparten prefijo', () => {
+    render(
+      <MemoryRouter>
+        <TopBar
+          currentPath="/actividades/a-1"
+          links={[
+            { to: '/explorar', label: 'Actividades', aliases: ['/actividades'] },
+          ]}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(
+      screen.getByRole('link', { name: 'Actividades' }).getAttribute('aria-current'),
+    ).toBe('page')
+  })
+
   it('marca la ruta activa tambien en la barra oscura', () => {
     renderBar('/eventos', 'dark')
 

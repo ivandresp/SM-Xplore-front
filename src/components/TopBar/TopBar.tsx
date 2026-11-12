@@ -16,6 +16,8 @@ import styles from './TopBar.module.css'
 export interface TopBarLink {
   to: string
   label: string
+  /** Rutas que también activan el enlace (p. ej. `/actividades` para `/explorar`). */
+  aliases?: string[]
 }
 
 export interface TopBarProps {
@@ -244,6 +246,12 @@ function isCurrentPath(pathname: string, to: string): boolean {
   return pathname === to || pathname.startsWith(`${to}/`)
 }
 
+function matchesLink(pathname: string, link: TopBarLink): boolean {
+  return [link.to, ...(link.aliases ?? [])].some((path) =>
+    isCurrentPath(pathname, path),
+  )
+}
+
 export function TopBar({
   tone = 'light',
   search = false,
@@ -270,8 +278,7 @@ export function TopBar({
               to={link.to}
               className={styles.link}
               aria-current={
-                currentPath !== undefined &&
-                isCurrentPath(currentPath, link.to)
+                currentPath !== undefined && matchesLink(currentPath, link)
                   ? 'page'
                   : undefined
               }
