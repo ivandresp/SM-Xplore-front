@@ -32,7 +32,9 @@ export function PublicLayout() {
   // El buscador aparece en todo el catálogo público, salvo en login y registro.
   const isAuthPage = pathname === '/login' || pathname === '/registro'
 
-  const links =
+  // `/actividades/:id` es el detalle del catálogo de actividades, que vive en
+  // `/explorar`: sin el alias el header perdería la ruta activa en el detalle.
+  const links = (
     isAuthenticated && user?.role === 'TOURIST'
       ? [
           ...PUBLIC_NAV,
@@ -40,6 +42,9 @@ export function PublicLayout() {
           { to: '/mis-reservas', label: 'Mis reservas' },
         ]
       : PUBLIC_NAV
+  ).map((link) =>
+    link.to === '/explorar' ? { ...link, aliases: ['/actividades'] } : link,
+  )
 
   return (
     <div className={styles.shell}>
@@ -47,6 +52,7 @@ export function PublicLayout() {
         tone={isCatalog ? 'dark' : 'light'}
         search={!isAuthPage}
         links={links}
+        currentPath={pathname}
         right={
           isAuthenticated ? (
             <>

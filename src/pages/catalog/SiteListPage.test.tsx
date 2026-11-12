@@ -119,12 +119,13 @@ describe('SiteListPage', () => {
     renderSites()
     expect(await screen.findByText('Playa El Rodadero')).toBeTruthy()
 
-    const zoneSelect = screen.getByLabelText('Zona') as HTMLSelectElement
+    const zoneSelect = screen.getByRole('combobox', { name: 'Zona' })
     await waitFor(() => {
-      expect(zoneSelect.disabled).toBe(false)
+      expect((zoneSelect as HTMLButtonElement).disabled).toBe(false)
     })
 
-    await user.selectOptions(zoneSelect, 'z-1')
+    await user.click(zoneSelect)
+    await user.click(screen.getByRole('option', { name: 'Rodadero' }))
     await waitFor(() => {
       expect(release).not.toBeNull()
     })

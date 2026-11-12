@@ -106,7 +106,13 @@ export interface SelectFieldProps
   error?: string
 }
 
-/** Selector con etiqueta asociada automáticamente. */
+/**
+ * Selector nativo con etiqueta asociada automáticamente.
+ *
+ * Se mantiene con `<select>` para auth, onboarding, registros y reportes
+ * (ramas paralelas, pendientes de su propio pase). Para el resto de pantallas
+ * usa el combobox ARIA de `@/components/SelectField`.
+ */
 export function SelectField({
   label,
   hint,

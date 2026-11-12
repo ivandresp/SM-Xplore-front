@@ -5,6 +5,7 @@ import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
@@ -346,24 +347,15 @@ export default function EventDetailPage() {
                   </div>
                 </div>
 
-                <label>
-                  <span className={styles.fieldLabel}>Método de pago</span>
-                  <select
-                    className={styles.control}
-                    value={paymentMethod}
-                    onChange={(changeEvent) =>
-                      setPaymentMethod(
-                        changeEvent.target.value as PaymentMethod,
-                      )
-                    }
-                  >
-                    {PAYMENT_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <SelectField
+                  label="Método de pago"
+                  className={styles.control}
+                  options={PAYMENT_OPTIONS}
+                  value={paymentMethod}
+                  onChange={(changeEvent) =>
+                    setPaymentMethod(changeEvent.target.value as PaymentMethod)
+                  }
+                />
 
                 <div className={styles.lines}>
                   <div className={styles.line}>

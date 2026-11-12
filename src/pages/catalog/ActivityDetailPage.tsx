@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
@@ -390,22 +391,15 @@ export default function ActivityDetailPage() {
                   </div>
                 </div>
 
-                <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Método de pago</span>
-                  <select
-                    className={styles.control}
-                    value={paymentMethod}
-                    onChange={(event) =>
-                      setPaymentMethod(event.target.value as PaymentMethod)
-                    }
-                  >
-                    {PAYMENT_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <SelectField
+                  label="Método de pago"
+                  className={styles.control}
+                  options={PAYMENT_OPTIONS}
+                  value={paymentMethod}
+                  onChange={(event) =>
+                    setPaymentMethod(event.target.value as PaymentMethod)
+                  }
+                />
 
                 <div className={styles.lines}>
                   <div className={styles.line}>

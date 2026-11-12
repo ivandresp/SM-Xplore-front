@@ -129,9 +129,11 @@ describe('EventListPage', () => {
     renderEvents()
     expect(await screen.findByText('Concierto en la playa')).toBeTruthy()
 
-    await user.selectOptions(
-      screen.getByLabelText('Ordenar resultados'),
-      'priceAsc',
+    await user.click(
+      screen.getByRole('combobox', { name: 'Ordenar resultados' }),
+    )
+    await user.click(
+      screen.getByRole('option', { name: /Precio: menor a mayor/ }),
     )
     await waitFor(() => {
       expect(release).not.toBeNull()

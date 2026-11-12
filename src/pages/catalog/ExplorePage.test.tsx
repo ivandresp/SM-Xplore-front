@@ -54,6 +54,47 @@ function renderExplore(entry = '/explorar') {
   )
 }
 
+const SITE = {
+  siteId: 's-1',
+  managerId: null,
+  name: 'Catedral',
+  description: null,
+  categoryId: null,
+  categoryName: null,
+  zoneId: 'z-1',
+  zoneName: 'Centro',
+  zoneStatus: 'ACTIVO',
+  latitude: 11.24,
+  longitude: -74.2,
+  photosUrls: [],
+  status: 'ACTIVO',
+  maxCapacity: 40,
+  availability: null,
+  createdAt: '2026-11-01T10:00:00Z',
+  updatedAt: '2026-11-01T10:00:00Z',
+}
+
+const ZONE = {
+  zoneId: 'z-1',
+  managerId: null,
+  name: 'Centro',
+  type: null,
+  description: null,
+  status: 'ACTIVO',
+  createdAt: '2026-11-01T10:00:00Z',
+  updatedAt: '2026-11-01T10:00:00Z',
+}
+
+/** Actividades + atractivos + zonas: hace falta para el combobox agrupado. */
+function catalogFetch() {
+  return vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input)
+    if (url.includes('/activities')) return jsonResponse(page([ACTIVITY]))
+    if (url.includes('/sites')) return jsonResponse(page([SITE]))
+    if (url.includes('/zones')) return jsonResponse(page([ZONE]))
+    return jsonResponse(page([]))
+  })
+}
 function activityFetch(
   respond: (url: string) => ReturnType<typeof jsonResponse>,
 ) {
@@ -468,6 +509,60 @@ describe('ExplorePage', () => {
     }
   })
 
+  it('filtra por atractivo con un combobox agrupado y sin selects nativos', async () => {
+    const fetchStub = catalogFetch()
+    vi.stubGlobal('fetch', fetchStub)
+
+    const user = userEvent.setup()
+    const { container } = renderExplore()
+
+    await screen.findByText('Snorkel en Taganga')
+    expect(container.querySelectorAll('select')).toHaveLength(0)
+
+    const combobox = screen.getByRole('combobox', { name: 'Atractivo' })
+    combobox.focus()
+    await user.keyboard('{ArrowDown}')
+
+    expect(combobox.getAttribute('aria-expanded')).toBe('true')
+    expect(combobox.getAttribute('aria-activedescendant')).toBeTruthy()
+    expect(screen.getByRole('group', { name: 'Centro' })).toBeTruthy()
+
+    await user.keyboard('{ArrowDown}{Enter}')
+
+    expect(combobox.getAttribute('aria-expanded')).toBe('false')
+    expect(combobox.textContent).toContain('Catedral')
+
+    await waitFor(() => {
+      const urls = fetchStub.mock.calls.map(([input]) => String(input))
+      expect(
+        urls.some(
+          (url) => url.includes('/activities') && url.includes('siteId=s-1'),
+        ),
+      ).toBe(true)
+    })
+  })
+
+  it('ordena con el combobox del encabezado', async () => {
+    const fetchStub = catalogFetch()
+    vi.stubGlobal('fetch', fetchStub)
+
+    const user = userEvent.setup()
+    renderExplore()
+
+    await screen.findByText('Snorkel en Taganga')
+
+    await user.click(
+      screen.getByRole('combobox', { name: 'Ordenar resultados' }),
+    )
+    await user.click(
+      screen.getByRole('option', { name: 'Ordenar: Precio: menor a mayor' }),
+    )
+
+    await waitFor(() => {
+      const urls = fetchStub.mock.calls.map(([input]) => String(input))
+      expect(urls.some((url) => url.includes('sort=priceAsc'))).toBe(true)
+    })
+  })
   it('muestra el error y reintenta la carga', async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ code: 'ERROR' }, 500))
     vi.stubGlobal('fetch', fetchMock)

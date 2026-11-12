@@ -6,6 +6,7 @@ import type { ActiveFilter } from '@/components/FilterBar'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
+import { SelectField } from '@/components/SelectField'
 import { SiteCard } from '@/components/SiteCard/SiteCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -204,39 +205,31 @@ export default function SiteListPage() {
           />
         </label>
 
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Zona</span>
-          <select
-            className={styles.control}
-            value={zoneId}
-            disabled={zoneOptions.length === 0}
-            onChange={(event) => setZoneId(event.target.value)}
-          >
-            <option value="">Todas las zonas</option>
-            {zoneOptions.map((zone) => (
-              <option key={zone.id} value={zone.id}>
-                {zone.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Zona"
+          className={styles.control}
+          placeholder="Todas las zonas"
+          value={zoneId}
+          disabled={zoneOptions.length === 0}
+          onChange={(event) => setZoneId(event.target.value)}
+          options={zoneOptions.map((zone) => ({
+            value: zone.id,
+            label: zone.name,
+          }))}
+        />
 
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>Categoría</span>
-          <select
-            className={styles.control}
-            value={categoryId}
-            disabled={categories.length === 0}
-            onChange={(event) => setCategoryId(event.target.value)}
-          >
-            <option value="">Todas las categorías</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          label="Categoría"
+          className={styles.control}
+          placeholder="Todas las categorías"
+          value={categoryId}
+          disabled={categories.length === 0}
+          onChange={(event) => setCategoryId(event.target.value)}
+          options={categories.map((category) => ({
+            value: category.id,
+            label: category.name,
+          }))}
+        />
       </FilterBar>
 
       <section className={styles.results} aria-busy={isBusy}>

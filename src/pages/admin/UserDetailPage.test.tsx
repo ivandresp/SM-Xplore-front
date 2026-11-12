@@ -59,7 +59,8 @@ describe('UserDetailPage', () => {
     renderDetail()
 
     await screen.findByRole('heading', { name: 'Ana Guía' })
-    await user.selectOptions(screen.getByLabelText('Nuevo estado'), 'BLOQUEADO')
+    await user.click(screen.getByRole('combobox', { name: 'Nuevo estado' }))
+    await user.click(screen.getByRole('option', { name: 'Bloqueado' }))
     await user.type(
       screen.getByLabelText('Motivo (opcional)'),
       'Reiterados incumplimientos',
