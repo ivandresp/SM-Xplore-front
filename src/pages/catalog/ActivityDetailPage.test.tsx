@@ -119,6 +119,78 @@ describe('ActivityDetailPage', () => {
     ).toBeTruthy()
   })
 
+  it('muestra el mapa del atractivo donde ocurre la actividad', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/activities/')) return jsonResponse(ACTIVITY)
+        if (url.includes('/sites/')) return jsonResponse(SITE)
+        return jsonResponse(page([]))
+      }),
+    )
+
+    renderDetail()
+
+    expect(
+      await screen.findByRole('img', {
+        name: /Mapa de Playa Blanca en 11\.26000, -74\.19000/,
+      }),
+    ).toBeTruthy()
+    expect(
+      screen.getByRole('link', { name: /© OpenStreetMap contributors/ }),
+    ).toBeTruthy()
+  })
+
+  it('distingue un atractivo que ya no existe de una petición que falló', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/activities/')) return jsonResponse(ACTIVITY)
+        if (url.includes('/sites/')) {
+          return jsonResponse({ detail: 'Site not found', code: 'SITE_NOT_FOUND' }, 404)
+        }
+        return jsonResponse(page([]))
+      }),
+    )
+
+    renderDetail()
+
+    expect(
+      await screen.findByText(
+        'Esta actividad no tiene un atractivo publicado asociado.',
+      ),
+    ).toBeTruthy()
+    expect(screen.queryByRole('img', { name: /Mapa de/ })).toBeNull()
+    expect(screen.queryByText(/No pudimos cargar la ubicación/)).toBeNull()
+  })
+
+  it('si la consulta del atractivo falla, lo dice en vez de inventar que no tiene ubicación', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/activities/')) return jsonResponse(ACTIVITY)
+        if (url.includes('/sites/')) {
+          return jsonResponse({ detail: 'boom', code: 'INTERNAL_ERROR' }, 500)
+        }
+        return jsonResponse(page([]))
+      }),
+    )
+
+    renderDetail()
+
+    expect(
+      await screen.findByText(
+        'No pudimos cargar la ubicación del atractivo. Vuelve a intentarlo en un momento.',
+      ),
+    ).toBeTruthy()
+    expect(
+      screen.queryByText('Esta actividad no tiene un atractivo publicado asociado.'),
+    ).toBeNull()
+  })
+
   it('traduce el 404 y no muestra el detail crudo del backend', async () => {
     vi.stubGlobal(
       'fetch',

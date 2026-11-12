@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
+import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -12,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useItinerary } from '@/hooks/useItinerary'
 import { useTrackView } from '@/hooks/useTrackView'
 import { eventsApi } from '@/services/eventsApi'
+import { isApiError } from '@/services/httpClient'
 import { reservationsApi } from '@/services/reservationsApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
@@ -48,6 +50,10 @@ export default function EventDetailPage() {
   const [event, setEvent] = useState<EventResponse | null>(null)
   const [site, setSite] = useState<Site | null>(null)
   const [zone, setZone] = useState<Zone | null>(null)
+  /** Por qué no hay ubicación: el sitio ya no existe (404) o falló la consulta. */
+  const [siteProblem, setSiteProblem] = useState<
+    'missing' | 'unavailable' | null
+  >(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
@@ -86,6 +92,7 @@ export default function EventDetailPage() {
 
         if (siteResult.status === 'fulfilled') {
           setSite(siteResult.value)
+          setSiteProblem(null)
 
           if (zonesResult.status === 'fulfilled') {
             setZone(
@@ -94,6 +101,13 @@ export default function EventDetailPage() {
               ) ?? null,
             )
           }
+        } else {
+          setSite(null)
+          setSiteProblem(
+            isApiError(siteResult.reason) && siteResult.reason.status === 404
+              ? 'missing'
+              : 'unavailable',
+          )
         }
       } catch (cause) {
         if (!cancelled) setError(describeApiError(cause))
@@ -250,6 +264,23 @@ export default function EventDetailPage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>Información del evento</h2>
             <DefList items={infoItems} />
+          </article>
+
+          <article className={styles.card}>
+            <h2 className={styles.cardTitle}>Ubicación</h2>
+            {site === null ? (
+              <p className={styles.meta}>
+                {siteProblem === 'unavailable'
+                  ? 'No pudimos cargar la ubicación del evento. Vuelve a intentarlo en un momento.'
+                  : 'Este evento no tiene un lugar publicado asociado.'}
+              </p>
+            ) : (
+              <MapPreview
+                label={site.name}
+                latitude={site.latitude}
+                longitude={site.longitude}
+              />
+            )}
           </article>
         </div>
 
