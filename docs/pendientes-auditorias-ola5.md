@@ -16,3 +16,8 @@ queda ABIERTO, ACEPTADO (con motivo) o CON DUEÑO (bloque donde se resuelve).
 | ID | Sev | Estado | Hallazgo | Evidencia |
 | --- | --- | --- | --- | --- |
 | OLA5-B1-01 | BAJA | CERRADO | `MyProfilePage` conservaba un `<select>` nativo que no estaba en `B2-09` ni en `B6-10`. Apareció al medir el alcance real de B1 (2026-11-12) y se migró en su propio PR de pantalla, no de paso. | PR #22 mergeado en `ae8ef98`; `MyProfilePage.test.tsx` 4/4 |
+## B6 — Arneses
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| OLA5-B6-01 | BAJA | CERRADO | `catalog-filters.spec` escribía `docs/diseno/catalogo-*.png` en cada `npm run test:e2e` (ensuciaba el árbol y el commit de docs). | PR #32: capturas condicionadas a `CAPTURAS=1` y PNG restaurados desde `develop` |

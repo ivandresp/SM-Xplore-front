@@ -91,14 +91,20 @@ test.describe('catálogo responsive', () => {
       )
       expect(overflow).toBeLessThanOrEqual(0)
 
-      await page.screenshot({
-        path: `docs/diseno/catalogo-${width}.png`,
-        fullPage: true,
-      })
+      if (process.env.CAPTURAS === '1') {
+        await page.screenshot({
+          path: `docs/diseno/catalogo-${width}.png`,
+          fullPage: true,
+        })
+      }
     })
   }
 
   test('captura en claro a 1280 px', async ({ page }) => {
+    test.skip(
+      process.env.CAPTURAS !== '1',
+      'Capturas de evidencia: se activan con CAPTURAS=1.',
+    )
     await page.setViewportSize({ width: 1280, height: 900 })
     await page.emulateMedia({ colorScheme: 'light' })
     await page.goto('/explorar?categoria=acuaticos')

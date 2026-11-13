@@ -5,18 +5,22 @@ import { defineConfig } from '@playwright/test'
  * Playwright: ese binario envejece (arrastra CVEs de Chromium ya parcheados)
  * y se lanza sin sandbox por defecto.
  */
+const PORT = Number(process.env.E2E_PORT ?? 5174)
+
 export default defineConfig({
   testDir: './e2e',
   use: {
-    baseURL: 'http://localhost:5173',
+    // Puerto propio del arnes: nunca reutiliza el 5173 de un dev server ajeno.
+    baseURL: `http://localhost:${PORT}`,
     channel: 'chrome',
     launchOptions: { chromiumSandbox: true },
     trace: 'retain-on-failure',
   },
-  // Reutiliza el `npm run dev` que ya esté corriendo.
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173/login',
-    reuseExistingServer: true,
+    command: `npm run dev -- --port ${PORT} --strictPort`,
+    url: `http://localhost:${PORT}/login`,
+    // B3-10: si el puerto esta ocupado, falla en voz alta; no mide otro arbol.
+    reuseExistingServer: false,
+    timeout: 120_000,
   },
 })
