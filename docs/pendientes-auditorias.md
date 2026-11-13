@@ -176,11 +176,11 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | --- | --- | --- | --- | --- |
 | B8-08 | ALTA | CERRADO | Aprobar era reversible y dos gestoras podían sobrescribirse | `a2cfc41`; APROBADO terminal, revocación por user status |
 | B8-09 | MEDIA | CERRADO | Reseñas de un alta no aprobada seguían públicas | `0d3d87e`; 400/404 |
-| B8-10 | MEDIA | CERRADO (pendiente de merge) | Una lista cacheada podía revertir un rechazo reciente (RECHAZADO→APROBADO) | Backend #108: motivo obligatorio al reabrir (400 sin él); `ReviewRegistrationServiceTest` |
-| B8-11 | MEDIA | CERRADO (pendiente de merge) | Revocar por estado de usuario no exigía motivo ni notificaba; solo ADMIN | Backend #108 (motivo + correo, ADMIN y DM solo guías) + front #35 (motivo obligatorio al bloquear). UI de la DM pendiente (`OLA5-B2-01`) |
-| B8-12 | MEDIA | ABIERTO | La cascada sigue: BLOQUEADO deja actividades publicadas en ms-03 | Decisión 2026-11-12: evento Kafka ms-01 → ms-03. Se implementa en B3 |
-| B8-13 | BAJA | CERRADO (pendiente de merge) | La regla vivía en el servicio, no en el dominio | Backend #108: `RegistrationStatus.canTransitionTo`; el servicio solo traduce a mensaje |
-| B8-14 | BAJA | CERRADO (pendiente de merge) | Un RECHAZADO sin motivo sobre una APROBADA daba 400 antes que 409 | Backend #108: transición comprobada antes del motivo; test `rejectingAnApprovedRegistrationWithoutAReasonIsAConflictFirst` |
+| B8-10 | MEDIA | CERRADO | Una lista cacheada podía revertir un rechazo reciente (RECHAZADO→APROBADO) | Backend #108 (mergeado en `fef92f5`): motivo obligatorio al reabrir (400 sin él); `ReviewRegistrationServiceTest` |
+| B8-11 | MEDIA | CERRADO | Revocar por estado de usuario no exigía motivo ni notificaba; solo ADMIN | Backend #108 (`fef92f5`: motivo + correo, ADMIN y DM solo guías) + front #35 (motivo obligatorio al bloquear). UI de la DM pendiente (`OLA5-B2-01`) |
+| B8-12 | MEDIA | CERRADO (pendiente de merge) | La cascada seguía: BLOQUEADO dejaba actividades publicadas en ms-03 | Backend #109: `users.account.blocked.v1`; ms-03 despublica PUBLISHED→PAUSED, idempotente |
+| B8-13 | BAJA | CERRADO | La regla vivía en el servicio, no en el dominio | Backend #108 (`fef92f5`): `RegistrationStatus.canTransitionTo`; el servicio solo traduce a mensaje |
+| B8-14 | BAJA | CERRADO | Un RECHAZADO sin motivo sobre una APROBADA daba 400 antes que 409 | Backend #108 (`fef92f5`): transición comprobada antes del motivo; test `rejectingAnApprovedRegistrationWithoutAReasonIsAConflictFirst` |
 
 ## B2 — Combobox y ruta activa (PR #14, firmado PASA)
 
