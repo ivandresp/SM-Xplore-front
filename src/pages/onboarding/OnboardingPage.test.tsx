@@ -289,7 +289,8 @@ describe('OnboardingPage', () => {
     renderOnboarding()
 
     await user.type(await screen.findByLabelText('Nacionalidad'), 'Colombia')
-    await user.selectOptions(screen.getByLabelText('Idioma preferido'), 'es')
+    await user.click(screen.getByRole('combobox', { name: 'Idioma preferido' }))
+    await user.click(screen.getByRole('option', { name: 'Español' }))
     await user.click(screen.getByRole('button', { name: 'Guardar y continuar' }))
 
     const patched = callsTo(calls, 'PATCH', '/api/v1/users/me')

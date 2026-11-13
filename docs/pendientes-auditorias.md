@@ -194,7 +194,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B2-06 | BAJA | CERRADO | Clic en el label abría el desplegable | `6723b41`; solo enfoca |
 | B2-07 | INFO | ACEPTADO | Grupo vacío pinta `role=group` | Las páginas filtran grupos |
 | B2-08 | BAJA | ABIERTO | Abrir una lista larga con el trigger abajo desplaza la página (+287 px a 375) | Observación del auditor final |
-| B2-09 | MEDIA | ABIERTO | Auth, solicitudes, onboarding, reportes y recomendaciones siguen con `<select>` nativo. B6 no lo migró (ver B6-10). | `src/components/FormField/FormField.tsx:107,127` |
+| B2-09 | MEDIA | ABIERTO | Auth, solicitudes, onboarding, reportes y recomendaciones seguían con `<select>` nativo. Resuelto en los PRs #18 (FormField), #19 (solicitudes), #20 (recomendaciones), #21 (reportes) y #22 (perfil); se cierra al mergear el último. | PRs #18-#22; con las cinco ramas aplicadas `Select-String -CaseSensitive '<select' src` no devuelve etiquetas reales |
 
 ## B6 — Responsive (PR #15)
 
@@ -213,7 +213,7 @@ Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones pr
 | B6-07 | BAJA | CERRADO | `<th>` sin `scope` y región de tabla enfocable aunque no desbordara. | `796872e` `src/components/DataTable/DataTable.tsx:113,121`; test en `DataTable.test.tsx` |
 | B6-08 | BAJA | CON DUEÑO | El menú móvil solo se alcanza con la página arriba: el panel no tiene cabecera fija y en un listado largo hay que volver al inicio para navegar. No es regresión del bloque. | `src/components/TopBar/TopBar.module.css` (sin `position: sticky`); medido a 375 en `/app/usuarios` |
 | B6-09 | BAJA | CERRADO | `docs/diseno/ola4`: 203 PNG y 19,38 MB (7,16 antes + 12,18 después), ~98 kB por imagen y dos copias de lo mismo. | `796872e`: 12 JPEG, 0,91 MB, generados por `e2e/ola4-capturas.spec.ts` |
-| B6-10 | MEDIA | ABIERTO | `B2-09`: los `<select>` nativos de auth, solicitudes, onboarding, reportes y recomendaciones no se migraron en este pase aunque el plan lo prometía; `FormField` es compartido y migrarlo arrastra los formularios de tres PR apilados. Mismo hallazgo que B2-09 (canónico); se cierra allí. | `src/components/FormField/FormField.tsx:107,127`; `RegistrationsQueuePage.tsx:281`; `RecommendationsPage.tsx:207`; `MyReportsPage.tsx:138` |
+| B6-10 | MEDIA | ABIERTO | `B2-09`: los `<select>` nativos de auth, solicitudes, onboarding, reportes y recomendaciones no se migraron en el pase de B6; `FormField` era compartido. Mismo hallazgo que B2-09 (canónico); se cierra allí con los PRs #18-#22. | PRs #18-#22; `Select-String -CaseSensitive '<select' src` sin etiquetas reales |
 | B6-11 | BAJA | ACEPTADO | Al cruzar 768→1280 con el menú abierto el foco cae en `<body>`: el disparador queda `display:none` en escritorio y no hay dónde devolverlo. | `src/components/TopBar/TopBar.tsx:291-315` |
 | B6-12 | BAJA | CERRADO | `e2e/ola4-capturas.spec.ts` escribía 12 JPEG en `docs/` en cada `npm run test:e2e` (ensuciaba el árbol) y el comentario decía 16 ficheros. | `ddc00ee`: salta salvo `CAPTURAS=1`; comentario corregido |
 | B6-13 | INFO | ABIERTO | La tabla de `/app/reportes` no se pudo medir: el entorno del auditor renderiza 0 filas. El armazón sí (240/660-1040). | Deuda de verificación con datos sembrados |
@@ -228,7 +228,7 @@ Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones pr
 
 | ID | Estado | Nota |
 | --- | --- | --- |
-| OPS-01 | ABIERTO | El repo front no tenía `.github/`: sin checks de GitHub. El PR #17 añade el workflow `CI` (typecheck, lint, test y build), verde en el propio PR; sigue abierto hasta el merge. La plantilla de PR no se usará mientras la rama por defecto siga siendo `main` (GitHub la lee de ahí) |
+| OPS-01 | CERRADO | El repo front no tenía `.github/`: sin checks de GitHub. El PR #17 se mergeó en `ddfc905` (2026-11-12T23:49:41Z) y el workflow `CI` (typecheck, lint, test y build) corre en cada PR. La plantilla sigue inerte con la rama por defecto en `main` y la protección la cubre `OPS-09` |
 | OPS-02 | ACEPTADO | El gateway da 403 a `Origin` fuera de `http://localhost:5173`; los auditores usan proxy o 5173 |
 | OPS-03 | CERRADO | Imagen vieja de ms-04 produjo un falso bug de filtros: comparar fecha de imagen vs commit antes de diagnosticar |
 | OPS-04 | ABIERTO | Cuentas de prueba de auditorías en la BD local; borrar las privilegiadas al cerrar (una ya eliminada) |

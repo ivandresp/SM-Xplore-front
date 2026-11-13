@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -316,9 +316,9 @@ describe('RegisterPage', () => {
     const user = userEvent.setup()
     renderRegister()
 
-    await user.selectOptions(
-      screen.getByLabelText('Tipo de cuenta'),
-      'SERVICE_PROVIDER',
+    await user.click(screen.getByRole('combobox', { name: 'Tipo de cuenta' }))
+    await user.click(
+      screen.getByRole('option', { name: 'Prestadora de servicios' }),
     )
     await user.type(screen.getByLabelText('Nombre completo'), 'Hotel Tayrona')
     await user.type(screen.getByLabelText('Correo electrónico'), 'hotel@correo.com')
@@ -438,6 +438,56 @@ describe('RegisterPage', () => {
     expect(fieldError.getAttribute('aria-live')).toBe('polite')
   })
 
+  it('cambia el tipo de cuenta con el teclado del combobox en la pagina', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
+
+    const user = userEvent.setup()
+    renderRegister()
+
+    const kind = screen.getByRole('combobox', { name: 'Tipo de cuenta' })
+    kind.focus()
+    await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}')
+    await user.keyboard('{Enter}')
+
+    expect(await screen.findByLabelText('NIT')).toBeTruthy()
+    expect(kind.textContent).toContain('Prestadora de servicios')
+  })
+
+  it('enfoca el combobox y anuncia su error en polite si el backend lo rechaza', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        jsonResponse(
+          {
+            detail: 'Los datos enviados no son válidos',
+            code: 'VALIDATION_ERROR',
+            errors: { dniType: 'Tipo de documento no válido.' },
+          },
+          400,
+        ),
+      ),
+    )
+
+    const user = userEvent.setup()
+    renderRegister()
+
+    await fillTouristForm(user)
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    const dniType = screen.getByRole('combobox', {
+      name: 'Tipo de documento',
+    })
+    await waitFor(() => expect(document.activeElement).toBe(dniType))
+    expect(dniType.getAttribute('aria-invalid')).toBe('true')
+
+    const ids = (dniType.getAttribute('aria-describedby') ?? '').split(' ')
+    const errorNode = document.getElementById(ids[ids.length - 1])
+    expect(errorNode?.getAttribute('aria-live')).toBe('polite')
+
+    // Un solo alert (el resumen); el error del campo va en polite.
+    expect(screen.getAllByRole('alert')).toHaveLength(1)
+  })
+
   it('explica el DATA_CONFLICT sin hablar de campos no válidos', async () => {
     vi.stubGlobal(
       'fetch',
@@ -485,10 +535,8 @@ describe('RegisterPage', () => {
       screen.getByRole('link', { name: 'Registra tu solicitud como guía' }),
     )
 
-    const kind = (await screen.findByLabelText(
-      'Tipo de cuenta',
-    )) as HTMLSelectElement
-    expect(kind.value).toBe('GUIDE')
+    const kind = await screen.findByRole('combobox', { name: 'Tipo de cuenta' })
+    expect(kind.textContent).toContain('Guía turístico')
     expect(screen.getByLabelText('Licencia de guía')).toBeTruthy()
   })
 
@@ -519,8 +567,8 @@ describe('RegisterPage', () => {
       </AuthProvider>,
     )
 
-    const kind = screen.getByLabelText('Tipo de cuenta') as HTMLSelectElement
-    expect(kind.value).toBe('GUIDE')
+    const kind = screen.getByRole('combobox', { name: 'Tipo de cuenta' })
+    expect(kind.textContent).toContain('Guía turístico')
     expect(screen.getByLabelText('Licencia de guía')).toBeTruthy()
     expect(screen.queryByLabelText('NIT')).toBeNull()
   })
@@ -541,7 +589,8 @@ describe('RegisterPage', () => {
     const user = userEvent.setup()
     renderRegister()
 
-    await user.selectOptions(screen.getByLabelText('Tipo de cuenta'), 'GUIDE')
+    await user.click(screen.getByRole('combobox', { name: 'Tipo de cuenta' }))
+    await user.click(screen.getByRole('option', { name: 'Guía turístico' }))
     await user.type(screen.getByLabelText('Nombre completo'), 'Ana Guía')
     await user.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com')
     await user.type(screen.getByLabelText('Teléfono'), '3001112233')
@@ -579,7 +628,8 @@ describe('RegisterPage', () => {
     const user = userEvent.setup()
     renderRegister()
 
-    await user.selectOptions(screen.getByLabelText('Tipo de cuenta'), 'GUIDE')
+    await user.click(screen.getByRole('combobox', { name: 'Tipo de cuenta' }))
+    await user.click(screen.getByRole('option', { name: 'Guía turístico' }))
     await user.type(screen.getByLabelText('Nombre completo'), 'Ana Guía')
     await user.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com')
     await user.type(screen.getByLabelText('Teléfono'), '3001112233')

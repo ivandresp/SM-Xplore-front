@@ -225,6 +225,11 @@ describe('SelectField (combobox ARIA 1.2)', () => {
       'rol-hint rol-error',
     )
     expect(combobox.getAttribute('aria-invalid')).toBe('true')
+
+    const error = screen.getByText('Elige un rol.')
+    expect(error.getAttribute('role')).toBeNull()
+    expect(error.getAttribute('aria-live')).toBe('polite')
+    expect(screen.queryAllByRole('alert')).toHaveLength(0)
   })
 
   it('desplaza la opcion activa a la vista en listas largas', async () => {
