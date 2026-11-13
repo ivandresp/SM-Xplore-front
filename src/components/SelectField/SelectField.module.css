@@ -42,6 +42,13 @@
   font-size: 0.95rem;
 }
 
+/* 44 px tactil; el escritorio conserva 40 px (B6-06). */
+@media (pointer: coarse) {
+  .control {
+    min-height: 44px;
+  }
+}
+
 .control:focus-visible {
   outline: 2px solid var(--color-link);
   outline-offset: 1px;

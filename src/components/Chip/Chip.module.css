@@ -18,6 +18,13 @@
     color 0.15s ease;
 }
 
+/* Objetivo tactil de 44 px solo con puntero grueso; el raton conserva 37 px. */
+@media (pointer: coarse) {
+  .chip {
+    min-height: 44px;
+  }
+}
+
 .chip:hover {
   border-color: var(--color-border-strong);
 }
