@@ -280,11 +280,14 @@ describe('RecommendationsPage', () => {
 
     expect(await screen.findByText('12 sugerencias')).toBeTruthy()
 
-    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
-    await userEvent.selectOptions(select, 'c1')
+    const select = screen.getByRole('combobox', { name: 'Añadir categoría' })
+    await userEvent.click(select)
+    await userEvent.click(screen.getByRole('option', { name: 'Playas' }))
     await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
 
-    await waitFor(() => expect(select.value).toBe(''))
+    await waitFor(() =>
+      expect(select.textContent).toContain('Selecciona una categoría…'),
+    )
     expect(
       (screen.getByRole('button', { name: 'Añadir' }) as HTMLButtonElement)
         .disabled,
@@ -328,8 +331,9 @@ describe('RecommendationsPage', () => {
     )
     await waitFor(() => expect(screen.getByText('24 sugerencias')).toBeTruthy())
 
-    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
-    await userEvent.selectOptions(select, 'c1')
+    const select = screen.getByRole('combobox', { name: 'Añadir categoría' })
+    await userEvent.click(select)
+    await userEvent.click(screen.getByRole('option', { name: 'Playas' }))
     await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
 
     // La recarga vuelve a pedir 24, no 12, y la lista sigue en 24.
@@ -357,8 +361,9 @@ describe('RecommendationsPage', () => {
 
     expect(await screen.findByText('12 sugerencias')).toBeTruthy()
 
-    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
-    await userEvent.selectOptions(select, 'c1')
+    const select = screen.getByRole('combobox', { name: 'Añadir categoría' })
+    await userEvent.click(select)
+    await userEvent.click(screen.getByRole('option', { name: 'Playas' }))
     await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
 
     expect(await screen.findByRole('alert')).toBeTruthy()
@@ -391,8 +396,9 @@ describe('RecommendationsPage', () => {
       screen.getByRole('button', { name: /ver más sugerencias/i }),
     )
 
-    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
-    await userEvent.selectOptions(select, 'c1')
+    const select = screen.getByRole('combobox', { name: 'Añadir categoría' })
+    await userEvent.click(select)
+    await userEvent.click(screen.getByRole('option', { name: 'Playas' }))
     await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
 
     await waitFor(() => expect(screen.getByText('9 sugerencias')).toBeTruthy())
@@ -426,8 +432,9 @@ describe('RecommendationsPage', () => {
 
     expect(await screen.findByText('Aún no hay recomendaciones')).toBeTruthy()
 
-    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
-    await userEvent.selectOptions(select, 'c1')
+    const select = screen.getByRole('combobox', { name: 'Añadir categoría' })
+    await userEvent.click(select)
+    await userEvent.click(screen.getByRole('option', { name: 'Playas' }))
     await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
 
     // Sin tarjetas también se ve el fallo: antes solo quedaba el vacío.
@@ -465,8 +472,9 @@ describe('RecommendationsPage', () => {
     await waitFor(() => expect(screen.getByText('24 sugerencias')).toBeTruthy())
 
     // La recarga que falla llega desde una preferencia, con 24 en pantalla.
-    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
-    await userEvent.selectOptions(select, 'c1')
+    const select = screen.getByRole('combobox', { name: 'Añadir categoría' })
+    await userEvent.click(select)
+    await userEvent.click(screen.getByRole('option', { name: 'Playas' }))
     await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
 
     const retryInline = await screen.findByRole('button', { name: /^Reintentar$/ })
@@ -496,5 +504,16 @@ describe('RecommendationsPage', () => {
     expect(document.activeElement).toBe(
       screen.getByRole('heading', { name: /^Sugerencias$/ }),
     )
+  })
+
+  it('no deja ningun select nativo y conserva la etiqueta visible', async () => {
+    stubApi()
+    renderPage()
+
+    expect(await screen.findByText('12 sugerencias')).toBeTruthy()
+    expect(document.querySelector('select')).toBeNull()
+    expect(
+      screen.getByRole('combobox', { name: 'Añadir categoría' }),
+    ).toBeTruthy()
   })
 })

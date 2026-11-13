@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { usePreferences } from '@/pages/profile/usePreferences'
@@ -270,22 +271,17 @@ export default function RecommendationsPage() {
 
         {availableCategories.length > 0 && (
           <div className={styles.prefsForm}>
-            <label className={styles.prefsLabel} htmlFor="pref-category">
-              Añadir categoría
-            </label>
-            <select
+            <SelectField
               id="pref-category"
-              className={styles.select}
+              label="Añadir categoría"
+              placeholder="Selecciona una categoría…"
+              options={availableCategories.map((category) => ({
+                value: category.id,
+                label: category.name,
+              }))}
               value={selectedCategory}
               onChange={(event) => setSelectedCategory(event.target.value)}
-            >
-              <option value="">Selecciona una categoría…</option>
-              {availableCategories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            />
             <Button
               size="sm"
               disabled={selectedCategory === '' || savingCategory !== null}
