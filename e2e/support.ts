@@ -1,9 +1,20 @@
 import { expect } from '@playwright/test'
 import type { APIRequestContext, Page } from '@playwright/test'
 
-export const PASSWORD = 'ChangeMe123!'
-export const ADMIN_EMAIL = 'admin@smxplore.local'
+/** Credenciales del stack de pruebas. Se pueden pisar por entorno (OLA5-B6-04). */
+export const PASSWORD = process.env.E2E_PASSWORD ?? 'ChangeMe123!'
+export const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? 'admin@smxplore.local'
 export const MAILPIT = 'http://127.0.0.1:8025'
+
+/**
+ * El Mailpit del stack local pide basic auth (`MP_UI_AUTH`). Se puede pisar por
+ * entorno; si el Mailpit no la exige, la cabecera se ignora.
+ */
+export const MAILPIT_AUTH = process.env.E2E_MAILPIT_AUTH ?? 'mailpit:mailpit-dev'
+
+export const MAILPIT_HEADERS = {
+  Authorization: `Basic ${Buffer.from(MAILPIT_AUTH).toString('base64')}`,
+}
 
 export interface ActivityDto {
   id: string
@@ -141,7 +152,9 @@ async function waitForInvitationToken(
   email: string,
 ): Promise<string | null> {
   for (let attempt = 0; attempt < 20; attempt += 1) {
-    const list = await request.get(`${MAILPIT}/api/v1/messages?limit=50`)
+    const list = await request.get(`${MAILPIT}/api/v1/messages?limit=50`, {
+      headers: MAILPIT_HEADERS,
+    })
     if (list.ok()) {
       const messages = (await list.json()) as {
         messages: Array<{
@@ -157,6 +170,7 @@ async function waitForInvitationToken(
       if (message !== undefined) {
         const detail = await request.get(
           `${MAILPIT}/api/v1/message/${message.ID}`,
+          { headers: MAILPIT_HEADERS },
         )
         if (detail.ok()) {
           const body = (await detail.json()) as {
