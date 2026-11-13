@@ -166,7 +166,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B8b-04 | MEDIA-BAJA | CERRADO | Clics descartados sin aviso durante una escritura | `b69231b`; role=status «Guardando…» |
 | B8b-05 | BAJA | CERRADO | Objetivos táctiles de 17 px | `b69231b`; 44 px + touch-action |
 | B8b-06 | BAJA | CERRADO | Copy del perfil afirmaba guardado sin PATCH | `b69231b` |
-| B8b-07 | BAJA | ABIERTO | Paso 3 dice «nacionalidad y idioma» si solo se envió nacionalidad | Componer el texto desde el patch |
+| B8b-07 | BAJA | CERRADO (pendiente de merge) | El paso 3 decía «nacionalidad y idioma» si solo se envió uno | PR #27: `describeSavedProfile(patch)`; 2 tests fallan con el texto fijo |
 | B8b-08 | BAJA | ACEPTADO | Emoji como icono de cápsula | aria-hidden, sin daño |
 | B8b-09 | BAJA | ACEPTADO | preferredLanguage nace «es» por normalización del backend | «Completo» puede ser un valor por defecto |
 
