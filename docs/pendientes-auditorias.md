@@ -136,9 +136,9 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B7-03 | MEDIA | CERRADO | Sin estado de carga ni timeout | `e8a80aa`; aria-busy + 8 s |
 | B7-04 | BAJA | CERRADO | target=_blank sin avisar | `e8a80aa`; rel + aria-label |
 | B7-05 | BAJA | CERRADO | Claves duplicadas en z=0 y `#map=NaN` | `e8a80aa`; key con índice, clampZoom |
-| B7-06 | MEDIA | ABIERTO | URL de OSM hardcodeada; su política prohíbe volumen | Proveedor/self-host antes de desplegar |
-| B7-07 | BAJA | ABIERTO | Con 1-3 tiles muertos no aparece el enlace a OSM | Auditor final N1 |
-| B7-08 | BAJA | ABIERTO | aria-busy dura hasta el timeout con un tile muerto | Auditor final N2 |
+| B7-06 | MEDIA | ACEPTADO (pospuesto) | URL de OSM hardcodeada; su política prohíbe volumen | Decisión 2026-11-12: B4 fuera de esta ola; no desplegar el mapa con volumen |
+| B7-07 | BAJA | ACEPTADO (pospuesto) | Con 1-3 tiles muertos no aparece el enlace a OSM | Se resuelve con B4 en una ola futura |
+| B7-08 | BAJA | ACEPTADO (pospuesto) | aria-busy dura hasta el timeout con un tile muerto | Se resuelve con B4 en una ola futura |
 | B7-09 | INFO | ACEPTADO | El estado «sin coordenadas» es inalcanzable desde Site/Service (zod) | Rama defensiva válida |
 
 ## B8a — Alta de guía y cola (PR #10, firmado PASA)
@@ -177,8 +177,8 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B8-08 | ALTA | CERRADO | Aprobar era reversible y dos gestoras podían sobrescribirse | `a2cfc41`; APROBADO terminal, revocación por user status |
 | B8-09 | MEDIA | CERRADO | Reseñas de un alta no aprobada seguían públicas | `0d3d87e`; 400/404 |
 | B8-10 | MEDIA | ABIERTO | Una lista cacheada puede revertir un rechazo reciente (RECHAZADO→APROBADO) | If-Match o exigir motivo al aprobar una rechazada |
-| B8-11 | MEDIA | ABIERTO | Revocar por estado de usuario no exige motivo ni notifica; solo ADMIN | Cambio de producto |
-| B8-12 | MEDIA | ABIERTO | La cascada sigue: BLOQUEADO deja actividades publicadas en ms-03 | Nuevo bloque de backend/cascada |
+| B8-11 | MEDIA | ABIERTO | Revocar por estado de usuario no exige motivo ni notifica; solo ADMIN | Decisión 2026-11-12: motivo obligatorio + correo; ADMIN y DESTINATION_MANAGER. Se implementa en B2 |
+| B8-12 | MEDIA | ABIERTO | La cascada sigue: BLOQUEADO deja actividades publicadas en ms-03 | Decisión 2026-11-12: evento Kafka ms-01 → ms-03. Se implementa en B3 |
 | B8-13 | BAJA | ABIERTO | La regla vive en el servicio, no en el dominio | Si otro llamador entra, APROBADO deja de ser terminal |
 | B8-14 | BAJA | ABIERTO | Un RECHAZADO sin motivo sobre una APROBADA da 400 antes que 409 | Orden de guardas |
 
@@ -209,9 +209,9 @@ Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones pr
 | B6-03 | MEDIA | CERRADO | A 320 px `/eventos` desbordaba 10 px (330 vs 320): la fila de acciones de `PageHeader` no bajaba de su `min-content` por el valor `nowrap` del desplegable. | `796872e` `src/components/PageHeader/PageHeader.module.css:78-79` (`max-width:100%`; solo `min-width:0` no bastaba, probado) |
 | B6-04 | MEDIA | CERRADO | Cruzar 900 px con el menú abierto dejaba `aria-expanded=true` con el panel oculto y el foco en `<body>` (caso real: iPad 768↔1024). | `796872e` `src/components/TopBar/TopBar.tsx:44,296-315`; guard «cruzar a escritorio» |
 | B6-05 | BAJA | CERRADO | `aria-controls` apuntaba a un id inexistente con el menú cerrado. | `796872e` `src/components/TopBar/TopBar.tsx:416` |
-| B6-06 | BAJA | CON DUEÑO | Objetivos táctiles por debajo de 44 px fuera de los componentes del bloque: píldora de rol 37 px, disparadores de `SelectField` 40 px, chip de filtro activo 29 px. Pasan el mínimo AA de 24 px (WCAG 2.5.8); subirlos a 44 es AAA y cambia el alto de todos los formularios. | `src/components/Chip/Chip.module.css:1-19`; `src/components/SelectField/SelectField.module.css:31-39`; `src/components/FilterBar/FilterBar.module.css:100-115` |
+| B6-06 | BAJA | CON DUEÑO | Objetivos táctiles por debajo de 44 px fuera de los componentes del bloque: píldora de rol 37 px, disparadores de `SelectField` 40 px, chip de filtro activo 29 px. Pasan el mínimo AA de 24 px (WCAG 2.5.8). | Decisión 2026-11-12: 44 px solo en controles táctiles primarios con `@media (pointer: coarse)`; escritorio sigue a 40 px. Se hace en B5 (`Chip`, `SelectField`, `FilterBar`) |
 | B6-07 | BAJA | CERRADO | `<th>` sin `scope` y región de tabla enfocable aunque no desbordara. | `796872e` `src/components/DataTable/DataTable.tsx:113,121`; test en `DataTable.test.tsx` |
-| B6-08 | BAJA | CON DUEÑO | El menú móvil solo se alcanza con la página arriba: el panel no tiene cabecera fija y en un listado largo hay que volver al inicio para navegar. No es regresión del bloque. | `src/components/TopBar/TopBar.module.css` (sin `position: sticky`); medido a 375 en `/app/usuarios` |
+| B6-08 | BAJA | CON DUEÑO | El menú móvil solo se alcanza con la página arriba: el panel no tiene cabecera fija y en un listado largo hay que volver al inicio para navegar. No es regresión del bloque. | Decisión 2026-11-12: cabecera sticky solo en listados largos y panel, con `env(safe-area-inset-top)`; en detalle/formulario, normal. Se hace en B5 (`TopBar`/`AppLayout`) |
 | B6-09 | BAJA | CERRADO | `docs/diseno/ola4`: 203 PNG y 19,38 MB (7,16 antes + 12,18 después), ~98 kB por imagen y dos copias de lo mismo. | `796872e`: 12 JPEG, 0,91 MB, generados por `e2e/ola4-capturas.spec.ts` |
 | B6-10 | MEDIA | CERRADO | `B2-09`: los `<select>` nativos de auth, solicitudes, onboarding, reportes y recomendaciones no se migraron en el pase de B6; `FormField` era compartido. Mismo hallazgo que B2-09 (canónico); cerrado con los PRs #18-#22. | `0911453`..`ae8ef98`; 57 ficheros / 403 tests |
 | B6-11 | BAJA | ACEPTADO | Al cruzar 768→1280 con el menú abierto el foco cae en `<body>`: el disparador queda `display:none` en escritorio y no hay dónde devolverlo. | `src/components/TopBar/TopBar.tsx:291-315` |
@@ -233,7 +233,7 @@ Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones pr
 | OPS-03 | CERRADO | Imagen vieja de ms-04 produjo un falso bug de filtros: comparar fecha de imagen vs commit antes de diagnosticar |
 | OPS-04 | ABIERTO | Cuentas de prueba de auditorías en la BD local; borrar las privilegiadas al cerrar (una ya eliminada) |
 | OPS-05 | ABIERTO | **Backend #98 antes de prod**: sin `PHOTO_ALLOWED_HOSTS=res.cloudinary.com`, ms-02 no arranca y el alta con foto da 400 |
-| OPS-06 | ABIERTO | Tiles de OSM: URL hardcodeada; proveedor o self-host antes de desplegar |
+| OPS-06 | ACEPTADO (pospuesto) | Tiles de OSM: URL hardcodeada; proveedor o self-host antes de desplegar. B4 pospuesto por decisión del 2026-11-12 |
 | OPS-07 | ABIERTO | Cuentas de prueba nuevas (audit-b8b*, b3-r2*, b4*) en la BD local |
 | OPS-08 | CERRADO | Worktrees de la ola 5 (`b1`, `reg`, `rec`, `rep`, `perfil`, `b7`) eliminados y ramas remotas borradas; `git worktree list` solo devuelve el repo principal |
 | OPS-09 | ABIERTO | Protección de `develop`, rama por defecto `main`, `delete_branch_on_merge` y dependabot alerts: requiere administración del repo (dueño `ivandresp`). Mientras `develop` no esté protegida el check es informativo; mientras la default sea `main`, la plantilla y CODEOWNERS no se aplican |
