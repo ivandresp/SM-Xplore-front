@@ -110,7 +110,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B3-07 | BAJA | ACEPTADO | Fechas comparadas con el reloj del navegador | Peor caso 400 con campo señalado |
 | B3-08 | BAJA | ACEPTADO | Clases Unicode no idénticas a Java | Dirección segura (front más estricto) |
 | B3-09 | BAJA | CERRADO (pendiente de merge) | El mismo reflujo se comía el primer clic en «Inicia sesión» | PR #25: hueco reservado; botón +62 px → ≤1 px; `e2e/login-sin-reflujo.spec.ts` falla sin el fix; 404/404 tests |
-| B3-10 | BAJA | ABIERTO | `playwright.config` con puerto fijo y reuseExistingServer | Puede correr contra otro checkout si 5173 está ocupado |
+| B3-10 | BAJA | CERRADO (pendiente de merge) | `playwright.config` con puerto fijo y reuseExistingServer | PR #32: puerto 5174 propio, `--strictPort`, `reuseExistingServer:false`; con el puerto ocupado falla en voz alta |
 
 ## B4 — Reportes: ubicación y foto (PR #11, firmado PASA CON RESERVAS)
 
