@@ -94,7 +94,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B9-03 | MEDIA-ALTA | CERRADO | Paginación antes que la rejilla; CLS real 0,06407 a 1280 con 12 resultados | `76efe65`; gateada con el contenido |
 | B9-04 | MEDIA | CERRADO | Reintento dejaba 200 ms sin mensaje ni esqueleto | `76efe65`; mensaje montado |
 | B9-05 | BAJA | CERRADO | Dos regiones vivas y aria-busy falso durante la retención | `76efe65`; una región, OR |
-| B9-06 | BAJA | ABIERTO | «Reintentar» sigue activo durante una petición nueva | Seguimiento |
+| B9-06 | BAJA | CERRADO (pendiente de merge) | «Reintentar» seguía activo durante una petición nueva | PR #26: `disabled={isLoading}` en las 4 listas; test con 2 peticiones y segundo clic sin efecto; falla sin el fix |
 | B9-07 | INFO | ACEPTADO | La primera carga retiene 250 ms aunque el backend responda a 210 | Criterio 2 original |
 
 ## B3 — Validación del alta (PR #8, firmado PASA)
