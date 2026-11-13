@@ -505,4 +505,15 @@ describe('RecommendationsPage', () => {
       screen.getByRole('heading', { name: /^Sugerencias$/ }),
     )
   })
+
+  it('no deja ningun select nativo y conserva la etiqueta visible', async () => {
+    stubApi()
+    renderPage()
+
+    expect(await screen.findByText('12 sugerencias')).toBeTruthy()
+    expect(document.querySelector('select')).toBeNull()
+    expect(
+      screen.getByRole('combobox', { name: 'Añadir categoría' }),
+    ).toBeTruthy()
+  })
 })

@@ -273,7 +273,7 @@ export default function RecommendationsPage() {
           <div className={styles.prefsForm}>
             <SelectField
               id="pref-category"
-              aria-label="Añadir categoría"
+              label="Añadir categoría"
               placeholder="Selecciona una categoría…"
               options={availableCategories.map((category) => ({
                 value: category.id,
