@@ -109,4 +109,26 @@ describe('MyReportsPage', () => {
       expect(fetchMock.mock.calls.length).toBeGreaterThan(callsBefore)
     })
   })
+
+  it('ordena con el combobox accesible y sin select nativo', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => jsonResponse(cursorPage([REPORT]))),
+    )
+    const user = userEvent.setup()
+    renderReports()
+
+    await screen.findByText('Robo en la playa')
+    expect(document.querySelector('select')).toBeNull()
+
+    const sort = screen.getByRole('combobox', { name: 'Ordenar' })
+    await user.click(sort)
+    await user.click(
+      screen.getByRole('option', { name: 'Ordenar: más antiguos' }),
+    )
+
+    await waitFor(() =>
+      expect(sort.textContent).toContain('más antiguos'),
+    )
+  })
 })
