@@ -249,7 +249,7 @@ export default function SiteListPage() {
             title="No pudimos cargar los atractivos"
             description={error}
             action={
-              <Button variant="accent" onClick={retry}>
+              <Button variant="accent" onClick={retry} disabled={isLoading}>
                 Reintentar
               </Button>
             }
