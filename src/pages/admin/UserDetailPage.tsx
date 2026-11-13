@@ -345,15 +345,24 @@ export default function UserDetailPage() {
               onChange={(event) => setNextStatus(event.target.value as UserStatus)}
             />
             <Field
-              label="Motivo (opcional)"
+              label="Motivo"
               maxLength={500}
+              required={nextStatus === 'BLOQUEADO'}
               value={statusReason}
               onChange={(event) => setStatusReason(event.target.value)}
-              hint="Se guarda en la auditoría del cambio."
+              hint={
+                nextStatus === 'BLOQUEADO'
+                  ? 'Obligatorio al bloquear: se guarda en la auditoría y se envía al titular por correo.'
+                  : 'Se guarda en la auditoría del cambio.'
+              }
             />
             <Button
               variant="primary"
-              disabled={isWorking || nextStatus === user.status}
+              disabled={
+                isWorking ||
+                nextStatus === user.status ||
+                (nextStatus === 'BLOQUEADO' && statusReason.trim() === '')
+              }
               onClick={() =>
                 void run(
                   () =>
