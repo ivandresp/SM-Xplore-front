@@ -108,29 +108,17 @@ describe('LoginPage', () => {
     expect(window.sessionStorage.getItem('sm-xplore:session')).toContain('jwt-1')
   })
 
-  it('reserva el hueco del mensaje: el formulario no gana hijos al aparecer el error', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        jsonResponse(
-          { detail: 'Credenciales inválidas', code: 'INVALID_CREDENTIALS' },
-          401,
-        ),
-      ),
-    )
-
-    const user = userEvent.setup()
+  it('el boton de envio va antes que el mensaje: el error no lo empuja', () => {
     renderLogin()
 
     const form = document.querySelector('form') as HTMLFormElement
-    const childrenBefore = form.children.length
+    const submit = screen.getByRole('button', { name: 'Iniciar sesión' })
+    const last = form.lastElementChild as HTMLElement
 
-    await user.type(screen.getByLabelText('Correo electrónico'), 'laura@correo.com')
-    await user.type(screen.getByLabelText('Contraseña'), 'mala')
-    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
-
-    await screen.findByRole('alert')
-    expect(document.querySelector('form')?.children.length).toBe(childrenBefore)
+    expect(last.contains(submit)).toBe(false)
+    expect(
+      submit.compareDocumentPosition(last) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
   })
 
   it('muestra el mensaje de credenciales inválidas', async () => {

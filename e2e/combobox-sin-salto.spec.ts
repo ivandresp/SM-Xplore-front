@@ -17,5 +17,7 @@ test('abrir el combobox no mueve el scroll de la pagina', async ({ page }) => {
   await page.waitForTimeout(250)
   const after = await page.evaluate(() => window.scrollY)
 
+  // Criterio de B2-08: <= 24 px. Con el disparador recortado, el foco del
+  // boton mueve ~19 px; el salto por scrollIntoView era +93 px.
   expect(Math.abs(after - before)).toBeLessThanOrEqual(24)
 })

@@ -33,6 +33,7 @@ export function AppLayout() {
   return (
     <div className={styles.shell}>
       <TopBar
+        sticky
         tone="dark"
         badge="Panel de gestión"
         currentPath={pathname}

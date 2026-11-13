@@ -25,7 +25,10 @@ const GUIDE = {
   registrationStatus: 'PENDIENTE',
 }
 
-test('objetivos tactiles de 44 px y cabecera sticky en el panel', async ({ page }) => {
+test('objetivos tactiles de 44 px y cabecera sticky en el panel', async ({
+  page,
+  request,
+}) => {
   await page.addInitScript(() => {
     sessionStorage.setItem(
       'sm-xplore:session',
@@ -61,4 +64,26 @@ test('objetivos tactiles de 44 px y cabecera sticky en el panel', async ({ page 
 
   const header = page.locator('header').first()
   expect(await header.evaluate((el) => getComputedStyle(el).position)).toBe('sticky')
+
+  // El chip de filtro activo tambien es objetivo tactil (FilterBar).
+  const zones = await request.get('/api/v1/zones?size=1')
+  if (zones.ok()) {
+    const body = (await zones.json()) as { content?: Array<{ id: string }> }
+    const zoneId = body.content?.[0]?.id
+    if (zoneId !== undefined) {
+      await page.goto(`/explorar?zone=${zoneId}`)
+      const filterChip = page.getByRole('button', { name: /Quitar filtro/ }).first()
+      const filterBox = await filterChip.boundingBox()
+      expect(filterBox).not.toBeNull()
+      expect(filterBox?.height ?? 0).toBeGreaterThanOrEqual(44)
+    }
+  }
+})
+
+test('la cabecera publica no es sticky', async ({ page }) => {
+  await page.goto('/login')
+  const header = page.locator('header').first()
+  expect(await header.evaluate((el) => getComputedStyle(el).position)).toBe(
+    'relative',
+  )
 })
