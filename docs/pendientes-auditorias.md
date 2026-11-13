@@ -193,7 +193,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B2-05 | BAJA | ACEPTADO | `name`/`innerValue` sin uso hoy | Documentado en JSDoc |
 | B2-06 | BAJA | CERRADO | Clic en el label abría el desplegable | `6723b41`; solo enfoca |
 | B2-07 | INFO | ACEPTADO | Grupo vacío pinta `role=group` | Las páginas filtran grupos |
-| B2-08 | BAJA | ABIERTO | Abrir una lista larga con el trigger abajo desplaza la página (+287 px a 375) | Observación del auditor final |
+| B2-08 | BAJA | CERRADO (pendiente de merge) | Abrir una lista larga con el trigger abajo desplazaba la página (+287 px a 375) | PR #29: scroll interno del listbox; +93 px → 0 px en Playwright; e2e falla con `scrollIntoView` |
 | B2-09 | MEDIA | CERRADO | Auth, solicitudes, onboarding, reportes y recomendaciones seguían con `<select>` nativo. Migrados en los PRs #18-#22, mergeados el 2026-11-12 (`0911453`..`ae8ef98`). | `Select-String -CaseSensitive '<select' src` no devuelve etiquetas reales; 57 ficheros / 403 tests en `develop` |
 
 ## B6 — Responsive (PR #15)
