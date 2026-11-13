@@ -156,14 +156,14 @@ describe('MyProfilePage · preferencias', () => {
     expect(screen.getByText(/Elegida por ti/)).toBeTruthy()
     expect(screen.getByText(/Deducida de tus visitas/)).toBeTruthy()
 
-    const select = screen.getByLabelText('Añadir categoría') as HTMLSelectElement
-    expect(Array.from(select.options).map((option) => option.text)).toEqual([
-      'Selecciona una categoría…',
-      'Senderos',
-      'Miradores',
-    ])
+    const select = screen.getByRole('combobox', { name: 'Añadir categoría' })
+    expect(document.querySelector('select')).toBeNull()
+    await userEvent.click(select)
+    expect(
+      screen.getAllByRole('option').map((option) => option.textContent),
+    ).toEqual(['Selecciona una categoría…', 'Senderos', 'Miradores'])
 
-    await userEvent.selectOptions(select, 'c3')
+    await userEvent.click(screen.getByRole('option', { name: 'Senderos' }))
     await userEvent.click(screen.getByRole('button', { name: 'Añadir' }))
 
     await waitFor(() => expect(screen.getByText('Senderos')).toBeTruthy())
@@ -171,7 +171,9 @@ describe('MyProfilePage · preferencias', () => {
     expect(methods).toContain('POST')
 
     // El select vuelve a su opción vacía y «Añadir» se deshabilita: sin POST duplicado.
-    await waitFor(() => expect(select.value).toBe(''))
+    await waitFor(() =>
+      expect(select.textContent).toContain('Selecciona una categoría…'),
+    )
     expect(
       (screen.getByRole('button', { name: 'Añadir' }) as HTMLButtonElement)
         .disabled,
