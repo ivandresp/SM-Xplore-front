@@ -23,3 +23,9 @@ queda ABIERTO, ACEPTADO (con motivo) o CON DUEÑO (bloque donde se resuelve).
 | OLA5-B6-01 | BAJA | CERRADO | `catalog-filters.spec` escribía `docs/diseno/catalogo-*.png` en cada `npm run test:e2e` (ensuciaba el árbol y el commit de docs). | PR #32: capturas condicionadas a `CAPTURAS=1` y PNG restaurados desde `develop` |
 | OLA5-B6-02 | BAJA | CERRADO | La suite e2e completa no corría: `screenshots.spec` escribía capturas y hacía logins en cada corrida (rate limit de ms-01) y `flows.spec` esperaba `/explorar` tras el registro (hoy pasa por `/bienvenida`). | PR #33: capturas con `CAPTURAS=1`, `flows` al onboarding, `workers:1`; 22 passed / 8 skipped |
 | OLA5-B8-01 | MEDIA | ABIERTO | El ms-01 desplegado no tiene `POST /auth/register/gestora` (404 `NoResourceFound` → 500) aunque `develop` sí: imagen del contenedor desactualizada. | `docker logs smxplore-ms-01-1` 2026-11-13T02:33:45Z; entorno, no código. Reconstruir ms-01 antes de verificar gestoras |
+## B5 — Auditoría del bloque
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| OLA5-B5-01 | BAJA | CERRADO | La auditoría de B5 encontró: sticky también en páginas públicas, error del login movía el botón con mensajes de 2+ líneas y el chip de filtro sin guardia de 44 px. | PR #34: sticky solo en `AppLayout`; mensaje bajo el botón; e2e mide el chip; 408/408 |
+| OLA5-B5-02 | INFO | ABIERTO | La suite unitaria falló 5 tests en 3 ficheros en 1 de 8 corridas (4/4 en aislamiento); no reproducible ni atribuible. | Observación del auditor de B5; vigilancia |

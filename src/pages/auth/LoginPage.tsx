@@ -136,14 +136,6 @@ export default function LoginPage() {
         }
       >
         <form className={styles.form} onSubmit={handleVerify} noValidate>
-          <div className={styles.messages}>
-            {error !== null && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
-            )}
-          </div>
-
           <Field
             label="Código de verificación"
             name="code"
@@ -163,6 +155,14 @@ export default function LoginPage() {
           >
             {isSubmitting ? 'Verificando…' : 'Verificar'}
           </Button>
+
+          <div className={styles.messages}>
+            {error !== null && (
+              <p className={styles.error} role="alert">
+                {error}
+              </p>
+            )}
+          </div>
         </form>
       </AuthShell>
     )
@@ -186,14 +186,6 @@ export default function LoginPage() {
         }
       >
         <form className={styles.form} onSubmit={handleRecover} noValidate>
-          <div className={styles.messages}>
-            {error !== null && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
-            )}
-          </div>
-
           <Field
             label="Correo electrónico"
             type="email"
@@ -214,6 +206,14 @@ export default function LoginPage() {
           >
             {isSubmitting ? 'Enviando…' : 'Enviar instrucciones'}
           </Button>
+
+          <div className={styles.messages}>
+            {error !== null && (
+              <p className={styles.error} role="alert">
+                {error}
+              </p>
+            )}
+          </div>
         </form>
       </AuthShell>
     )
@@ -230,15 +230,6 @@ export default function LoginPage() {
       }
     >
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
-        <div className={styles.messages}>
-          {error !== null && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
-          {notice !== null && <p className={styles.notice}>{notice}</p>}
-        </div>
-
         <Field
           label="Correo electrónico"
           type="email"
@@ -293,6 +284,15 @@ export default function LoginPage() {
         >
           {isSubmitting ? 'Ingresando…' : 'Iniciar sesión'}
         </Button>
+
+        <div className={styles.messages}>
+          {error !== null && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
+          {notice !== null && <p className={styles.notice}>{notice}</p>}
+        </div>
       </form>
     </AuthShell>
   )

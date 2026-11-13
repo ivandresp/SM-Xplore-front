@@ -109,7 +109,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B3-06 | BAJA | CERRADO | Checklist en verde con contraseña vacía | `31391d6`; estado neutral |
 | B3-07 | BAJA | ACEPTADO | Fechas comparadas con el reloj del navegador | Peor caso 400 con campo señalado |
 | B3-08 | BAJA | ACEPTADO | Clases Unicode no idénticas a Java | Dirección segura (front más estricto) |
-| B3-09 | BAJA | CERRADO (pendiente de merge) | El mismo reflujo se comía el primer clic en «Inicia sesión» | PR #25: hueco reservado; botón +62 px → ≤1 px; `e2e/login-sin-reflujo.spec.ts` falla sin el fix; 404/404 tests |
+| B3-09 | BAJA | CERRADO | El mismo reflujo se comía el primer clic en «Inicia sesión» | #25 y #34: mensaje bajo el botón; +62 px → 0; e2e a 375 con mensajes de 1 y 2 líneas |
 | B3-10 | BAJA | CERRADO (pendiente de merge) | `playwright.config` con puerto fijo y reuseExistingServer | PR #32: puerto 5174 propio, `--strictPort`, `reuseExistingServer:false`; con el puerto ocupado falla en voz alta |
 
 ## B4 — Reportes: ubicación y foto (PR #11, firmado PASA CON RESERVAS)
@@ -209,9 +209,9 @@ Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones pr
 | B6-03 | MEDIA | CERRADO | A 320 px `/eventos` desbordaba 10 px (330 vs 320): la fila de acciones de `PageHeader` no bajaba de su `min-content` por el valor `nowrap` del desplegable. | `796872e` `src/components/PageHeader/PageHeader.module.css:78-79` (`max-width:100%`; solo `min-width:0` no bastaba, probado) |
 | B6-04 | MEDIA | CERRADO | Cruzar 900 px con el menú abierto dejaba `aria-expanded=true` con el panel oculto y el foco en `<body>` (caso real: iPad 768↔1024). | `796872e` `src/components/TopBar/TopBar.tsx:44,296-315`; guard «cruzar a escritorio» |
 | B6-05 | BAJA | CERRADO | `aria-controls` apuntaba a un id inexistente con el menú cerrado. | `796872e` `src/components/TopBar/TopBar.tsx:416` |
-| B6-06 | BAJA | CERRADO (pendiente de merge) | Objetivos táctiles por debajo de 44 px fuera de los componentes del bloque: píldora de rol 37 px, disparadores de `SelectField` 40 px, chip de filtro activo 29 px. | PR #31: 44 px con `@media (pointer: coarse)`; e2e mide 44 y falla sin el bloque |
+| B6-06 | BAJA | CERRADO | Objetivos táctiles por debajo de 44 px: píldora 37, disparadores 40, chip de filtro 29. | #31 y #34: 44 px con `pointer: coarse`; el e2e mide también el chip de filtro (mutación M6b roja) |
 | B6-07 | BAJA | CERRADO | `<th>` sin `scope` y región de tabla enfocable aunque no desbordara. | `796872e` `src/components/DataTable/DataTable.tsx:113,121`; test en `DataTable.test.tsx` |
-| B6-08 | BAJA | CERRADO (pendiente de merge) | El menú móvil solo se alcanzaba con la página arriba: el panel no tenía cabecera fija. | PR #31: `sticky` en móvil con `env(safe-area-inset-top)`; e2e comprueba `position: sticky` y falla sin él |
+| B6-08 | BAJA | CERRADO | El menú móvil solo se alcanzaba con la página arriba: el panel no tenía cabecera fija. | #31 y #34: `sticky` solo en el panel (prop `sticky` de `TopBar`); el público sigue `relative` |
 | B6-09 | BAJA | CERRADO | `docs/diseno/ola4`: 203 PNG y 19,38 MB (7,16 antes + 12,18 después), ~98 kB por imagen y dos copias de lo mismo. | `796872e`: 12 JPEG, 0,91 MB, generados por `e2e/ola4-capturas.spec.ts` |
 | B6-10 | MEDIA | CERRADO | `B2-09`: los `<select>` nativos de auth, solicitudes, onboarding, reportes y recomendaciones no se migraron en el pase de B6; `FormField` era compartido. Mismo hallazgo que B2-09 (canónico); cerrado con los PRs #18-#22. | `0911453`..`ae8ef98`; 57 ficheros / 403 tests |
 | B6-11 | BAJA | ACEPTADO | Al cruzar 768→1280 con el menú abierto el foco cae en `<body>`: el disparador queda `display:none` en escritorio y no hay dónde devolverlo. | `src/components/TopBar/TopBar.tsx:291-315` |

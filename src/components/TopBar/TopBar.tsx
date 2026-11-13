@@ -38,6 +38,8 @@ export interface TopBarProps {
   currentPath?: string
   /** Acciones del extremo derecho (botón, avatar, menú…). */
   right?: ReactNode
+  /** Cabecera fija en movil (solo el panel; decisión 4 de la ola 5). */
+  sticky?: boolean
 }
 
 /** Mismo corte que TopBar.module.css: desde aquí manda la barra lateral. */
@@ -273,6 +275,7 @@ export function TopBar({
   menuLinks,
   currentPath,
   right,
+  sticky = false,
 }: TopBarProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuId = useId()
@@ -378,7 +381,13 @@ export function TopBar({
   }
 
   return (
-    <header className={classNames(styles.bar, tone === 'dark' && styles.dark)}>
+    <header
+      className={classNames(
+        styles.bar,
+        tone === 'dark' && styles.dark,
+        sticky && styles.sticky,
+      )}
+    >
       <Link
         to="/"
         aria-label="SM-Xplore, ir al inicio"
