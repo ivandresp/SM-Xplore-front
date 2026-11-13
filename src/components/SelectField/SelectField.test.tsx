@@ -232,50 +232,61 @@ describe('SelectField (combobox ARIA 1.2)', () => {
     expect(screen.queryAllByRole('alert')).toHaveLength(0)
   })
 
-  it('desplaza la opcion activa a la vista en listas largas', async () => {
-    const original = Element.prototype.scrollIntoView
-    const scrollIntoView = vi.fn()
-    Element.prototype.scrollIntoView = scrollIntoView
+  it('mantiene la opcion activa visible con scroll interno, sin mover la pagina', async () => {
+    const user = userEvent.setup()
+    const many: SelectOption[] = Array.from({ length: 40 }, (_, index) => ({
+      value: `v-${index}`,
+      label: `Opcion ${index}`,
+    }))
 
-    try {
-      const user = userEvent.setup()
-      const many: SelectOption[] = Array.from({ length: 40 }, (_, index) => ({
-        value: `v-${index}`,
-        label: `Opcion ${index}`,
-      }))
+    render(
+      <SelectField label="Largo" options={many} value="v-0" onChange={vi.fn()} />,
+    )
 
-      render(
-        <SelectField
-          label="Largo"
-          options={many}
-          value="v-0"
-          onChange={vi.fn()}
-        />,
-      )
+    const combobox = screen.getByRole('combobox', { name: 'Largo' })
+    const listbox = document.getElementById(
+      combobox.getAttribute('aria-controls') ?? '',
+    ) as HTMLElement
+    const options = Array.from(
+      listbox.querySelectorAll<HTMLElement>('[role="option"]'),
+    )
 
-      const combobox = screen.getByRole('combobox', { name: 'Largo' })
-      combobox.focus()
-      await user.keyboard('{ArrowDown}')
-      scrollIntoView.mockClear()
+    let scrollTop = 0
+    Object.defineProperty(listbox, 'scrollTop', {
+      get: () => scrollTop,
+      set: (value: number) => {
+        scrollTop = value
+      },
+      configurable: true,
+    })
+    Object.defineProperty(listbox, 'clientHeight', {
+      value: 100,
+      configurable: true,
+    })
+    options.forEach((option, index) => {
+      Object.defineProperty(option, 'offsetTop', {
+        value: index * 30,
+        configurable: true,
+      })
+      Object.defineProperty(option, 'offsetHeight', {
+        value: 30,
+        configurable: true,
+      })
+    })
 
-      await user.keyboard('{End}')
-      expect(scrollIntoView).toHaveBeenCalled()
-      const last = document.getElementById(
-        combobox.getAttribute('aria-activedescendant') ?? '',
-      )
-      expect(scrollIntoView.mock.instances.at(-1)).toBe(last)
+    combobox.focus()
+    await user.keyboard('{ArrowDown}')
+    await user.keyboard('{End}')
 
-      scrollIntoView.mockClear()
-      await user.keyboard('{ArrowDown}')
-      await user.keyboard('{ArrowUp}')
-      expect(scrollIntoView.mock.calls.length).toBeGreaterThanOrEqual(2)
-    } finally {
-      if (original === undefined) {
-        delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
-      } else {
-        Element.prototype.scrollIntoView = original
-      }
-    }
+    // Opcion 39: 39*30 + 30 - 100 = 1100.
+    expect(listbox.scrollTop).toBe(1100)
+
+    // La opcion 38 ya es visible; el scroll no se mueve.
+    await user.keyboard('{ArrowUp}')
+    expect(listbox.scrollTop).toBe(1100)
+
+    await user.keyboard('{Home}')
+    expect(listbox.scrollTop).toBe(0)
   })
 
   it('el clic en la etiqueta solo enfoca, no abre el desplegable', async () => {

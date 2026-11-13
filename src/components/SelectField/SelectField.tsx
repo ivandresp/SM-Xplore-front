@@ -147,19 +147,31 @@ export function SelectField({
     return () => window.clearTimeout(typeaheadTimer.current)
   }, [])
 
-  // La lista puede desbordar (max-height): la opción activa se mantiene visible
-  // sin mover el foco. En jsdom no hay layout y `scrollIntoView` no existe.
+  // La lista desborda con scroll propio: la opción activa se mantiene visible
+  // dentro del listbox sin mover el scroll de la página (B2-08).
   useEffect(() => {
     if (!open || activeIndex < 0) {
       return
     }
 
+    const listbox = document.getElementById(listboxId)
     const option = document.getElementById(`${fieldId}-opt-${activeIndex}`)
 
-    if (option !== null && typeof option.scrollIntoView === 'function') {
-      option.scrollIntoView({ block: 'nearest' })
+    if (listbox === null || option === null) {
+      return
     }
-  }, [open, activeIndex, fieldId])
+
+    const top = option.offsetTop
+
+    if (top < listbox.scrollTop) {
+      listbox.scrollTop = top
+    } else if (
+      top + option.offsetHeight >
+      listbox.scrollTop + listbox.clientHeight
+    ) {
+      listbox.scrollTop = top + option.offsetHeight - listbox.clientHeight
+    }
+  }, [open, activeIndex, fieldId, listboxId])
 
   useEffect(() => {
     if (!open) {
