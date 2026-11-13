@@ -166,6 +166,34 @@ describe('useCurrentLocation', () => {
     expect(result.current.location).toBeNull()
   })
 
+  it('pasa a error si el navegador no responde en 10 s y permite reintentar', () => {
+    vi.useFakeTimers()
+    try {
+      const calls = stubGeolocation()
+      const { result } = renderHook(() => useCurrentLocation())
+
+      act(() => result.current.request())
+      expect(result.current.status).toBe('locating')
+
+      act(() => {
+        vi.advanceTimersByTime(10_000)
+      })
+      expect(result.current.status).toBe('error')
+
+      // Una respuesta tardia ya no cambia el estado.
+      act(() => calls[0].success(POSITION))
+      expect(result.current.status).toBe('error')
+      expect(result.current.location).toBeNull()
+
+      // El reintento funciona.
+      act(() => result.current.request())
+      act(() => calls[1].success(POSITION))
+      expect(result.current.status).toBe('ready')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('descarta la respuesta de una consulta anterior al reiniciar', () => {
     const calls = stubGeolocation()
     const { result } = renderHook(() => useCurrentLocation())
