@@ -125,11 +125,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B4-07 | BAJA | ACEPTADO | 400 de foto sin `code`; el front muestra el genérico | Mitigado por la allowlist |
 | B4-08 | BAJA | ACEPTADO | Recursos huérfanos en Cloudinary al quitar/abandonar | Limpieza diferida |
 | B4-09 | INFO | ACEPTADO | `handleSubmit` no comprueba `isUploadingPhotos` | Solo defensa visual; Chrome no permite Enter |
-<<<<<<< HEAD
 | B4-10 | BAJA | CERRADO (pendiente de merge) | La primera consulta de ubicación no tenía timeout propio | PR #28: temporizador de 10 s; respuesta tardía ignorada; test con fake timers falla si el umbral no dispara |
-=======
-| B4-10 | BAJA | CERRADO (pendiente de merge) | La primera consulta de ubicación no tenía timeout propio | PR #28: temporizador de 10 s; respuesta tardía ignorada |
->>>>>>> origin/develop
 
 ## B7 — Mapa OSM (PR #12, firmado PASA)
 
