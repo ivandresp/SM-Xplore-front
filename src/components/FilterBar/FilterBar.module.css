@@ -114,6 +114,12 @@
     background-color 0.15s ease;
 }
 
+@media (pointer: coarse) {
+  .chip {
+    min-height: 44px;
+  }
+}
+
 .chip:hover {
   border-color: var(--color-link);
   background-color: var(--color-primary-soft);
