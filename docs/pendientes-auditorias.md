@@ -154,7 +154,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B8a-07 | BAJA | ABIERTO | Tipos duplicados (registration vs user, labels) | Seguimiento |
 | B8a-08 | BAJA | ABIERTO | Pestaña/estado/página fuera de la URL | Seguimiento |
 | B8a-09 | MEDIA | ABIERTO | RECHAZADO→APROBADO permite que una lista cacheada revierta un rechazo reciente | Mismo hallazgo que B8-10 (canónico); se cierra allí |
-| B8a-10 | INFO | ABIERTO | No probado con DESTINATION_MANAGER real (solo ADMIN) | Deuda de verificación |
+| B8a-10 | INFO | CERRADO (pendiente de merge) | No probado con DESTINATION_MANAGER real (solo ADMIN) | PR #33: `e2e/b8a-10-dm.spec.ts` crea la gestora, activa por Mailpit y verifica la cola |
 
 ## B8b — Onboarding (PR #13, firmado PASA CON RESERVAS)
 
@@ -216,7 +216,7 @@ Auditoría adversaria en worktree aparte, Chrome del sistema y 118 mediciones pr
 | B6-10 | MEDIA | CERRADO | `B2-09`: los `<select>` nativos de auth, solicitudes, onboarding, reportes y recomendaciones no se migraron en el pase de B6; `FormField` era compartido. Mismo hallazgo que B2-09 (canónico); cerrado con los PRs #18-#22. | `0911453`..`ae8ef98`; 57 ficheros / 403 tests |
 | B6-11 | BAJA | ACEPTADO | Al cruzar 768→1280 con el menú abierto el foco cae en `<body>`: el disparador queda `display:none` en escritorio y no hay dónde devolverlo. | `src/components/TopBar/TopBar.tsx:291-315` |
 | B6-12 | BAJA | CERRADO | `e2e/ola4-capturas.spec.ts` escribía 12 JPEG en `docs/` en cada `npm run test:e2e` (ensuciaba el árbol) y el comentario decía 16 ficheros. | `ddc00ee`: salta salvo `CAPTURAS=1`; comentario corregido |
-| B6-13 | INFO | ABIERTO | La tabla de `/app/reportes` no se pudo medir: el entorno del auditor renderiza 0 filas. El armazón sí (240/660-1040). | Deuda de verificación con datos sembrados |
+| B6-13 | INFO | CERRADO (pendiente de merge) | La tabla de `/app/reportes` no se pudo medir: el entorno renderiza 0 filas. | PR #33: `e2e/b6-reportes.spec.ts` siembra 3 reportes y mide 375/1280 sin desborde |
 
 ## B2 y B6
 

@@ -23,7 +23,7 @@ test.describe('flujos de la ola 3', () => {
     await page.getByLabel('Nombre completo').fill('Turista E2E')
     await page.getByLabel('Correo electrónico').fill(email)
     await page.getByLabel('Teléfono').fill(uniquePhone())
-    await page.getByLabel('Contraseña').fill(PASSWORD)
+    await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD)
     await page.getByLabel('Número de documento').fill(uniqueDni())
     await page.getByLabel('Nacionalidad').fill('Colombiana')
     await page.getByLabel('Fecha de nacimiento').fill('1990-05-20')
@@ -32,6 +32,9 @@ test.describe('flujos de la ola 3', () => {
       .getByRole('button', { name: 'Crear cuenta' })
       .click()
 
+    // B8b: tras crear la cuenta se pasa por el onboarding antes del catalogo.
+    await expect(page).toHaveURL(/\/bienvenida/, FUTURE)
+    await page.getByRole('link', { name: 'Saltar por ahora' }).click()
     await expect(page).toHaveURL(/\/explorar/, FUTURE)
 
     const activity = await createBookableActivity(request)
@@ -64,12 +67,14 @@ test.describe('flujos de la ola 3', () => {
     await page.getByLabel('Nombre completo').fill('Turista E2E')
     await page.getByLabel('Correo electrónico').fill(email)
     await page.getByLabel('Teléfono').fill(uniquePhone())
-    await page.getByLabel('Contraseña').fill(PASSWORD)
+    await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD)
     await page.getByLabel('Número de documento').fill(uniqueDni())
     await page
       .locator('form')
       .getByRole('button', { name: 'Crear cuenta' })
       .click()
+    await expect(page).toHaveURL(/\/bienvenida/, FUTURE)
+    await page.getByRole('link', { name: 'Saltar por ahora' }).click()
     await expect(page).toHaveURL(/\/explorar/, FUTURE)
 
     await page.goto('/reportes/nuevo')

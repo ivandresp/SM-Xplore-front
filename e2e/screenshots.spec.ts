@@ -37,6 +37,13 @@ async function open(page: Page, path: string): Promise<void> {
 }
 
 test.describe('capturas por rol', () => {
+  // Solo genera capturas: se activa con CAPTURAS=1 para no gastar logins ni
+  // disparar el rate limit en cada corrida (OLA5-B6-02).
+  test.skip(
+    process.env.CAPTURAS !== '1',
+    'Capturas de evidencia: se activan con CAPTURAS=1.',
+  )
+
   test('catalogo publico y ficha de actividad', async ({ page, request }) => {
     const activity = await createBookableActivity(request)
 
