@@ -157,6 +157,7 @@ describe('MyProfilePage · preferencias', () => {
     expect(screen.getByText(/Deducida de tus visitas/)).toBeTruthy()
 
     const select = screen.getByRole('combobox', { name: 'Añadir categoría' })
+    expect(document.querySelector('select')).toBeNull()
     await userEvent.click(select)
     expect(
       screen.getAllByRole('option').map((option) => option.textContent),

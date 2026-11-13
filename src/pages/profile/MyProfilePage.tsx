@@ -291,7 +291,7 @@ export default function MyProfilePage() {
                   <div className={styles.prefsForm}>
                     <SelectField
                       id="profile-pref-category"
-                      aria-label="Añadir categoría"
+                      label="Añadir categoría"
                       placeholder="Selecciona una categoría…"
                       options={availableCategories.map((category) => ({
                         value: category.id,
