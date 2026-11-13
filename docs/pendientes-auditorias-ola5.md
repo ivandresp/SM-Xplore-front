@@ -29,3 +29,8 @@ queda ABIERTO, ACEPTADO (con motivo) o CON DUEÑO (bloque donde se resuelve).
 | --- | --- | --- | --- | --- |
 | OLA5-B5-01 | BAJA | CERRADO | La auditoría de B5 encontró: sticky también en páginas públicas, error del login movía el botón con mensajes de 2+ líneas y el chip de filtro sin guardia de 44 px. | PR #34: sticky solo en `AppLayout`; mensaje bajo el botón; e2e mide el chip; 408/408 |
 | OLA5-B5-02 | INFO | ABIERTO | La suite unitaria falló 5 tests en 3 ficheros en 1 de 8 corridas (4/4 en aislamiento); no reproducible ni atribuible. | Observación del auditor de B5; vigilancia |
+## B2 — Revocación y reapertura
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| OLA5-B2-01 | MEDIA | ABIERTO | La DESTINATION_MANAGER puede revocar guías por API, pero no tiene pantalla de usuarios donde hacerlo con motivo. | Backend #108 lo permite; falta una vista de aprobadas/revocación para la DM |

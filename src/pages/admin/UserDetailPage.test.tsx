@@ -62,7 +62,7 @@ describe('UserDetailPage', () => {
     await user.click(screen.getByRole('combobox', { name: 'Nuevo estado' }))
     await user.click(screen.getByRole('option', { name: 'Bloqueado' }))
     await user.type(
-      screen.getByLabelText('Motivo (opcional)'),
+      screen.getByLabelText('Motivo'),
       'Reiterados incumplimientos',
     )
     await user.click(screen.getByRole('button', { name: 'Aplicar estado' }))
@@ -82,6 +82,24 @@ describe('UserDetailPage', () => {
     expect(
       await screen.findByText('Estado actualizado a bloqueado.'),
     ).toBeTruthy()
+  })
+
+  it('no deja bloquear sin motivo y lo exige en el campo', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(GUIDE)))
+
+    const user = userEvent.setup()
+    renderDetail()
+
+    await screen.findByRole('heading', { name: 'Ana Guía' })
+    await user.click(screen.getByRole('combobox', { name: 'Nuevo estado' }))
+    await user.click(screen.getByRole('option', { name: 'Bloqueado' }))
+
+    const apply = screen.getByRole('button', { name: 'Aplicar estado' }) as HTMLButtonElement
+    expect(apply.disabled).toBe(true)
+    expect(screen.getByLabelText('Motivo').hasAttribute('required')).toBe(true)
+
+    await user.type(screen.getByLabelText('Motivo'), 'Licencia vencida')
+    expect(apply.disabled).toBe(false)
   })
 
   it('envía el enlace de restablecimiento sin cuerpo', async () => {
