@@ -29,3 +29,9 @@ queda ABIERTO, ACEPTADO (con motivo) o CON DUEÑO (bloque donde se resuelve).
 | --- | --- | --- | --- | --- |
 | OLA5-B5-01 | BAJA | CERRADO | La auditoría de B5 encontró: sticky también en páginas públicas, error del login movía el botón con mensajes de 2+ líneas y el chip de filtro sin guardia de 44 px. | PR #34: sticky solo en `AppLayout`; mensaje bajo el botón; e2e mide el chip; 408/408 |
 | OLA5-B5-02 | INFO | ABIERTO | La suite unitaria falló 5 tests en 3 ficheros en 1 de 8 corridas (4/4 en aislamiento); no reproducible ni atribuible. | Observación del auditor de B5; vigilancia |
+## B3 — Cascada de bloqueo
+
+| ID | Sev | Estado | Hallazgo | Evidencia |
+| --- | --- | --- | --- | --- |
+| OLA5-B3-01 | MEDIA | ABIERTO | El bloqueo de una gestora no despublica sus eventos en ms-03 (solo se cubren guías). | Backend #109; falta `findByManagerId` y decidir si aplica |
+| OLA5-B3-02 | BAJA | ABIERTO | Sin outbox en ms-01: si Kafka falla al publicar, el bloqueo no revierte pero la cascada se pierde (se loguea). | Backend #109; best effort documentado en el PR |

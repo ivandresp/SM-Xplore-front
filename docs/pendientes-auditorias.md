@@ -178,7 +178,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B8-09 | MEDIA | CERRADO | Reseñas de un alta no aprobada seguían públicas | `0d3d87e`; 400/404 |
 | B8-10 | MEDIA | ABIERTO | Una lista cacheada puede revertir un rechazo reciente (RECHAZADO→APROBADO) | If-Match o exigir motivo al aprobar una rechazada |
 | B8-11 | MEDIA | ABIERTO | Revocar por estado de usuario no exige motivo ni notifica; solo ADMIN | Decisión 2026-11-12: motivo obligatorio + correo; ADMIN y DESTINATION_MANAGER. Se implementa en B2 |
-| B8-12 | MEDIA | ABIERTO | La cascada sigue: BLOQUEADO deja actividades publicadas en ms-03 | Decisión 2026-11-12: evento Kafka ms-01 → ms-03. Se implementa en B3 |
+| B8-12 | MEDIA | CERRADO (pendiente de merge) | La cascada seguía: BLOQUEADO dejaba actividades publicadas en ms-03 | Backend #109: `users.account.blocked.v1`; ms-03 despublica PUBLISHED→PAUSED, idempotente |
 | B8-13 | BAJA | ABIERTO | La regla vive en el servicio, no en el dominio | Si otro llamador entra, APROBADO deja de ser terminal |
 | B8-14 | BAJA | ABIERTO | Un RECHAZADO sin motivo sobre una APROBADA da 400 antes que 409 | Orden de guardas |
 
