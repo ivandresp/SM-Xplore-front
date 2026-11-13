@@ -304,6 +304,53 @@ describe('OnboardingPage', () => {
     expect(progressItems()[2].textContent).toContain('Listo: completado')
   })
 
+  it('el paso 3 solo anuncia la nacionalidad cuando es lo unico enviado', async () => {
+    const { calls } = stubApi({ user: COMPLETE_TOURIST, preferences: [] })
+    const user = userEvent.setup()
+    renderOnboarding()
+
+    await user.click(await screen.findByRole('button', { name: 'Playa' }))
+    await user.click(screen.getByRole('button', { name: 'Continuar' }))
+
+    // Quita el idioma del formulario: el PATCH solo llevara la nacionalidad.
+    await user.click(
+      await screen.findByRole('combobox', { name: 'Idioma preferido' }),
+    )
+    await user.click(screen.getByRole('option', { name: 'Sin especificar' }))
+    await user.click(screen.getByRole('button', { name: 'Guardar y continuar' }))
+
+    const patched = callsTo(calls, 'PATCH', '/api/v1/users/me')
+    expect(patched[0].body).toEqual({ nationality: 'Colombia' })
+    expect(
+      await screen.findByText(/guardamos la nacionalidad de este paso/i),
+    ).toBeTruthy()
+    expect(screen.queryByText(/el idioma/i)).toBeNull()
+  })
+
+  it('el paso 3 solo anuncia el idioma cuando es lo unico enviado', async () => {
+    const { calls } = stubApi({ user: COMPLETE_TOURIST, preferences: [] })
+    const user = userEvent.setup()
+    renderOnboarding()
+
+    await user.click(await screen.findByRole('button', { name: 'Playa' }))
+    await user.click(screen.getByRole('button', { name: 'Continuar' }))
+
+    // Vacia la nacionalidad y cambia el idioma: el PATCH solo llevara el idioma.
+    await user.clear(await screen.findByLabelText('Nacionalidad'))
+    await user.click(
+      await screen.findByRole('combobox', { name: 'Idioma preferido' }),
+    )
+    await user.click(screen.getByRole('option', { name: 'Inglés' }))
+    await user.click(screen.getByRole('button', { name: 'Guardar y continuar' }))
+
+    const patched = callsTo(calls, 'PATCH', '/api/v1/users/me')
+    expect(patched[0].body).toEqual({ preferredLanguage: 'en' })
+    expect(
+      await screen.findByText(/guardamos el idioma de este paso/i),
+    ).toBeTruthy()
+    expect(screen.queryByText(/la nacionalidad/i)).toBeNull()
+  })
+
   it('omitir el perfil avanza al paso 3 sin escribir en el backend', async () => {
     const { calls } = stubApi({ preferences: ['c-playa'] })
     const user = userEvent.setup()

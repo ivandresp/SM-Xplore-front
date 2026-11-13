@@ -40,9 +40,11 @@ const PERMISSION_DENIED = 1
  * Diez segundos: lo justo para un GPS urbano sin dejar el botón colgado para siempre.
  * `maximumAge: 0` evita reutilizar una posición vieja en un reporte de seguridad.
  */
+const GEOLOCATION_TIMEOUT_MS = 10_000
+
 const GEOLOCATION_OPTIONS: PositionOptions = {
   enableHighAccuracy: true,
-  timeout: 10_000,
+  timeout: GEOLOCATION_TIMEOUT_MS,
   maximumAge: 0,
 }
 
@@ -57,13 +59,21 @@ export function useCurrentLocation(): UseCurrentLocationResult {
   const [location, setLocation] = useState<CurrentLocation | null>(null)
   /** Un reintento invalida la respuesta de la consulta anterior. */
   const requestRef = useRef(0)
+  /** Escape propio si el navegador no llama a ningun callback (dialogo abierto). */
+  const timeoutRef = useRef<number | undefined>(undefined)
+
+  const clearTimeoutRef = useCallback(() => {
+    window.clearTimeout(timeoutRef.current)
+    timeoutRef.current = undefined
+  }, [])
 
   useEffect(
     () => () => {
       // Al desmontar, una respuesta tardía ya no debe tocar estado.
       requestRef.current += 1
+      clearTimeoutRef()
     },
-    [],
+    [clearTimeoutRef],
   )
 
   const request = useCallback(() => {
@@ -81,11 +91,19 @@ export function useCurrentLocation(): UseCurrentLocationResult {
     }
 
     setStatus('locating')
+    clearTimeoutRef()
+    timeoutRef.current = window.setTimeout(() => {
+      if (!isCurrent()) return
+      // Invalida una respuesta que llegue despues del escape.
+      requestRef.current += 1
+      setStatus('error')
+    }, GEOLOCATION_TIMEOUT_MS)
 
     try {
       geolocation.getCurrentPosition(
         (position) => {
           if (!isCurrent()) return
+          clearTimeoutRef()
           setLocation({
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
@@ -94,21 +112,24 @@ export function useCurrentLocation(): UseCurrentLocationResult {
         },
         (error) => {
           if (!isCurrent()) return
+          clearTimeoutRef()
           setStatus(error.code === PERMISSION_DENIED ? 'denied' : 'error')
         },
         GEOLOCATION_OPTIONS,
       )
     } catch {
+      clearTimeoutRef()
       if (!isCurrent()) return
       setStatus('error')
     }
-  }, [])
+  }, [clearTimeoutRef])
 
   const clear = useCallback(() => {
     requestRef.current += 1
+    clearTimeoutRef()
     setLocation(null)
     setStatus('idle')
-  }, [])
+  }, [clearTimeoutRef])
 
   return { status, location, request, clear }
 }

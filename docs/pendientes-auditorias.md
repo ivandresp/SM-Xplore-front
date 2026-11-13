@@ -94,7 +94,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B9-03 | MEDIA-ALTA | CERRADO | Paginación antes que la rejilla; CLS real 0,06407 a 1280 con 12 resultados | `76efe65`; gateada con el contenido |
 | B9-04 | MEDIA | CERRADO | Reintento dejaba 200 ms sin mensaje ni esqueleto | `76efe65`; mensaje montado |
 | B9-05 | BAJA | CERRADO | Dos regiones vivas y aria-busy falso durante la retención | `76efe65`; una región, OR |
-| B9-06 | BAJA | ABIERTO | «Reintentar» sigue activo durante una petición nueva | Seguimiento |
+| B9-06 | BAJA | CERRADO (pendiente de merge) | «Reintentar» seguía activo durante una petición nueva | PR #26: `disabled={isLoading}` en las 4 listas; test con 2 peticiones y segundo clic sin efecto; falla sin el fix |
 | B9-07 | INFO | ACEPTADO | La primera carga retiene 250 ms aunque el backend responda a 210 | Criterio 2 original |
 
 ## B3 — Validación del alta (PR #8, firmado PASA)
@@ -109,7 +109,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B3-06 | BAJA | CERRADO | Checklist en verde con contraseña vacía | `31391d6`; estado neutral |
 | B3-07 | BAJA | ACEPTADO | Fechas comparadas con el reloj del navegador | Peor caso 400 con campo señalado |
 | B3-08 | BAJA | ACEPTADO | Clases Unicode no idénticas a Java | Dirección segura (front más estricto) |
-| B3-09 | BAJA | ABIERTO | El mismo reflujo se come el primer clic en «Inicia sesión» | Misma clase; fix estructural: reservar el hueco del error |
+| B3-09 | BAJA | CERRADO (pendiente de merge) | El mismo reflujo se comía el primer clic en «Inicia sesión» | PR #25: hueco reservado; botón +62 px → ≤1 px; `e2e/login-sin-reflujo.spec.ts` falla sin el fix; 404/404 tests |
 | B3-10 | BAJA | ABIERTO | `playwright.config` con puerto fijo y reuseExistingServer | Puede correr contra otro checkout si 5173 está ocupado |
 
 ## B4 — Reportes: ubicación y foto (PR #11, firmado PASA CON RESERVAS)
@@ -125,7 +125,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B4-07 | BAJA | ACEPTADO | 400 de foto sin `code`; el front muestra el genérico | Mitigado por la allowlist |
 | B4-08 | BAJA | ACEPTADO | Recursos huérfanos en Cloudinary al quitar/abandonar | Limpieza diferida |
 | B4-09 | INFO | ACEPTADO | `handleSubmit` no comprueba `isUploadingPhotos` | Solo defensa visual; Chrome no permite Enter |
-| B4-10 | BAJA | ABIERTO | Primera consulta de ubicación sin timeout propio | Depende del navegador; reconsultas sí tienen escape |
+| B4-10 | BAJA | CERRADO (pendiente de merge) | La primera consulta de ubicación no tenía timeout propio | PR #28: temporizador de 10 s; respuesta tardía ignorada; test con fake timers falla si el umbral no dispara |
 
 ## B7 — Mapa OSM (PR #12, firmado PASA)
 
@@ -166,7 +166,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B8b-04 | MEDIA-BAJA | CERRADO | Clics descartados sin aviso durante una escritura | `b69231b`; role=status «Guardando…» |
 | B8b-05 | BAJA | CERRADO | Objetivos táctiles de 17 px | `b69231b`; 44 px + touch-action |
 | B8b-06 | BAJA | CERRADO | Copy del perfil afirmaba guardado sin PATCH | `b69231b` |
-| B8b-07 | BAJA | ABIERTO | Paso 3 dice «nacionalidad y idioma» si solo se envió nacionalidad | Componer el texto desde el patch |
+| B8b-07 | BAJA | CERRADO (pendiente de merge) | El paso 3 decía «nacionalidad y idioma» si solo se envió uno | PR #27: `describeSavedProfile(patch)`; 2 tests fallan con el texto fijo |
 | B8b-08 | BAJA | ACEPTADO | Emoji como icono de cápsula | aria-hidden, sin daño |
 | B8b-09 | BAJA | ACEPTADO | preferredLanguage nace «es» por normalización del backend | «Completo» puede ser un valor por defecto |
 
@@ -193,7 +193,7 @@ hallazgos y el orquestador los anota. La norma de auditoría está en
 | B2-05 | BAJA | ACEPTADO | `name`/`innerValue` sin uso hoy | Documentado en JSDoc |
 | B2-06 | BAJA | CERRADO | Clic en el label abría el desplegable | `6723b41`; solo enfoca |
 | B2-07 | INFO | ACEPTADO | Grupo vacío pinta `role=group` | Las páginas filtran grupos |
-| B2-08 | BAJA | CERRADO (pendiente de merge) | Abrir una lista larga con el trigger abajo desplazaba la página (+287 px a 375) | PR #29: scroll interno del listbox; +93 px → 0 px en Playwright; e2e falla con `scrollIntoView` |
+| B2-08 | BAJA | CERRADO (pendiente de merge) | Abrir una lista larga con el trigger abajo desplazaba la página (+287 px a 375) | PR #29: scroll interno del listbox; +93 px → 0 px |
 | B2-09 | MEDIA | CERRADO | Auth, solicitudes, onboarding, reportes y recomendaciones seguían con `<select>` nativo. Migrados en los PRs #18-#22, mergeados el 2026-11-12 (`0911453`..`ae8ef98`). | `Select-String -CaseSensitive '<select' src` no devuelve etiquetas reales; 57 ficheros / 403 tests en `develop` |
 
 ## B6 — Responsive (PR #15)

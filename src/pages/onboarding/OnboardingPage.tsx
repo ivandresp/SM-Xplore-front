@@ -9,13 +9,18 @@ import { recommendationsApi } from '@/services/recommendationsApi'
 import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
 import { classNames } from '@/utils/format'
-import type { CategoryResponse, PreferenceResponse } from '@/types'
+import type {
+  CategoryResponse,
+  PreferenceResponse,
+  UpdateMyProfileRequest,
+} from '@/types'
 import {
   LANGUAGE_OPTIONS,
   ONBOARDING_PATHS,
   ONBOARDING_STEP_COUNT,
   ONBOARDING_STEP_LABELS,
   buildProfilePatch,
+  describeSavedProfile,
   categoryEmoji,
   deriveOnboardingProgress,
   finishTargets,
@@ -53,6 +58,8 @@ export default function OnboardingPage() {
   const [preferredLanguage, setPreferredLanguage] = useState('')
   const [profileError, setProfileError] = useState<string | null>(null)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
+  const [savedProfilePatch, setSavedProfilePatch] =
+    useState<UpdateMyProfileRequest | null>(null)
   const [profileSavedNow, setProfileSavedNow] = useState(false)
   const [draftOwner, setDraftOwner] = useState<string | null>(null)
 
@@ -199,6 +206,7 @@ export default function OnboardingPage() {
     try {
       const updated = await usersApi.updateMe(patch)
       updateSessionUser(updated)
+      setSavedProfilePatch(patch)
       setProfileSavedNow(true)
       setStatusMessage(null)
       setManualStep(3)
@@ -532,7 +540,7 @@ export default function OnboardingPage() {
               <p className={styles.status}>
                 {progress.profileDone
                   ? profileSavedNow
-                    ? 'Perfil completo: guardamos la nacionalidad y el idioma de este paso.'
+                    ? describeSavedProfile(savedProfilePatch ?? {})
                     : 'Perfil completo: usamos los datos de tu cuenta.'
                   : 'Perfil pendiente.'}
               </p>
