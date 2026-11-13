@@ -267,7 +267,7 @@ export default function ServiceListPage() {
             title="No pudimos cargar los servicios"
             description={error}
             action={
-              <Button variant="accent" onClick={retry}>
+              <Button variant="accent" onClick={retry} disabled={isLoading}>
                 Reintentar
               </Button>
             }

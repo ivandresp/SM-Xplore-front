@@ -365,7 +365,7 @@ export default function ExplorePage() {
             title="No pudimos cargar las actividades"
             description={error}
             action={
-              <Button variant="accent" onClick={retry}>
+              <Button variant="accent" onClick={retry} disabled={isLoading}>
                 Reintentar
               </Button>
             }

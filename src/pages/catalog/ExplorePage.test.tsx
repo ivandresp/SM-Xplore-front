@@ -331,6 +331,48 @@ describe('ExplorePage', () => {
     expect(document.querySelector('[data-skeleton]')).toBeNull()
   })
 
+  it('deshabilita Reintentar mientras la nueva peticion esta en vuelo', async () => {
+    let calls = 0
+    const gate: { resolve: ((response: Response) => void) | null } = {
+      resolve: null,
+    }
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const url = String(input)
+        if (url.includes('/activities?')) {
+          calls += 1
+          if (calls === 1) {
+            return Promise.resolve(jsonResponse({ code: 'ERROR' }, 500))
+          }
+          return new Promise<Response>((resolve) => {
+            gate.resolve = resolve
+          })
+        }
+        return Promise.resolve(jsonResponse(page([])))
+      }),
+    )
+
+    const user = userEvent.setup()
+    renderExplore()
+
+    await screen.findByText('No pudimos cargar las actividades')
+    const retry = screen.getByRole('button', {
+      name: 'Reintentar',
+    }) as HTMLButtonElement
+    await user.click(retry)
+
+    expect(retry.disabled).toBe(true)
+    expect(calls).toBe(2)
+
+    // Un segundo clic no dispara otra peticion.
+    await user.click(retry)
+    expect(calls).toBe(2)
+
+    gate.resolve?.(jsonResponse(page([ACTIVITY])))
+    expect(await screen.findByText('Snorkel en Taganga')).toBeTruthy()
+  })
+
   it('si el esqueleto aparece, se mantiene 250 ms aunque la respuesta llegue a los 210 ms', async () => {
     vi.useFakeTimers()
     try {
