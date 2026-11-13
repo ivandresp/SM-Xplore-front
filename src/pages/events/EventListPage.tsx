@@ -399,7 +399,7 @@ export default function EventListPage() {
             title="No pudimos cargar los eventos"
             description={error}
             action={
-              <Button variant="accent" onClick={retry}>
+              <Button variant="accent" onClick={retry} disabled={isLoading}>
                 Reintentar
               </Button>
             }

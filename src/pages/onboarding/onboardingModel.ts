@@ -123,6 +123,19 @@ export interface ProfileDraft {
  * UpdateProfileRequest (nationality hasta 80, preferredLanguage hasta 50) y
  * omite los vacíos: mandar null no está permitido y borraría datos sin querer.
  */
+export function describeSavedProfile(patch: UpdateMyProfileRequest): string {
+  const hasNationality = patch.nationality !== undefined
+  const hasLanguage = patch.preferredLanguage !== undefined
+
+  if (hasNationality && hasLanguage) {
+    return 'Perfil completo: guardamos la nacionalidad y el idioma de este paso.'
+  }
+  if (hasNationality) {
+    return 'Perfil completo: guardamos la nacionalidad de este paso.'
+  }
+  return 'Perfil completo: guardamos el idioma de este paso.'
+}
+
 export function buildProfilePatch(draft: ProfileDraft): UpdateMyProfileRequest {
   const patch: UpdateMyProfileRequest = {}
   const nationality = draft.nationality.trim()

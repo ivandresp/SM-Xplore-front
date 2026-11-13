@@ -136,11 +136,13 @@ export default function LoginPage() {
         }
       >
         <form className={styles.form} onSubmit={handleVerify} noValidate>
-          {error !== null && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
+          <div className={styles.messages}>
+            {error !== null && (
+              <p className={styles.error} role="alert">
+                {error}
+              </p>
+            )}
+          </div>
 
           <Field
             label="Código de verificación"
@@ -184,11 +186,13 @@ export default function LoginPage() {
         }
       >
         <form className={styles.form} onSubmit={handleRecover} noValidate>
-          {error !== null && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
+          <div className={styles.messages}>
+            {error !== null && (
+              <p className={styles.error} role="alert">
+                {error}
+              </p>
+            )}
+          </div>
 
           <Field
             label="Correo electrónico"
@@ -226,12 +230,14 @@ export default function LoginPage() {
       }
     >
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
-        {error !== null && (
-          <p className={styles.error} role="alert">
-            {error}
-          </p>
-        )}
-        {notice !== null && <p className={styles.notice}>{notice}</p>}
+        <div className={styles.messages}>
+          {error !== null && (
+            <p className={styles.error} role="alert">
+              {error}
+            </p>
+          )}
+          {notice !== null && <p className={styles.notice}>{notice}</p>}
+        </div>
 
         <Field
           label="Correo electrónico"
