@@ -511,6 +511,52 @@ describe('RegistrationsQueuePage', () => {
     ).toBeTruthy()
   })
 
+  it('filtra por estado con el combobox accesible y sin select nativo', async () => {
+    const fetchStub = vi.fn(async (_url: string) =>
+      jsonResponse(pageOf([GUIDE])),
+    )
+    vi.stubGlobal('fetch', fetchStub)
+
+    const user = userEvent.setup()
+    renderQueue()
+
+    await screen.findByText('Ana Guía')
+    expect(document.querySelector('select')).toBeNull()
+
+    const status = screen.getByRole('combobox', { name: 'Estado' })
+    await user.click(status)
+    await user.click(screen.getByRole('option', { name: 'Rechazadas' }))
+
+    await waitFor(() => {
+      expect(String(fetchStub.mock.calls.at(-1)?.[0])).toContain(
+        'status=RECHAZADO',
+      )
+    })
+  })
+
+  it('devuelve el foco al filtro de estado tras aprobar', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.endsWith('/review')) {
+        return new Response(null, { status: 204 })
+      }
+      return jsonResponse(pageOf([GUIDE]))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    renderQueue()
+
+    await screen.findByText('Ana Guía')
+    await user.click(screen.getByRole('button', { name: 'Aprobar' }))
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(
+        screen.getByRole('combobox', { name: 'Estado' }),
+      )
+    })
+  })
+
   it('pagina en servidor cuando hay más solicitudes que una página', async () => {
     const fetchStub = vi.fn(async (_url: string) =>
       jsonResponse(pageOf([GUIDE], 25, 3)),

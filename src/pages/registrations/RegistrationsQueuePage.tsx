@@ -5,6 +5,7 @@ import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
+import { SelectField } from '@/components/SelectField'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { clearCache } from '@/services/cache'
@@ -77,7 +78,6 @@ export default function RegistrationsQueuePage() {
   const [reloadToken, setReloadToken] = useState(0)
 
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
-  const statusSelectRef = useRef<HTMLSelectElement | null>(null)
   /**
    * Una mutación fallida no invalida la caché de 30 s de `httpClient`; la
    * recarga manual la salta con `_=<marca>` y se limpia al leer bien.
@@ -231,7 +231,7 @@ export default function RegistrationsQueuePage() {
       setRejecting(null)
       setReason('')
       // El filtro de estado siempre existe: es el punto estable de vuelta.
-      statusSelectRef.current?.focus()
+      document.getElementById('registrations-status-filter')?.focus()
       // Si era la última fila visible, la página actual quedaría vacía: se
       // retrocede una antes de recargar.
       if (rows.length <= 1 && page > 1) {
@@ -354,23 +354,18 @@ export default function RegistrationsQueuePage() {
           ))}
         </div>
 
-        <label className={styles.filter}>
+        <div className={styles.filter}>
           <span className={styles.filterLabel}>Estado</span>
-          <select
-            ref={statusSelectRef}
-            className={styles.select}
+          <SelectField
+            id="registrations-status-filter"
+            aria-label="Estado"
+            options={STATUS_OPTIONS}
             value={status}
             onChange={(event) =>
               changeStatus(event.target.value as QueueableRegistrationStatus)
             }
-          >
-            {STATUS_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          />
+        </div>
       </div>
 
       {actionError !== null && (
