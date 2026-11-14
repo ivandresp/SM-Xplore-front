@@ -54,7 +54,11 @@ export function Field({
 
   return (
     <div className={styles.field}>
-      <label className={styles.label} htmlFor={fieldId}>
+      <label
+        className={styles.label}
+        htmlFor={fieldId}
+        data-required={input.required === true ? '' : undefined}
+      >
         {label}
       </label>
       <div className={styles.controlWrap}>

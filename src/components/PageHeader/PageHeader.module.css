@@ -28,6 +28,10 @@
   color: var(--color-link);
 }
 
+.breadcrumb a:active {
+  color: var(--color-link-hover);
+}
+
 .crumbSeparator {
   color: var(--color-placeholder);
 }

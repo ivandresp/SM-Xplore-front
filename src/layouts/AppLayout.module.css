@@ -53,12 +53,17 @@
 
 .link:hover {
   background-color: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
+  color: var(--color-on-bar);
+}
+
+.link:active {
+  background-color: rgba(255, 255, 255, 0.16);
+  color: var(--color-on-bar);
 }
 
 .active {
   background-color: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  color: var(--color-on-bar);
 }
 
 .userBox {
@@ -67,7 +72,7 @@
 
 .userName {
   margin: 0;
-  color: #ffffff;
+  color: var(--color-on-bar);
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -96,7 +101,7 @@
   border-radius: 999px;
   background-color: rgba(255, 255, 255, 0.94);
   /* Fijo: la píldora es blanca en ambos temas, sobre la barra oscura. */
-  color: #0a6f6d;
+  color: var(--color-bar-fill);
   font-family: var(--font-heading);
   font-size: 0.85rem;
   font-weight: 700;
@@ -108,7 +113,7 @@
   border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 999px;
   background-color: transparent;
-  color: #ffffff;
+  color: var(--color-on-bar);
   font-family: var(--font-heading);
   font-size: 0.85rem;
   font-weight: 600;
@@ -119,8 +124,12 @@
   background-color: rgba(255, 255, 255, 0.12);
 }
 
+.logout:active {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
 .logout:focus-visible {
-  outline: 2px solid #c9f2ec;
+  outline: 2px solid var(--color-on-bar-muted);
   outline-offset: 2px;
 }
 

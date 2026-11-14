@@ -410,11 +410,11 @@
 
 .dark .search {
   border-color: transparent;
-  background-color: #0a6f6d;
+  background-color: var(--color-bar-fill);
 }
 
 .dark .search input {
-  color: #ffffff;
+  color: var(--color-on-bar);
 }
 
 .dark .search input::placeholder {
@@ -422,34 +422,34 @@
 }
 
 .dark .searchIcon {
-  color: #e6fffb;
+  color: var(--color-on-bar-soft);
 }
 
 .dark .search:focus-within {
-  border-color: #c9f2ec;
-  outline-color: #c9f2ec;
+  border-color: var(--color-on-bar-muted);
+  outline-color: var(--color-on-bar-muted);
 }
 
 .dark .link {
-  color: #ffffff;
+  color: var(--color-on-bar);
 }
 
 .dark .link:hover {
-  color: #c9f2ec;
+  color: var(--color-on-bar-muted);
 }
 
 .dark .link:focus-visible {
-  outline-color: #c9f2ec;
+  outline-color: var(--color-on-bar-muted);
 }
 
 .dark .link[aria-current='page'] {
-  color: #c9f2ec;
+  color: var(--color-on-bar-muted);
 }
 /* Variante oscura del menú móvil (la barra navy es oscura en ambos temas). */
 .dark .menuButton {
   border-color: rgba(255, 255, 255, 0.35);
   background-color: transparent;
-  color: #ffffff;
+  color: var(--color-on-bar);
 }
 
 .dark .menuButton:hover,
@@ -458,7 +458,7 @@
 }
 
 .dark .menuButton:focus-visible {
-  outline-color: #c9f2ec;
+  outline-color: var(--color-on-bar-muted);
 }
 
 .dark .menuPanel {
@@ -467,7 +467,7 @@
 }
 
 .dark .menuLink {
-  color: #ffffff;
+  color: var(--color-on-bar);
 }
 
 .dark .menuLink:hover {
@@ -479,11 +479,11 @@
 }
 
 .dark .menuLink:focus-visible {
-  outline-color: #c9f2ec;
+  outline-color: var(--color-on-bar-muted);
 }
 
 .dark .menuLink[aria-current='page'] {
-  color: #c9f2ec;
+  color: var(--color-on-bar-muted);
 }
 
 .badge {
@@ -499,7 +499,7 @@
 
 .dark .badge {
   background-color: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  color: var(--color-on-bar);
 }
 /*
  * El botón solo existe por debajo de 900 px. Esta regla va al final a

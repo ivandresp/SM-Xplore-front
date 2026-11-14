@@ -62,6 +62,10 @@
   background-color: var(--color-primary-tint);
 }
 
+.table tbody tr:active {
+  background-color: var(--color-surface-alt);
+}
+
 .alignRight {
   text-align: right;
 }

@@ -1,3 +1,4 @@
+import { SierraProfile } from '@/components/SierraProfile'
 import { classNames } from '@/utils/format'
 import styles from './Skeleton.module.css'
 
@@ -108,6 +109,7 @@ export function Skeleton({
 
   return (
     <div className={classes(styles.lines)} {...rootProps}>
+      <SierraProfile animate className={styles.profile} />
       {items.map((key) => (
         <div key={key} className={block(styles.line)} />
       ))}

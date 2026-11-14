@@ -24,6 +24,11 @@
   border-color: var(--color-border-strong);
 }
 
+.page:active:not(:disabled):not(.active) {
+  background-color: var(--color-surface);
+  transform: translateY(1px);
+}
+
 .page:disabled {
   opacity: 0.45;
   cursor: not-allowed;

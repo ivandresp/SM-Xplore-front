@@ -10,9 +10,15 @@
 
 .label {
   font-family: var(--font-heading);
-  font-size: 0.92rem;
+  font-size: var(--text-body);
   font-weight: 700;
   color: var(--color-text);
+}
+
+/* El asterisco va en CSS a proposito: no debe cambiar el nombre accesible. */
+.label[data-required]::after {
+  content: ' *';
+  color: var(--color-muted-strong);
 }
 
 /* Caja del disparador: misma altura, radio y padding que los inputs
@@ -34,12 +40,12 @@
 
 :where(.control) {
   padding: 0.7rem 0.9rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-data);
   background-color: var(--color-bg);
   color: var(--color-text);
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--text-body);
 }
 
 /* 44 px tactil; el escritorio conserva 40 px (B6-06). */
@@ -97,8 +103,8 @@
   padding: 0.3rem;
   max-height: min(60vh, 20rem);
   overflow-y: auto;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-data);
   background-color: var(--color-bg);
   box-shadow: var(--shadow-card);
 }
