@@ -35,11 +35,27 @@ en la misma rama y se vuelve a medir. Un PR abierto no cierra la meta.
 | Bloque | Estado |
 | --- | --- |
 | A1 auditoría + dirección | hecho (`014b356`) |
-| A2 tokens | en curso |
-| A3 Button | pendiente |
-| A4 campos y errores | pendiente |
-| A5 chip/badge/esqueleto/vacío | pendiente |
-| A6 `audit:visual` | pendiente |
-| B1–B5 | pendientes |
+| A2 tokens | hecho (`b634676`) |
+| A3 Button | hecho (`c473b7c`) |
+| A4 campos y errores | hecho (`160b644`, corregido en `e18e74f`) |
+| A5 chip/badge/esqueleto/vacío | hecho (`8e4a5fc`) |
+| A6 `audit:visual` | hecho (`427e3d5`, `8cb8399`) |
+| B1–B5 | bloqueados por la review de A (§4.1) |
 | C auditorías | pendientes |
-| D puerta y PR | pendientes |
+| D puerta y PR | A en PR; B–D pendientes |
+
+## Medición de A (antes → después)
+
+| Métrica | Antes | Después |
+| --- | --- | --- |
+| Hex fuera de `index.css` | 25 | **0** |
+| Hojas con `:hover` y sin `:active` | 17 | **9** (todas de `src/pages/**`, son de B) |
+| Pares de contraste por debajo de AA | 6 | **0** |
+| `transition: all` / transiciones de layout | 0 / 0 | 0 / 0 |
+| Tests | 409 | **418** |
+| Familias tipográficas descargadas | 3 | **2** |
+| Scroll horizontal (5 rutas × 3 anchos) | 0 | **0** |
+| Bundle `index` | 260,00 kB raw | 267,31 kB raw / 83,48 kB gzip |
+
+El script de auditoría sigue en rojo por esas 9 hojas de página: cada lote B cierra las suyas y la
+puerta global exige 0.
