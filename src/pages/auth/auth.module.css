@@ -83,6 +83,10 @@
   color: var(--color-link);
 }
 
+.link:active {
+  color: var(--color-link-hover);
+}
+
 .linkAccent {
   padding: 0;
   border: none;
@@ -142,6 +146,10 @@
 
 .footer a:hover {
   color: var(--color-link);
+}
+
+.footer a:active {
+  color: var(--color-link-hover);
 }
 
 .submit {

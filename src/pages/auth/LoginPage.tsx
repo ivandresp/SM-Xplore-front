@@ -1,19 +1,32 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { useAuth } from '@/hooks/useAuth'
+import { useFormValidation } from '@/hooks/useFormValidation'
 import { authApi } from '@/services/authApi'
 import { isApiError } from '@/services/httpClient'
-import type { AuthUser } from '@/types'
 import { describeApiError } from '@/utils/errors'
+import type { AuthUser } from '@/types'
 import { AuthShell } from './AuthShell'
 import styles from './auth.module.css'
 
 interface FromState {
   from?: { pathname?: string }
 }
+
+type LoginField = 'email' | 'password' | 'code'
+
+const LABELS: Record<LoginField, string> = {
+  email: 'Correo',
+  password: 'Contraseña',
+  code: 'Código',
+}
+
+const ORDER = ['email', 'password', 'code'] as const
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /** Mensajes por `code` del `ProblemDetail`; el status queda de respaldo. */
 function describeAuthError(error: unknown): string {
@@ -34,12 +47,10 @@ function describeAuthError(error: unknown): string {
       return 'La verificación expiró. Vuelve a iniciar sesión.'
     case 'MFA_ENROLLMENT_REQUIRED':
       return 'Tu cuenta necesita activar la verificación en dos pasos antes de continuar.'
-    case 'VALIDATION_ERROR': {
-      const fields = Object.values(error.fieldErrors ?? {})
-      return fields.length > 0
-        ? `Revisa los datos: ${fields.join(' ')}`
-        : 'Revisa los datos enviados.'
-    }
+    case 'VALIDATION_ERROR':
+      // El detalle por campo lo pinta el formulario; el texto del backend
+      // viene en inglés y nunca se muestra.
+      return 'Revisa los datos enviados.'
     default:
       return describeApiError(error)
   }
@@ -49,6 +60,7 @@ export default function LoginPage() {
   const { login, completeMfa, cancelMfa, mfaChallenge } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const formRef = useRef<HTMLFormElement>(null)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -60,6 +72,33 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const state = location.state as FromState | null
+
+  const form = useFormValidation({
+    values: { email, password, code },
+    validate: (values) => {
+      if (mfaChallenge !== null) {
+        return /^\d{6}$/.test(values.code.trim())
+          ? {}
+          : { code: 'Escribe los seis dígitos del código.' }
+      }
+      if (isRecovering) {
+        return EMAIL.test(values.email.trim())
+          ? {}
+          : { email: 'Escribe un correo válido, con @ y dominio.' }
+      }
+      return {
+        ...(EMAIL.test(values.email.trim())
+          ? {}
+          : { email: 'Escribe un correo válido, con @ y dominio.' }),
+        ...(values.password === ''
+          ? { password: 'Escribe tu contraseña.' }
+          : {}),
+      }
+    },
+    labels: LABELS,
+    order: ORDER,
+    formRef,
+  })
 
   function enter(user: AuthUser) {
     // El turista vive en el catálogo público; los demás roles, en el panel.
@@ -73,6 +112,9 @@ export default function LoginPage() {
     event.preventDefault()
     setError(null)
     setNotice(null)
+    if (form.blocked()) {
+      return
+    }
     setIsSubmitting(true)
 
     try {
@@ -82,7 +124,9 @@ export default function LoginPage() {
       }
       // Si devuelve `null`, la cuenta pide MFA: se muestra el paso del código.
     } catch (cause) {
-      setError(describeAuthError(cause))
+      if (!form.applyValidationErrors(cause)) {
+        setError(describeAuthError(cause))
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -91,12 +135,17 @@ export default function LoginPage() {
   async function handleVerify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
+    if (form.blocked()) {
+      return
+    }
     setIsSubmitting(true)
 
     try {
       enter(await completeMfa(code.trim()))
     } catch (cause) {
-      setError(describeAuthError(cause))
+      if (!form.applyValidationErrors(cause)) {
+        setError(describeAuthError(cause))
+      }
     } finally {
       setIsSubmitting(false)
     }
@@ -106,21 +155,43 @@ export default function LoginPage() {
     event.preventDefault()
     setError(null)
     setNotice(null)
+    if (form.blocked()) {
+      return
+    }
     setIsSubmitting(true)
 
     try {
       // El backend responde 202 incluso si el correo no existe.
       await authApi.forgotPassword({ email: email.trim() })
       setIsRecovering(false)
+      form.clear()
       setNotice(
         'Si el correo está registrado, recibirás un enlace para restablecer tu contraseña.',
       )
     } catch (cause) {
-      setError(describeAuthError(cause))
+      if (!form.applyValidationErrors(cause)) {
+        setError(describeAuthError(cause))
+      }
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  const messages = (
+    <div className={styles.messages}>
+      {error !== null && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
+      {error === null && form.summary !== null && (
+        <p className={styles.error} role="alert">
+          {form.summary}
+        </p>
+      )}
+      {notice !== null && <p className={styles.notice}>{notice}</p>}
+    </div>
+  )
 
   if (mfaChallenge !== null) {
     return (
@@ -135,15 +206,18 @@ export default function LoginPage() {
           </p>
         }
       >
-        <form className={styles.form} onSubmit={handleVerify} noValidate>
+        <form className={styles.form} onSubmit={handleVerify} noValidate ref={formRef}>
           <Field
             label="Código de verificación"
             name="code"
             inputMode="numeric"
             autoComplete="one-time-code"
+            maxLength={6}
             required
             value={code}
+            error={form.errorOf('code')}
             onChange={(event) => setCode(event.target.value)}
+            onBlur={() => form.markTouched('code')}
           />
 
           <Button
@@ -151,18 +225,12 @@ export default function LoginPage() {
             variant="primary"
             size="lg"
             type="submit"
-            disabled={isSubmitting}
+            loading={isSubmitting}
           >
-            {isSubmitting ? 'Verificando…' : 'Verificar'}
+            Verificar
           </Button>
 
-          <div className={styles.messages}>
-            {error !== null && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
-            )}
-          </div>
+          {messages}
         </form>
       </AuthShell>
     )
@@ -178,14 +246,18 @@ export default function LoginPage() {
             <button
               type="button"
               className={styles.link}
-              onClick={() => setIsRecovering(false)}
+              onClick={() => {
+                setIsRecovering(false)
+                form.clear()
+                setError(null)
+              }}
             >
               Volver a iniciar sesión
             </button>
           </p>
         }
       >
-        <form className={styles.form} onSubmit={handleRecover} noValidate>
+        <form className={styles.form} onSubmit={handleRecover} noValidate ref={formRef}>
           <Field
             label="Correo electrónico"
             type="email"
@@ -194,7 +266,9 @@ export default function LoginPage() {
             placeholder="laura.m@correo.com"
             required
             value={email}
+            error={form.errorOf('email')}
             onChange={(event) => setEmail(event.target.value)}
+            onBlur={() => form.markTouched('email')}
           />
 
           <Button
@@ -202,18 +276,12 @@ export default function LoginPage() {
             variant="primary"
             size="lg"
             type="submit"
-            disabled={isSubmitting}
+            loading={isSubmitting}
           >
-            {isSubmitting ? 'Enviando…' : 'Enviar instrucciones'}
+            Enviar instrucciones
           </Button>
 
-          <div className={styles.messages}>
-            {error !== null && (
-              <p className={styles.error} role="alert">
-                {error}
-              </p>
-            )}
-          </div>
+          {messages}
         </form>
       </AuthShell>
     )
@@ -229,7 +297,7 @@ export default function LoginPage() {
         </p>
       }
     >
-      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate ref={formRef}>
         <Field
           label="Correo electrónico"
           type="email"
@@ -238,7 +306,9 @@ export default function LoginPage() {
           placeholder="laura.m@correo.com"
           required
           value={email}
+          error={form.errorOf('email')}
           onChange={(event) => setEmail(event.target.value)}
+          onBlur={() => form.markTouched('email')}
         />
 
         <Field
@@ -249,7 +319,9 @@ export default function LoginPage() {
           placeholder="••••••••••"
           required
           value={password}
+          error={form.errorOf('password')}
           onChange={(event) => setPassword(event.target.value)}
+          onBlur={() => form.markTouched('password')}
           trailing={
             <button
               type="button"
@@ -267,6 +339,7 @@ export default function LoginPage() {
             className={styles.link}
             onClick={() => {
               setIsRecovering(true)
+              form.clear()
               setError(null)
               setNotice(null)
             }}
@@ -280,19 +353,12 @@ export default function LoginPage() {
           variant="primary"
           size="lg"
           type="submit"
-          disabled={isSubmitting}
+          loading={isSubmitting}
         >
-          {isSubmitting ? 'Ingresando…' : 'Iniciar sesión'}
+          Iniciar sesión
         </Button>
 
-        <div className={styles.messages}>
-          {error !== null && (
-            <p className={styles.error} role="alert">
-              {error}
-            </p>
-          )}
-          {notice !== null && <p className={styles.notice}>{notice}</p>}
-        </div>
+        {messages}
       </form>
     </AuthShell>
   )

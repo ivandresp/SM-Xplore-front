@@ -55,8 +55,15 @@ describe('ResetPasswordPage', () => {
     await user.type(screen.getByLabelText('Confirmar contraseña'), 'otra-clave-1')
     await user.click(screen.getByRole('button', { name: 'Guardar contraseña' }))
 
-    const alert = await screen.findByRole('alert')
-    expect(alert.textContent).toContain('no coinciden')
+    // Un solo campo inválido: el mensaje va junto al campo, sin resumen global.
+    expect(
+      (await screen.findByText('Las contraseñas no coinciden.')).textContent,
+    ).toBe('Las contraseñas no coinciden.')
+    expect(
+      screen
+        .getByLabelText('Confirmar contraseña')
+        .getAttribute('aria-invalid'),
+    ).toBe('true')
     expect(fetchMock).not.toHaveBeenCalled()
   })
 

@@ -1,13 +1,23 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
+import { useFormValidation } from '@/hooks/useFormValidation'
 import { authApi } from '@/services/authApi'
 import { isApiError } from '@/services/httpClient'
 import { describeApiError } from '@/utils/errors'
 import { AuthShell } from './AuthShell'
 import styles from './auth.module.css'
+
+type ResetField = 'newPassword' | 'confirmation'
+
+const LABELS: Record<ResetField, string> = {
+  newPassword: 'Nueva contraseña',
+  confirmation: 'Confirmar contraseña',
+}
+
+const ORDER = ['newPassword', 'confirmation'] as const
 
 /**
  * Destino del enlace que envía `POST /auth/forgot-password`:
@@ -16,6 +26,7 @@ import styles from './auth.module.css'
 export default function ResetPasswordPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token')
+  const formRef = useRef<HTMLFormElement>(null)
 
   const [password, setPassword] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -23,26 +34,36 @@ export default function ResetPasswordPage() {
   const [isDone, setIsDone] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const form = useFormValidation({
+    values: { password, confirmation },
+    validate: (values) => ({
+      ...(values.password.length < 12 || values.password.length > 72
+        ? { newPassword: 'Entre 12 y 72 caracteres.' }
+        : {}),
+      ...(values.confirmation !== values.password
+        ? { confirmation: 'Las contraseñas no coinciden.' }
+        : {}),
+    }),
+    labels: LABELS,
+    order: ORDER,
+    formRef,
+  })
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
-
-    if (password.length < 12) {
-      setError('La contraseña debe tener al menos 12 caracteres.')
+    if (form.blocked()) {
       return
     }
-
-    if (password !== confirmation) {
-      setError('Las contraseñas no coinciden.')
-      return
-    }
-
     setIsSubmitting(true)
 
     try {
       await authApi.resetPassword({ token: token ?? '', newPassword: password })
       setIsDone(true)
     } catch (cause) {
+      if (form.applyValidationErrors(cause)) {
+        return
+      }
       if (isApiError(cause) && cause.code === 'INVALID_RESET_TOKEN') {
         setError('El enlace no es válido o ya expiró. Solicita uno nuevo.')
       } else if (isApiError(cause)) {
@@ -104,10 +125,15 @@ export default function ResetPasswordPage() {
         </p>
       }
     >
-      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate ref={formRef}>
         {error !== null && (
           <p className={styles.error} role="alert">
             {error}
+          </p>
+        )}
+        {error === null && form.summary !== null && (
+          <p className={styles.error} role="alert">
+            {form.summary}
           </p>
         )}
 
@@ -119,7 +145,9 @@ export default function ResetPasswordPage() {
           required
           hint="Entre 12 y 72 caracteres."
           value={password}
+          error={form.errorOf('newPassword')}
           onChange={(event) => setPassword(event.target.value)}
+          onBlur={() => form.markTouched('newPassword')}
         />
 
         <Field
@@ -129,7 +157,9 @@ export default function ResetPasswordPage() {
           autoComplete="new-password"
           required
           value={confirmation}
+          error={form.errorOf('confirmation')}
           onChange={(event) => setConfirmation(event.target.value)}
+          onBlur={() => form.markTouched('confirmation')}
         />
 
         <Button
@@ -137,9 +167,9 @@ export default function ResetPasswordPage() {
           variant="primary"
           size="lg"
           type="submit"
-          disabled={isSubmitting}
+          loading={isSubmitting}
         >
-          {isSubmitting ? 'Guardando…' : 'Guardar contraseña'}
+          Guardar contraseña
         </Button>
       </form>
     </AuthShell>

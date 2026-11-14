@@ -168,6 +168,10 @@
 .back:hover {
   color: var(--color-link);
 }
+
+.back:active {
+  color: var(--color-link-hover);
+}
 .prefsList {
   display: grid;
   gap: 0.35rem;
@@ -214,6 +218,12 @@
 .prefChip:hover:not(:disabled) {
   border-color: var(--color-primary);
   color: var(--color-link);
+}
+
+.prefChip:active:not(:disabled) {
+  border-color: var(--color-link-hover);
+  background-color: var(--color-primary-soft);
+  transform: translateY(1px);
 }
 
 .prefChip:active:not(:disabled) {
