@@ -40,9 +40,9 @@ en la misma rama y se vuelve a medir. Un PR abierto no cierra la meta.
 | A4 campos y errores | hecho (`160b644`, corregido en `e18e74f`) |
 | A5 chip/badge/esqueleto/vacío | hecho (`8e4a5fc`) |
 | A6 `audit:visual` | hecho (`427e3d5`, `8cb8399`) |
-| B1–B5 | bloqueados por la review de A (§4.1) |
-| C auditorías | pendientes |
-| D puerta y PR | A en PR; B–D pendientes |
+| B1–B5 | hechos: #43, #44, #45, #46, #47 (más #42, el hook de validación) |
+| C auditorías | pendiente: segundo auditor independiente en B1 y B3 |
+| D puerta y PR | hecha por lote: checks verdes y merge a `develop` |
 
 ## Medición de A (antes → después)
 
@@ -60,7 +60,7 @@ en la misma rama y se vuelve a medir. Un PR abierto no cierra la meta.
 El script de auditoría sigue en rojo por esas 9 hojas de página: cada lote B cierra las suyas y la
 puerta global exige 0.
 
-## Plan de B (se lanza al mergear A)
+## Plan de B (ejecutado)
 
 Ningún lote puede nacer antes: `develop` es la base y A necesita review (§4.1, §6.1). Orden:
 
@@ -82,6 +82,25 @@ Trabajo que ningún lote hereda y hay que asignar explícitamente:
 
 - `reports` (B3): quitar latitud/longitud del formulario y usar `navigator.geolocation` (problema 9).
 - `catalog`/`events` (B2): el contador no debe decir «0 resultados» cuando la carga falló
-  (`ExplorePage.tsx:257,261`, `EventListPage.tsx:275,279`, `SiteListPage.tsx:181,185`).
-- `auth` (B1): el hueco vacío entre el botón y «¿No tienes cuenta?» en `/login` (visible en
-  `docs/diseno/ola6-despues/login-375.png`).
+  (`ExplorePage.tsx:257,261`, `EventListPage.tsx:275,279`, `SiteListPage.tsx:181,185`). Hecho en #44.
+
+## Pendiente al cerrar la ola
+
+`npm run audit:visual` está en 0 y la suite en 422. Lo que queda no es mecánico, es trabajo de
+formulario página a página, con el mismo patrón que ya usan `LoginPage`, `ResetPasswordPage`,
+`ReportFormPage` y `RegisterPage` (`useFormValidation` + `error` en `Field` + `name` en todos los
+campos, que es lo que permite el foco):
+
+| Formulario | Dónde | Qué falta |
+| --- | --- | --- |
+| Alta de usuario (admin) | `admin/CreateUserPage.tsx:113` | errores por campo y resumen |
+| Alta/edición de evento | `events/EventFormPage.tsx:190` | idem |
+| Alta/edición de actividad | `guide/ActivityFormPage.tsx:159` | idem |
+| Gestión de actividad | `guide/ActivityManagePage.tsx:168` | idem |
+| Onboarding | `onboarding/OnboardingPage.tsx:334` | hoy valida por bloque, no por campo |
+| Mi perfil | `profile/MyProfilePage.tsx:182` | errores por campo (nombre, teléfono) |
+| Alta/edición de servicio | `provider/ServiceFormPage.tsx:184` | idem |
+| Alta/edición de zona | `zones/ZoneFormPage.tsx:349` | idem |
+
+Segundo auditor independiente de B1 y B3: pendiente. `axe` sigue sustituido por Lighthouse de
+accesibilidad (decisión anotada en el PR #41).
