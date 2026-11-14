@@ -59,3 +59,29 @@ en la misma rama y se vuelve a medir. Un PR abierto no cierra la meta.
 
 El script de auditoría sigue en rojo por esas 9 hojas de página: cada lote B cierra las suyas y la
 puerta global exige 0.
+
+## Plan de B (se lanza al mergear A)
+
+Ningún lote puede nacer antes: `develop` es la base y A necesita review (§4.1, §6.1). Orden:
+
+| Ola | Lotes | Rama | Cierra |
+| --- | --- | --- | --- |
+| 1 | B1 + B3 | `feat/ui-b1-identidad`, `feat/ui-b3-operacion` | `auth`, `onboarding`, `profile` / `reservations`, `reports`, `registrations` |
+| 2 | B2 + B4 | `feat/ui-b2-catalogo`, `feat/ui-b4-gestoras` | `catalog`, `events` / `provider`, `guide`, `zones` |
+| 3 | B5 | `feat/ui-b5-resto` | `admin`, `itinerary`, `recommendations`, `layouts` |
+
+Cada lote arranca con `git fetch origin && git checkout -b feat/ui-bN origin/develop` y consume:
+
+- `Field`/`SelectField` (`error`, `required`), `focusFirstInvalid`, `summaryOf`,
+  `fieldErrorsFrom` (`src/utils/formErrors.ts`), `Button loading`, `SierraProfile`.
+- Su criterio de cierre: `npm run audit:visual` sin hallazgos en sus hojas, formularios con
+  validación en vivo + resumen + foco, y tests del lote en verde.
+- Segundo auditor independiente en B1 y B3 antes de pedir review.
+
+Trabajo que ningún lote hereda y hay que asignar explícitamente:
+
+- `reports` (B3): quitar latitud/longitud del formulario y usar `navigator.geolocation` (problema 9).
+- `catalog`/`events` (B2): el contador no debe decir «0 resultados» cuando la carga falló
+  (`ExplorePage.tsx:257,261`, `EventListPage.tsx:275,279`, `SiteListPage.tsx:181,185`).
+- `auth` (B1): el hueco vacío entre el botón y «¿No tienes cuenta?» en `/login` (visible en
+  `docs/diseno/ola6-despues/login-375.png`).
