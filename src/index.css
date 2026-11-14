@@ -31,6 +31,13 @@
   --color-ink: #12212b;
   --color-ink-hover: #1d3140;
 
+  /* Barra oscura: es oscura en los dos temas, así que no se redefine en el
+     bloque de modo oscuro. */
+  --color-bar-fill: #0a6f6d;
+  --color-on-bar: #ffffff;
+  --color-on-bar-soft: #e6fffb;
+  --color-on-bar-muted: #c9f2ec;
+
   /* Texto */
   --color-text: #111827;
   --color-text-soft: #374151;

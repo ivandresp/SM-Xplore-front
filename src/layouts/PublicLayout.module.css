@@ -29,7 +29,7 @@
 
 /* Enlace de sesión de la barra oscura del catálogo. */
 .sessionLink {
-  color: #ffffff;
+  color: var(--color-on-bar);
   font-family: var(--font-heading);
   font-size: 0.95rem;
   font-weight: 600;
@@ -38,6 +38,10 @@
 
 .sessionLink:hover {
   color: var(--color-primary-soft);
+}
+
+.sessionLink:active {
+  color: var(--color-on-bar-muted);
 }
 /* Objetivos táctiles de 44 px en la barra móvil. */
 @media (max-width: 899px) {

@@ -45,6 +45,10 @@
   color: var(--color-link);
 }
 
+.socialItem:active {
+  color: var(--color-link-hover);
+}
+
 .dot {
   width: 1.5rem;
   height: 1.5rem;

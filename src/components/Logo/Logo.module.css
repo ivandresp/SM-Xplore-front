@@ -23,5 +23,5 @@
 
 .inverse .mark,
 .inverse .accent {
-  color: #ffffff;
+  color: var(--color-on-bar);
 }
