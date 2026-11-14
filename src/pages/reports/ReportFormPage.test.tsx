@@ -376,15 +376,18 @@ describe('ReportFormPage', () => {
     })
   })
 
-  it('lleva el foco al mensaje de error cuando falta el título', async () => {
+  it('lleva el foco al título y muestra el error cuando falta', async () => {
     stubFetch()
     const user = userEvent.setup()
     renderForm()
 
     await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
 
-    const alert = await screen.findByRole('alert')
-    expect(document.activeElement?.contains(alert)).toBe(true)
+    expect(await screen.findByText('Escribe un título.')).toBeTruthy()
+    expect(document.activeElement).toBe(screen.getByLabelText(/Título/))
+    expect(screen.getByLabelText(/Título/).getAttribute('aria-invalid')).toBe(
+      'true',
+    )
   })
 
   it('mantiene la ubicación elegida aunque el texto cambie', async () => {
