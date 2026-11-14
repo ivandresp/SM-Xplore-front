@@ -15,8 +15,9 @@
   color: var(--color-text);
 }
 
-/* El asterisco es visual: `required` ya lo anuncia `aria-required`. */
-.required {
+/* El asterisco va en CSS a proposito: no debe cambiar el nombre accesible. */
+.label[data-required]::after {
+  content: ' *';
   color: var(--color-muted-strong);
 }
 

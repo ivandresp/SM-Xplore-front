@@ -356,6 +356,7 @@ export function SelectField({
           className={styles.label}
           htmlFor={fieldId}
           id={labelId}
+          data-required={required ? '' : undefined}
           onClick={(event) => {
             // Como un <select> nativo: el clic en la etiqueta enfoca, no abre.
             if (event.target === event.currentTarget) {
