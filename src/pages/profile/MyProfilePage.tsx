@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
@@ -11,6 +11,7 @@ import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
+import { useFormValidation } from '@/hooks/useFormValidation'
 import { usersApi } from '@/services/usersApi'
 import type { PreferenceSource } from '@/types'
 import { describeApiError, logApiError } from '@/utils/errors'
@@ -36,6 +37,27 @@ export default function MyProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
+  const formRef = useRef<HTMLFormElement>(null)
+
+  // Límites de `UpdateProfileRequest`: nombre ≤ 150 y teléfono 7–20 con +()-
+  const form = useFormValidation({
+    values: draft ?? { fullName: '', phone: '' },
+    validate: (values) => ({
+      ...(values.fullName.trim() === ''
+        ? { fullName: 'Escribe tu nombre.' }
+        : values.fullName.trim().length > 150
+          ? { fullName: 'Usa 150 caracteres o menos.' }
+          : {}),
+      ...(values.phone.trim() === ''
+        ? { phone: 'Escribe tu teléfono.' }
+        : /^[0-9+()\-\s]{7,20}$/.test(values.phone.trim())
+          ? {}
+          : { phone: 'Usa entre 7 y 20 dígitos; puedes incluir +, () o guiones.' }),
+    }),
+    labels: { fullName: 'Nombre completo', phone: 'Teléfono' },
+    order: ['fullName', 'phone'] as const,
+    formRef,
+  })
 
   // ms-05 solo acepta ROLE_TOURIST en /preferences (SecurityConfiguration:52-54).
   const {
@@ -83,11 +105,13 @@ export default function MyProfilePage() {
     })
     setFeedback(null)
     setError(null)
+    form.clear()
   }
 
   function cancelEdit() {
     setDraft(null)
     setError(null)
+    form.clear()
   }
 
   async function handleAddPreference() {
@@ -108,6 +132,10 @@ export default function MyProfilePage() {
       return
     }
 
+    if (form.blocked()) {
+      return
+    }
+
     setIsSaving(true)
     setError(null)
     setFeedback(null)
@@ -122,7 +150,9 @@ export default function MyProfilePage() {
       setFeedback('Perfil actualizado.')
     } catch (cause) {
       logApiError(cause, 'perfil: guardar')
-      setError(describeApiError(cause))
+      if (!form.applyValidationErrors(cause)) {
+        setError(describeApiError(cause))
+      }
     } finally {
       setIsSaving(false)
     }
@@ -179,15 +209,17 @@ export default function MyProfilePage() {
             </div>
 
             {draft !== null ? (
-              <form className={styles.form} onSubmit={handleSubmit} noValidate>
+              <form className={styles.form} onSubmit={handleSubmit} noValidate ref={formRef}>
                 <Field
                   label="Nombre completo"
                   name="fullName"
                   required
                   value={draft.fullName}
+                  error={form.errorOf('fullName')}
                   onChange={(event) =>
                     setDraft({ ...draft, fullName: event.target.value })
                   }
+                  onBlur={() => form.markTouched('fullName')}
                 />
                 <Field
                   label="Correo electrónico"
@@ -202,13 +234,24 @@ export default function MyProfilePage() {
                   name="phone"
                   required
                   value={draft.phone}
+                  error={form.errorOf('phone')}
                   onChange={(event) =>
                     setDraft({ ...draft, phone: event.target.value })
                   }
+                  onBlur={() => form.markTouched('phone')}
                 />
+                {form.summary !== null && (
+                  <p className={styles.prefsError} role="alert">
+                    {form.summary}
+                  </p>
+                )}
                 <div className={styles.formActions}>
-                  <Button variant="primary" type="submit" disabled={isSaving}>
-                    {isSaving ? 'Guardando…' : 'Guardar cambios'}
+                  <Button
+                    variant="primary"
+                    type="submit"
+                    loading={isSaving}
+                  >
+                    Guardar cambios
                   </Button>
                   <Button
                     variant="outline"
