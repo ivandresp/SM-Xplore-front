@@ -258,7 +258,9 @@ export default function ExplorePage() {
   const hasActiveFilters = activeFilters.length > 0
   const resultSummary = isBusy
     ? 'Buscando…'
-    : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
+    : error !== null
+      ? 'Resultados no disponibles'
+      : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
 
   return (
     <div className={styles.page}>

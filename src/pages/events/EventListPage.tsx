@@ -276,7 +276,9 @@ export default function EventListPage() {
   const hasActiveFilters = activeFilters.length > 0
   const resultSummary = isBusy
     ? 'Buscando…'
-    : `${total} ${total === 1 ? 'evento' : 'eventos'}`
+    : error !== null
+      ? 'Resultados no disponibles'
+      : `${total} ${total === 1 ? 'evento' : 'eventos'}`
 
   return (
     <div className={styles.page}>

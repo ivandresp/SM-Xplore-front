@@ -326,15 +326,20 @@
   display: inline-flex;
   align-items: center;
   padding: 0.65rem 1.25rem;
-  border-radius: 999px;
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
+  border-radius: var(--radius-data);
+  background: var(--color-accent-fill);
+  color: var(--color-on-action);
   font-weight: 600;
   text-decoration: none;
 }
 
 .retryLink:hover {
-  background: var(--color-primary-hover);
+  background: var(--color-accent-fill-hover);
+}
+
+.retryLink:active {
+  background: var(--color-accent-fill-active);
+  transform: translateY(1px);
 }
 
 .retryLink:focus-visible {
