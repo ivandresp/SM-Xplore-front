@@ -137,3 +137,6 @@
 .back:hover {
   color: var(--color-link);
 }
+.back:active {
+  color: var(--color-link-hover);
+}
