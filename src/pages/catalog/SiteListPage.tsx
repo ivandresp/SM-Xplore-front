@@ -182,7 +182,9 @@ export default function SiteListPage() {
   const hasActiveFilters = activeFilters.length > 0
   const resultSummary = isBusy
     ? 'Buscando…'
-    : `${total} ${total === 1 ? 'atractivo' : 'atractivos'}`
+    : error !== null
+      ? 'Resultados no disponibles'
+      : `${total} ${total === 1 ? 'atractivo' : 'atractivos'}`
 
   return (
     <div className={styles.page}>
