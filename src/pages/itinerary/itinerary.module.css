@@ -144,6 +144,13 @@
   color: var(--color-link);
 }
 
+.addEntry:active {
+  border-color: var(--color-link-hover);
+  background-color: var(--color-primary-soft);
+  color: var(--color-link-hover);
+  transform: translateY(1px);
+}
+
 .summaryLines {
   display: grid;
   gap: 0.6rem;
