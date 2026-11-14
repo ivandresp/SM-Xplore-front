@@ -2,17 +2,23 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: var(--space-2);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-data);
   font-family: var(--font-heading);
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
   transition:
-    background-color 0.15s ease,
-    border-color 0.15s ease,
-    color 0.15s ease;
+    background-color 120ms ease,
+    border-color 120ms ease,
+    color 120ms ease,
+    transform 120ms ease;
+}
+
+/* El clic se confirma con 1 px de hundimiento; en táctil no hay hover que lo sustituya. */
+.button:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .button:focus-visible {
@@ -27,17 +33,17 @@
 
 /* Tamaños */
 .sm {
-  padding: 0.45rem 0.9rem;
-  font-size: 0.85rem;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-small);
 }
 
 .md {
-  padding: 0.65rem 1.2rem;
-  font-size: 0.95rem;
+  padding: 0.65rem var(--space-4);
+  font-size: var(--text-body);
 }
 
 .lg {
-  padding: 0.85rem 1.5rem;
+  padding: 0.85rem var(--space-5);
   font-size: 1rem;
 }
 
@@ -51,23 +57,36 @@
   background-color: var(--color-action-hover);
 }
 
+.primary:active:not(:disabled) {
+  background-color: var(--color-action-active);
+}
+
 .accent {
-  background-color: var(--color-primary);
-  color: #ffffff;
+  background-color: var(--color-accent-fill);
+  color: var(--color-on-action);
 }
 
 .accent:hover:not(:disabled) {
-  background-color: var(--color-primary-hover);
+  background-color: var(--color-accent-fill-hover);
+}
+
+.accent:active:not(:disabled) {
+  background-color: var(--color-accent-fill-active);
 }
 
 .outline {
   background-color: var(--color-bg);
-  border-color: var(--color-border-strong);
+  border-color: var(--color-field-border);
   color: var(--color-text);
 }
 
 .outline:hover:not(:disabled) {
   background-color: var(--color-surface-alt);
+}
+
+.outline:active:not(:disabled) {
+  background-color: var(--color-surface);
+  border-color: var(--color-text);
 }
 
 .outlineAccent {
@@ -80,9 +99,36 @@
   background-color: var(--color-primary-soft);
 }
 
+.outlineAccent:active:not(:disabled) {
+  background-color: var(--color-primary-tint);
+  border-color: var(--color-link-hover);
+  color: var(--color-link-hover);
+}
+
+.spinner {
+  width: 1em;
+  height: 1em;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .spinner {
+    animation: spin 700ms linear infinite;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .block {
   width: 100%;
 }
+
 /* En móvil todo botón alcanza el objetivo táctil de 44 px. */
 @media (max-width: 640px) {
   .sm,
