@@ -365,6 +365,11 @@ export function SelectField({
           }}
         >
           {label}
+          {required && (
+            <span className={styles.required} aria-hidden="true">
+              {' *'}
+            </span>
+          )}
         </label>
       )}
 
