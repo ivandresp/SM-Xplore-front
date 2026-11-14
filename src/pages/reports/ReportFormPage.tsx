@@ -6,6 +6,7 @@ import { Field } from '@/components/FormField'
 import { ImageUploader } from '@/components/ImageUploader'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StateMessage } from '@/components/StateMessage'
+import { useFormValidation } from '@/hooks/useFormValidation'
 import { securityReportsApi } from '@/services/securityReportsApi'
 import { describeApiError } from '@/utils/errors'
 import { useCurrentLocation } from './useCurrentLocation'
@@ -71,6 +72,17 @@ export default function ReportFormPage() {
   /** Fuerza el foco aunque el mismo mensaje se repita. */
   const [errorNonce, setErrorNonce] = useState(0)
   const errorRef = useRef<HTMLDivElement | null>(null)
+  const formRef = useRef<HTMLFormElement>(null)
+
+  // `SecurityReportRequest`: título obligatorio (máx. 200), descripción opcional.
+  const form = useFormValidation({
+    values: { title },
+    validate: (values) =>
+      values.title.trim() === '' ? { title: 'Escribe un título.' } : {},
+    labels: { title: 'Título' },
+    order: ['title'] as const,
+    formRef,
+  })
 
   // Un fallo de envío o de validación puede quedar fuera de pantalla: se lleva
   // el scroll y el foco al mensaje para que se anuncie y se vea.
@@ -92,8 +104,7 @@ export default function ReportFormPage() {
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
 
-    if (title.trim() === '') {
-      failWith('El título es obligatorio.')
+    if (form.blocked()) {
       return
     }
 
@@ -112,7 +123,9 @@ export default function ReportFormPage() {
 
       navigate('/reportes')
     } catch (cause) {
-      failWith(describeApiError(cause))
+      if (!form.applyValidationErrors(cause)) {
+        failWith(describeApiError(cause))
+      }
     } finally {
       setIsSaving(false)
     }
@@ -149,16 +162,19 @@ export default function ReportFormPage() {
         </div>
       )}
 
-      <form className={styles.card} onSubmit={handleSubmit} noValidate>
+      <form className={styles.card} onSubmit={handleSubmit} noValidate ref={formRef}>
         <div className={styles.grid}>
           <div className={styles.full}>
             <Field
               label="Título"
+              name="title"
               placeholder="Ej: Intento de robo en el muelle"
               maxLength={200}
               required
               value={title}
+              error={form.errorOf('title')}
               onChange={(changeEvent) => setTitle(changeEvent.target.value)}
+              onBlur={() => form.markTouched('title')}
             />
           </div>
 
@@ -257,9 +273,10 @@ export default function ReportFormPage() {
             variant="accent"
             size="lg"
             type="submit"
-            disabled={isSaving || isUploadingPhotos || isLocating}
+            loading={isSaving}
+            disabled={isUploadingPhotos || isLocating}
           >
-            {isSaving ? 'Enviando…' : 'Enviar reporte'}
+            Enviar reporte
           </Button>
           <Link to="/reportes">
             <Button variant="outline" size="lg">
@@ -267,6 +284,12 @@ export default function ReportFormPage() {
             </Button>
           </Link>
         </div>
+
+        {(isUploadingPhotos || isLocating) && (
+          <p className={styles.helper} role="status">
+            El envío se habilita cuando terminen las fotos y la ubicación.
+          </p>
+        )}
       </form>
     </div>
   )
