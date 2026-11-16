@@ -14,19 +14,19 @@
 .sm {
   width: 2.2rem;
   height: 2.2rem;
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
 }
 
 .md {
   width: 2.9rem;
   height: 2.9rem;
-  font-size: 1rem;
+  font-size: var(--text-base);
 }
 
 .lg {
   width: 7rem;
   height: 7rem;
-  font-size: 2rem;
+  font-size: var(--text-jumbo);
 }
 
 .square {

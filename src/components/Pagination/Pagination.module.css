@@ -16,7 +16,7 @@
   background-color: var(--color-bg);
   color: var(--color-text-soft);
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   cursor: pointer;
 }
 

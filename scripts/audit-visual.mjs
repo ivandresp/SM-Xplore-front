@@ -59,6 +59,13 @@ for (const file of sheets) {
     )
   }
 
+  // 5: la escala tipográfica vive en src/index.css; ningún módulo suelta números.
+  for (const match of text.matchAll(/font-size:\s*[0-9.]+(?:px|rem)/g)) {
+    findings.push(
+      `${rel(file)}:${lineOf(text, match.index)}: ${match[0]} suelto (usa un token de escala)`,
+    )
+  }
+
   for (const match of text.matchAll(/transition:[^;}]*/g)) {
     if (/\b(width|height|top|left)\b/.test(match[0])) {
       findings.push(

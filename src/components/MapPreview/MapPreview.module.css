@@ -54,7 +54,7 @@
   border-radius: var(--radius-sm);
   background-color: var(--color-surface-soft);
   color: var(--color-text-soft);
-  font-size: 0.75rem;
+  font-size: var(--text-label);
   pointer-events: none;
 }
 
@@ -62,7 +62,7 @@
   margin: 0;
   padding: 0 1rem;
   color: var(--color-text-soft);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
   line-height: 1.5;
 }
 
@@ -73,7 +73,7 @@
 
 .attribution {
   margin: 0;
-  font-size: 0.75rem;
+  font-size: var(--text-label);
   color: var(--color-muted);
 }
 

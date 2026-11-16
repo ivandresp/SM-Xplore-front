@@ -29,7 +29,7 @@
 .cardTitle {
   margin: 0 0 1rem;
   font-family: var(--font-heading);
-  font-size: 1.15rem;
+  font-size: var(--text-sub);
   font-weight: 700;
 }
 
@@ -48,7 +48,7 @@
   display: block;
   margin-bottom: 0.45rem;
   font-family: var(--font-heading);
-  font-size: 0.92rem;
+  font-size: var(--text-note);
   font-weight: 700;
 }
 
@@ -60,7 +60,7 @@
   background-color: var(--color-surface-alt);
   color: var(--color-text);
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--text-body);
 }
 
 .control::placeholder {
@@ -70,7 +70,7 @@
 .dayTitle {
   margin: 1.25rem 0 0.5rem;
   font-family: var(--font-heading);
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 700;
 }
 
@@ -95,7 +95,7 @@
 .entryTime {
   min-width: 5rem;
   color: var(--color-muted);
-  font-size: 0.92rem;
+  font-size: var(--text-note);
 }
 
 .entryBody {
@@ -106,14 +106,14 @@
 .entryName {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 700;
 }
 
 .entryMeta {
   margin: 0.15rem 0 0;
   color: var(--color-muted);
-  font-size: 0.88rem;
+  font-size: var(--text-note);
 }
 
 .entrySide {
@@ -135,7 +135,7 @@
   background: none;
   color: var(--color-muted-strong);
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   text-decoration: none;
 }
 
@@ -162,7 +162,7 @@
   align-items: center;
   justify-content: space-between;
   color: var(--color-muted);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
 }
 
 .summaryTotal {
@@ -172,7 +172,7 @@
   padding-top: 0.75rem;
   border-top: 1px solid var(--color-border);
   font-family: var(--font-heading);
-  font-size: 1.15rem;
+  font-size: var(--text-sub);
   font-weight: 800;
 }
 
@@ -184,7 +184,7 @@
 .note {
   margin: 0;
   color: var(--color-muted);
-  font-size: 0.88rem;
+  font-size: var(--text-note);
   text-align: center;
 }
 
@@ -192,7 +192,7 @@
   margin: 0 0 1rem;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  font-size: 0.92rem;
+  font-size: var(--text-note);
 }
 
 .success {

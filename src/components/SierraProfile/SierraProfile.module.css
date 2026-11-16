@@ -20,7 +20,7 @@
 .label {
   fill: var(--color-muted);
   font-family: var(--font-data);
-  font-size: 6px;
+  font-size: var(--text-micro);
 }
 
 /* La traza se dibuja de mar a páramo; con movimiento reducido aparece entera. */

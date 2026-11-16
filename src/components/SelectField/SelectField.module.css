@@ -110,7 +110,7 @@
 .groupLabel {
   margin: 0.35rem 0.55rem 0.2rem;
   font-family: var(--font-heading);
-  font-size: 0.72rem;
+  font-size: var(--text-label);
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -121,7 +121,7 @@
   padding: 0.5rem 0.6rem;
   border-radius: var(--radius-sm);
   color: var(--color-text);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   cursor: pointer;
 }
 
@@ -138,18 +138,18 @@
   margin: 0;
   padding: 0.5rem 0.6rem;
   color: var(--color-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 
 .hint {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
   color: var(--color-muted);
 }
 
 .error {
   margin: 0;
-  font-size: 0.82rem;
+  font-size: var(--text-meta);
   line-height: 1.35;
   color: var(--color-danger-text);
 }

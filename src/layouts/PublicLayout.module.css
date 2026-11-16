@@ -19,7 +19,7 @@
   background-color: var(--color-action);
   color: var(--color-on-action);
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   font-weight: 700;
 }
 
@@ -31,7 +31,7 @@
 .sessionLink {
   color: var(--color-on-bar);
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   font-weight: 600;
   text-decoration: none;
 }

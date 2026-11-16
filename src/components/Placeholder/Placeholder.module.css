@@ -10,7 +10,7 @@
 
 .title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: var(--text-hero);
 }
 
 .description {
@@ -21,6 +21,6 @@
 
 .note {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   color: var(--color-muted);
 }
