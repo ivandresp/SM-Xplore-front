@@ -81,26 +81,31 @@ export function FilterBar({
         </fieldset>
       </div>
 
-      {hasFilters && (
-        <ul className={styles.chips} aria-label="Filtros activos">
-          {activeFilters.map((filter) => (
-            <li key={filter.key}>
-              <button
-                type="button"
-                className={styles.chip}
-                aria-label={`Quitar filtro ${filter.label}: ${filter.value}`}
-                onClick={() => onRemoveFilter(filter.key)}
-              >
-                <span className={styles.chipLabel}>{filter.label}</span>
-                <span>{filter.value}</span>
-                <span className={styles.chipX} aria-hidden="true">
-                  ×
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      {/*
+       * La fila se renderiza siempre con un alto reservado: al elegir el
+       * primer filtro el chip aparece en su hueco y la tabla no se mueve.
+       */}
+      <ul
+        className={styles.chips}
+        aria-label={hasFilters ? 'Filtros activos' : undefined}
+      >
+        {activeFilters.map((filter) => (
+          <li key={filter.key}>
+            <button
+              type="button"
+              className={styles.chip}
+              aria-label={`Quitar filtro ${filter.label}: ${filter.value}`}
+              onClick={() => onRemoveFilter(filter.key)}
+            >
+              <span className={styles.chipLabel}>{filter.label}</span>
+              <span>{filter.value}</span>
+              <span className={styles.chipX} aria-hidden="true">
+                ×
+              </span>
+            </button>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }

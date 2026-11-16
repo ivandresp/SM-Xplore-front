@@ -102,6 +102,22 @@ describe('FilterBar', () => {
     expect(screen.queryByText(/filtro activo/)).toBeNull()
   })
 
+  it('reserva la fila de chips aunque no haya filtros', () => {
+    render(
+      <FilterBar
+        activeFilters={[]}
+        onRemoveFilter={vi.fn()}
+        onClearFilters={vi.fn()}
+        resultSummary="12 resultados"
+      >
+        <label>Control</label>
+      </FilterBar>,
+    )
+
+    // La fila existe vacía: el primer chip aparece sin empujar la tabla.
+    expect(screen.getByRole('list').textContent).toBe('')
+  })
+
   it('colapsa los controles en móvil con aria-expanded', async () => {
     const user = userEvent.setup()
 

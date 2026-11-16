@@ -95,6 +95,14 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  /* Hueco reservado para un chip: la tabla no salta al elegir el primero. */
+  min-height: 2rem;
+}
+
+@media (pointer: coarse) {
+  .chips {
+    min-height: var(--control-h-md);
+  }
 }
 
 .chip {
