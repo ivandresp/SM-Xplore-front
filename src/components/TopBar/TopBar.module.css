@@ -401,6 +401,28 @@
   margin-left: 0;
 }
 
+/* El toggle vive en la barra desde 900px; por debajo, dentro del menú. */
+.barTheme {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .barTheme {
+    display: inline-flex;
+  }
+}
+
+.menuTheme {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.dark .menuTheme {
+  border-top-color: rgba(255, 255, 255, 0.18);
+}
+
 /* Variante oscura (barra navy). La barra es oscura en ambos temas, así que
    estos colores son fijos: los tokens de superficie cambiarían con el tema. */
 .dark {
