@@ -35,7 +35,6 @@ export function AppLayout() {
       <TopBar
         sticky
         tone="dark"
-        badge="Panel de gestión"
         currentPath={pathname}
         menuLinks={sections}
         right={

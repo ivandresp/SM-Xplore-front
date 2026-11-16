@@ -22,12 +22,6 @@
   color: var(--color-muted-strong);
 }
 
-.meta {
-  margin: 0;
-  font-size: var(--text-small);
-  color: var(--color-muted-strong);
-}
-
 /* auto-fit + min() para que a 375 px no haya desbordamiento. */
 .grid {
   display: grid;

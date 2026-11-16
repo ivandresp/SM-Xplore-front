@@ -26,8 +26,6 @@ export interface TopBarProps {
   tone?: 'light' | 'dark'
   /** Muestra el buscador global. */
   search?: boolean
-  /** Píldora junto al logo (p. ej. "Panel de gestión"). */
-  badge?: string
   /** Navegación visible desde 900 px. */
   links?: TopBarLink[]
   /**
@@ -271,7 +269,6 @@ function linkIsCurrent(pathname: string | undefined, link: TopBarLink): 'page' |
 export function TopBar({
   tone = 'light',
   search = false,
-  badge,
   links = [],
   menuLinks,
   currentPath,
@@ -396,8 +393,6 @@ export function TopBar({
       >
         <Logo tone={tone === 'dark' ? 'inverse' : 'default'} />
       </Link>
-
-      {badge !== undefined && <span className={styles.badge}>{badge}</span>}
 
       {search && <GlobalSearch />}
 
