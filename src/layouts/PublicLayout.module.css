@@ -19,7 +19,7 @@
   background-color: var(--color-action);
   color: var(--color-on-action);
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   font-weight: 700;
 }
 
@@ -31,7 +31,7 @@
 .sessionLink {
   color: var(--color-on-bar);
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   font-weight: 600;
   text-decoration: none;
 }
@@ -49,13 +49,13 @@
     align-items: center;
     justify-content: center;
     min-width: 2.75rem;
-    min-height: 2.75rem;
+    min-height: var(--control-h-md);
   }
 
   .sessionLink {
     display: inline-flex;
     align-items: center;
-    min-height: 2.75rem;
+    min-height: var(--control-h-md);
     padding: 0 0.25rem;
   }
 }

@@ -18,20 +18,20 @@
 .title {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1rem;
+  font-size: var(--text-base);
   color: var(--color-text);
 }
 
 .count {
   margin: 0;
   color: var(--color-muted-strong);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 
 .summary {
   margin: 0;
   color: var(--color-link);
-  font-size: 0.88rem;
+  font-size: var(--text-note);
   font-weight: 600;
 }
 
@@ -49,7 +49,7 @@
 /* Objetivo táctil de 44 px en el ancho en que los filtros se colapsan. */
 @media (max-width: 767px) {
   .toggle {
-    min-height: 2.75rem;
+    min-height: var(--control-h-md);
   }
 }
 
@@ -103,11 +103,11 @@
   gap: 0.35rem;
   padding: 0.35rem 0.7rem;
   border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: var(--color-bg);
   color: var(--color-text);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   cursor: pointer;
   transition:
     border-color 0.15s ease,
@@ -116,7 +116,7 @@
 
 @media (pointer: coarse) {
   .chip {
-    min-height: 44px;
+    min-height: var(--control-h-md);
   }
 }
 
@@ -140,7 +140,7 @@
 
 .chipX {
   color: var(--color-muted-strong);
-  font-size: 1rem;
+  font-size: var(--text-base);
   line-height: 1;
 }
 

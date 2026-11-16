@@ -35,7 +35,7 @@
 
 .cardTitle {
   margin: 0 0 1rem;
-  font-size: 1.15rem;
+  font-size: var(--text-sub);
 }
 
 .cardHeader {
@@ -66,7 +66,7 @@
 
 .name {
   margin: 0;
-  font-size: 1.85rem;
+  font-size: var(--text-page);
   font-weight: 800;
   letter-spacing: -0.02em;
 }
@@ -74,7 +74,7 @@
 .meta {
   margin: 0;
   color: var(--color-text-soft);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
 }
 
 .chips {
@@ -87,7 +87,7 @@
 .note {
   margin: 0.75rem 0 0;
   color: var(--color-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 
 .listRow {
@@ -111,7 +111,7 @@
 .listMeta {
   margin-left: 0.6rem;
   color: var(--color-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 
 .notice {
@@ -121,14 +121,14 @@
   border-radius: var(--radius-md);
   background-color: var(--color-warning-bg);
   color: var(--color-warning-text);
-  font-size: 0.92rem;
+  font-size: var(--text-note);
 }
 
 .empty {
   margin: 0;
   padding: 0.5rem 0;
   color: var(--color-muted);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
 }
 
 .form {
@@ -146,7 +146,7 @@
   margin: 0 0 1rem;
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
-  font-size: 0.92rem;
+  font-size: var(--text-note);
 }
 
 .success {
@@ -161,7 +161,7 @@
   gap: 0.4rem;
   margin-bottom: 1rem;
   color: var(--color-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
   text-decoration: none;
 }
 
@@ -199,18 +199,18 @@
 
 .prefMeta {
   color: var(--color-muted);
-  font-size: 0.88rem;
+  font-size: var(--text-note);
 }
 
 .prefChip {
   margin-left: auto;
   padding: 0.3rem 0.65rem;
   border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-heading);
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   font-weight: 700;
   cursor: pointer;
 }
@@ -251,5 +251,5 @@
 .prefsError {
   margin: 0.75rem 0 0;
   color: var(--color-danger-text);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }

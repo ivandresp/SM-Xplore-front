@@ -112,10 +112,13 @@ describe('TopBar: menu movil', () => {
 
     await user.click(screen.getByRole('button', { name: 'Abrir menú' }))
 
+    // El último enfocable del panel es el toggle de tema.
+    const panel = screen.getByRole('navigation', { name: 'Menú principal' })
+      .parentElement as HTMLElement
+    const themeToggle = within(panel).getByRole('button', { name: /Tema/ })
+
     await user.tab({ shift: true })
-    expect(document.activeElement).toBe(
-      mobileMenu().getByRole('link', { name: 'Eventos' }),
-    )
+    expect(document.activeElement).toBe(themeToggle)
 
     await user.tab()
     expect(document.activeElement).toBe(

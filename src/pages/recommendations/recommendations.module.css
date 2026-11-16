@@ -9,7 +9,7 @@
   border-radius: var(--radius-md);
   background-color: var(--color-info-bg);
   color: var(--color-info-text);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
 }
 
 .prefs {
@@ -30,13 +30,13 @@
 .prefsTitle {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1.05rem;
+  font-size: var(--text-title);
 }
 
 .prefsHint {
   margin: 0;
   color: var(--color-muted-strong);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 
 .prefsList {
@@ -54,11 +54,11 @@
   gap: 0.4rem;
   padding: 0.35rem 0.7rem;
   border: 1px solid var(--color-primary);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: var(--color-bg);
   color: var(--color-link);
   font-family: var(--font-heading);
-  font-size: 0.88rem;
+  font-size: var(--text-note);
   font-weight: 700;
   cursor: pointer;
 }
@@ -91,7 +91,7 @@
 .prefsError {
   margin: 0;
   color: var(--color-danger-text);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 
 .cards {
@@ -114,14 +114,14 @@
 .cardTitle {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1.15rem;
+  font-size: var(--text-sub);
   line-height: 1.3;
 }
 
 .reason {
   margin: 0;
   color: var(--color-muted-strong);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
 }
 
 .cardLink {
@@ -129,7 +129,7 @@
   align-self: flex-start;
   color: var(--color-link);
   font-family: var(--font-heading);
-  font-size: 0.92rem;
+  font-size: var(--text-note);
   font-weight: 700;
   text-decoration: none;
 }
@@ -162,7 +162,7 @@
 
 .stateTitle {
   font-family: var(--font-heading);
-  font-size: 1.1rem;
+  font-size: var(--text-sub);
   font-weight: 700;
   color: var(--color-text);
 }
@@ -189,7 +189,7 @@
   gap: 0.5rem 1rem;
   margin: 0 0 1rem;
   color: var(--color-muted-strong);
-  font-size: 0.92rem;
+  font-size: var(--text-note);
 }
 
 .summarySource {
@@ -209,12 +209,12 @@
   margin: 0;
   max-width: 46rem;
   color: var(--color-muted);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 .resultsTitle {
   margin: 0 0 0.35rem;
   font-family: var(--font-heading);
-  font-size: 1.15rem;
+  font-size: var(--text-sub);
 }
 
 .resultsTitle:focus-visible {
@@ -225,7 +225,7 @@
 .moreError {
   margin: 0;
   color: var(--color-danger-text);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 
 .srOnly {
@@ -255,5 +255,5 @@
 .inlineErrorText {
   margin: 0;
   color: var(--color-danger-text);
-  font-size: 0.92rem;
+  font-size: var(--text-note);
 }

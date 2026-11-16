@@ -381,7 +381,7 @@ export default function EventDetailPage() {
                 )}
 
                 <Button
-                  variant="accent"
+                  variant="warm"
                   size="lg"
                   block
                   disabled={isBooking || closed}

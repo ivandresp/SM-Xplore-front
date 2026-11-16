@@ -46,7 +46,7 @@
   border-radius: var(--radius-md);
   color: rgba(255, 255, 255, 0.72);
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   font-weight: 600;
   text-decoration: none;
 }
@@ -74,13 +74,13 @@
   margin: 0;
   color: var(--color-on-bar);
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 
 .userMeta {
   margin: 0.15rem 0 0;
   color: rgba(255, 255, 255, 0.6);
-  font-size: 0.8rem;
+  font-size: var(--text-meta);
 }
 
 .content {
@@ -98,24 +98,25 @@
 /* Elementos de la barra superior del panel */
 .role {
   padding: 0.35rem 0.85rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: rgba(255, 255, 255, 0.94);
   /* Fijo: la píldora es blanca en ambos temas, sobre la barra oscura. */
   color: var(--color-bar-fill);
   font-family: var(--font-heading);
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   font-weight: 700;
   white-space: nowrap;
 }
 
 .logout {
-  padding: 0.35rem 0.85rem;
+  height: var(--control-h-sm);
+  padding: 0 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background-color: transparent;
   color: var(--color-on-bar);
   font-family: var(--font-heading);
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   font-weight: 600;
   cursor: pointer;
 }
@@ -139,6 +140,6 @@
   .logout {
     display: inline-flex;
     align-items: center;
-    min-height: 2.75rem;
+    min-height: var(--control-h-md);
   }
 }

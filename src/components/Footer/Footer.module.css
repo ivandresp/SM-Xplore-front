@@ -19,7 +19,7 @@
 .title {
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: var(--text-body);
 }
 
 .social {
@@ -37,7 +37,7 @@
   align-items: center;
   gap: 0.5rem;
   color: var(--color-muted-strong);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
   text-decoration: none;
 }
 
@@ -58,5 +58,5 @@
 
 .copy {
   color: var(--color-muted-strong);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }

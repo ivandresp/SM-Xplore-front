@@ -31,20 +31,23 @@
   cursor: not-allowed;
 }
 
-/* Tamaños */
+/* Tamaños: una altura por token; el ancho lo da el contenido. */
 .sm {
-  padding: var(--space-1) var(--space-3);
+  height: var(--control-h-sm);
+  padding: 0 var(--space-3);
   font-size: var(--text-small);
 }
 
 .md {
-  padding: 0.65rem var(--space-4);
+  height: var(--control-h-md);
+  padding: 0 var(--space-4);
   font-size: var(--text-body);
 }
 
 .lg {
-  padding: 0.85rem var(--space-5);
-  font-size: 1rem;
+  height: var(--control-h-lg);
+  padding: 0 var(--space-5);
+  font-size: var(--text-base);
 }
 
 /* Variantes */
@@ -72,6 +75,20 @@
 
 .accent:active:not(:disabled) {
   background-color: var(--color-accent-fill-active);
+}
+
+/* Reserva: el coral es la señal de una acción que compromete una compra. */
+.warm {
+  background-color: var(--color-warm-fill);
+  color: var(--color-on-warm);
+}
+
+.warm:hover:not(:disabled) {
+  background-color: var(--color-warm-fill-hover);
+}
+
+.warm:active:not(:disabled) {
+  background-color: var(--color-warm-fill-active);
 }
 
 .outline {
@@ -129,10 +146,9 @@
   width: 100%;
 }
 
-/* En móvil todo botón alcanza el objetivo táctil de 44 px. */
-@media (max-width: 640px) {
-  .sm,
-  .md {
-    min-height: 2.75rem;
+/* En táctil el botón pequeño sube al objetivo de 44 px. */
+@media (pointer: coarse) {
+  .sm {
+    height: var(--control-h-md);
   }
 }

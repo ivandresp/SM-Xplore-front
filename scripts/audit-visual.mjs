@@ -59,6 +59,13 @@ for (const file of sheets) {
     )
   }
 
+  // 5: la escala tipográfica vive en src/index.css; ningún módulo suelta números.
+  for (const match of text.matchAll(/font-size:\s*[0-9.]+(?:px|rem)/g)) {
+    findings.push(
+      `${rel(file)}:${lineOf(text, match.index)}: ${match[0]} suelto (usa un token de escala)`,
+    )
+  }
+
   for (const match of text.matchAll(/transition:[^;}]*/g)) {
     if (/\b(width|height|top|left)\b/.test(match[0])) {
       findings.push(
@@ -113,10 +120,22 @@ const PAIRS = [
   /* Límites de control: WCAG 1.4.11 pide 3:1. */
   ['--color-field-border', '--color-bg', 3],
   ['--color-field-border', '--color-surface', 3],
+  ['--color-field-border', '--color-surface-alt', 3],
+  /* Texto de marca sobre rellenos tintados (hover de chip/outline). */
+  ['--color-link', '--color-primary-soft'],
+  /* Coral: relleno con texto oscuro y texto cálido sobre superficies.
+     Blanco sobre `--color-primary` no se comprueba: la marca nunca lleva
+     texto encima; para relleno con texto está `--color-accent-fill`. */
+  ['--color-on-warm', '--color-warm-fill'],
+  ['--color-warm-text', '--color-bg'],
+  ['--color-warm-text', '--color-surface'],
+  ['--color-warm-text', '--color-surface-alt'],
 ]
 
 const tokenSheet = readFileSync(TOKENS_FILE, 'utf8')
-const darkStart = tokenSheet.indexOf('@media (prefers-color-scheme: dark)')
+// El modo oscuro se define en `:root[data-theme='dark']` y se repite en la
+// media query para el modo sistema; el primer bloque trae los mismos valores.
+const darkStart = tokenSheet.indexOf(":root[data-theme='dark']")
 const sections = [
   ['claro', tokenSheet.slice(0, darkStart)],
   ['oscuro', tokenSheet.slice(darkStart)],

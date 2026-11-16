@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Logo } from '@/components/Logo'
+import { ThemeToggle } from '@/components/ThemeToggle'
 import { Skeleton } from '@/components/Skeleton'
 import {
   MIN_SEARCH_LENGTH,
@@ -362,7 +363,7 @@ export function TopBar({
     }
 
     const focusables = Array.from(
-      panelRef.current?.querySelectorAll<HTMLElement>('a[href]') ?? [],
+      panelRef.current?.querySelectorAll<HTMLElement>('a[href], button') ?? [],
     )
     const first = focusables[0]
     const last = focusables[focusables.length - 1]
@@ -435,6 +436,8 @@ export function TopBar({
         </button>
       )}
 
+      <ThemeToggle tone={tone} className={styles.barTheme} />
+
       {right !== undefined && <div className={styles.right}>{right}</div>}
 
       {hasMenu && menuOpen && (
@@ -457,6 +460,10 @@ export function TopBar({
               </Link>
             ))}
           </nav>
+          {/* En pantallas estrechas el toggle vive aquí: la barra no cabe. */}
+          <div className={styles.menuTheme}>
+            <ThemeToggle tone={tone} />
+          </div>
         </div>
       )}
     </header>

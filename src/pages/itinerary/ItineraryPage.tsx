@@ -218,7 +218,7 @@ export default function ItineraryPage() {
                         <>
                           <StatusBadge tone="neutral">Sin reservar</StatusBadge>
                           <Button
-                            variant="outline"
+                            variant="warm"
                             size="sm"
                             disabled={isReserving}
                             onClick={() => void reserveEntries([entry])}
@@ -290,7 +290,7 @@ export default function ItineraryPage() {
                 Guardar itinerario
               </Button>
               <Button
-                variant="outline"
+                variant="warm"
                 disabled={pending.length === 0 || isReserving}
                 onClick={() => void reserveEntries(pending)}
               >

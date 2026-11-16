@@ -23,9 +23,10 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.6rem 1rem;
+  height: var(--control-h-md);
+  padding: 0 1rem;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background-color: var(--color-surface-alt);
 }
 
@@ -53,7 +54,7 @@
   background: transparent;
   color: var(--color-text);
   font: inherit;
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   outline: none;
 }
 
@@ -90,7 +91,7 @@
   margin: 0.25rem 0.5rem;
   color: var(--color-muted);
   font-family: var(--font-heading);
-  font-size: 0.72rem;
+  font-size: var(--text-label);
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -106,7 +107,7 @@
   display: inline-block;
   margin: 0.15rem 0.5rem 0.35rem;
   color: var(--color-link);
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   font-weight: 700;
   text-decoration: none;
 }
@@ -146,38 +147,38 @@
 
 .resultName {
   font-family: var(--font-heading);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   font-weight: 600;
 }
 
 .resultMeta {
   color: var(--color-muted);
-  font-size: 0.82rem;
+  font-size: var(--text-meta);
 }
 
 .panelText {
   margin: 0;
   padding: 0.5rem;
   color: var(--color-text-soft);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
 }
 
 .panelNote {
   margin: 0 0 0.25rem;
   padding: 0.5rem;
   color: var(--color-warning-text);
-  font-size: 0.82rem;
+  font-size: var(--text-meta);
 }
 
 .retry {
   margin: 0 0.5rem 0.5rem;
   padding: 0.35rem 0.85rem;
   border: 1px solid var(--color-primary);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background-color: var(--color-bg);
   color: var(--color-link-hover);
   font-family: var(--font-heading);
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   font-weight: 600;
   cursor: pointer;
 }
@@ -240,14 +241,14 @@
   justify-content: center;
   gap: 0.45rem;
   min-width: 2.75rem;
-  min-height: 2.75rem;
+  min-height: var(--control-h-md);
   padding: 0 0.6rem;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-heading);
-  font-size: 0.9rem;
+  font-size: var(--text-note);
   font-weight: 700;
   cursor: pointer;
 }
@@ -314,12 +315,12 @@
 .menuLink {
   display: flex;
   align-items: center;
-  min-height: 2.75rem;
+  min-height: var(--control-h-md);
   padding: 0.5rem 0.85rem;
   border-radius: var(--radius-sm);
   color: var(--color-text);
   font-family: var(--font-heading);
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 600;
   text-decoration: none;
 }
@@ -366,7 +367,7 @@
 .link {
   color: var(--color-text-soft);
   font-family: var(--font-heading);
-  font-size: 0.98rem;
+  font-size: var(--text-base);
   font-weight: 500;
   text-decoration: none;
 }
@@ -399,6 +400,28 @@
 
 .links + .right {
   margin-left: 0;
+}
+
+/* El toggle vive en la barra desde 900px; por debajo, dentro del menú. */
+.barTheme {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .barTheme {
+    display: inline-flex;
+  }
+}
+
+.menuTheme {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.dark .menuTheme {
+  border-top-color: rgba(255, 255, 255, 0.18);
 }
 
 /* Variante oscura (barra navy). La barra es oscura en ambos temas, así que
@@ -488,11 +511,11 @@
 
 .badge {
   padding: 0.3rem 0.75rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-heading);
-  font-size: 0.85rem;
+  font-size: var(--text-small);
   font-weight: 600;
   white-space: nowrap;
 }

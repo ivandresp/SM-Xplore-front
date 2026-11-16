@@ -21,13 +21,13 @@
 
 .mediaNote {
   color: var(--color-link);
-  font-size: 0.82rem;
+  font-size: var(--text-meta);
 }
 
 .name {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1.02rem;
+  font-size: var(--text-base);
   font-weight: 700;
   line-height: 1.25;
 }
@@ -35,12 +35,12 @@
 .meta {
   margin: 0;
   color: var(--color-muted);
-  font-size: 0.88rem;
+  font-size: var(--text-note);
 }
 
 .price {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1rem;
+  font-size: var(--text-base);
   font-weight: 800;
 }

@@ -8,15 +8,15 @@
 }
 
 .page {
-  min-width: 2.75rem;
-  height: 2.75rem;
+  min-width: var(--control-h-md);
+  height: var(--control-h-md);
   padding: 0 0.6rem;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-control);
   background-color: var(--color-bg);
   color: var(--color-text-soft);
   font-family: var(--font-sans);
-  font-size: 0.95rem;
+  font-size: var(--text-body);
   cursor: pointer;
 }
 

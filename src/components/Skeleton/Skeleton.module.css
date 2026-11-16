@@ -68,7 +68,7 @@
 }
 
 .row {
-  height: 2.75rem;
+  height: var(--control-h-md);
   border-radius: var(--radius-md);
 }
 
@@ -101,7 +101,7 @@
 
 .cardAction {
   width: 100%;
-  height: 2.75rem;
+  height: var(--control-h-md);
   border-radius: var(--radius-data);
 }
 
