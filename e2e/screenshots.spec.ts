@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import {
   ADMIN_EMAIL,
+  cleanupCreatedActivities,
   createBookableActivity,
   loginUi,
   provisionGuide,
@@ -15,6 +16,10 @@ const WIDTHS = [375, 768, 1280]
 const THEMES = ['light', 'dark'] as const
 
 test.describe.configure({ timeout: 180_000 })
+
+test.afterAll(async ({ request }) => {
+  await cleanupCreatedActivities(request)
+})
 
 async function capture(page: Page, name: string): Promise<void> {
   for (const width of WIDTHS) {

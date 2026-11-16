@@ -25,6 +25,30 @@ export interface ActivityDto {
   price: number
 }
 
+/**
+ * Actividades creadas por la suite en esta corrida. El catálogo público filtra
+ * `status=PUBLISHED`: cancelarlas en `afterAll` las saca de la vista del usuario
+ * sin borrar datos (ms-03 no expone DELETE para actividades).
+ */
+const createdActivities: string[] = []
+
+/** Cancela las actividades creadas por el spec. Idempotente y sin ruido si no hay. */
+export async function cleanupCreatedActivities(
+  request: APIRequestContext,
+): Promise<void> {
+  if (createdActivities.length === 0) {
+    return
+  }
+
+  const token = await adminToken(request)
+  for (const id of createdActivities.splice(0)) {
+    await request.patch(`/api/v1/activities/${id}/status`, {
+      headers: authHeader(token),
+      data: { status: 'CANCELLED' },
+    })
+  }
+}
+
 export function uniqueEmail(prefix: string): string {
   return `e2e.${prefix}.${Date.now()}@smxplore.local`
 }
@@ -105,6 +129,7 @@ export async function createBookableActivity(
     { headers: authHeader(token), data: { status: 'PUBLISHED' } },
   )
   expect(published.ok(), 'publicar la actividad').toBeTruthy()
+  createdActivities.push(activity.id)
   return (await published.json()) as ActivityDto
 }
 

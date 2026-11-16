@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import {
   PASSWORD,
   adminToken,
+  cleanupCreatedActivities,
   createBookableActivity,
   uniqueDni,
   uniqueEmail,
@@ -11,6 +12,11 @@ import {
 const FUTURE = { timeout: 30_000 }
 
 test.describe.configure({ timeout: 120_000 })
+
+// El catálogo es público: lo que crea la suite se cancela al terminar.
+test.afterAll(async ({ request }) => {
+  await cleanupCreatedActivities(request)
+})
 
 test.describe('flujos de la ola 3', () => {
   test('un turista se registra, reserva, ve su reserva y la cancela', async ({
