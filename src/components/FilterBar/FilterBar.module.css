@@ -95,6 +95,14 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+  /* Hueco reservado para un chip: la tabla no salta al elegir el primero. */
+  min-height: 2rem;
+}
+
+@media (pointer: coarse) {
+  .chips {
+    min-height: var(--control-h-md);
+  }
 }
 
 .chip {
@@ -151,5 +159,10 @@
 
   .panelCollapsed {
     display: block;
+  }
+
+  /* Misma altura con y sin «Limpiar filtros»: el botón no empuja la tabla. */
+  .head {
+    min-height: var(--control-h-sm);
   }
 }

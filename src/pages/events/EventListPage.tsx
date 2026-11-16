@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '@/components/Button'
 import { FilterBar } from '@/components/FilterBar'
 import type { ActiveFilter } from '@/components/FilterBar'
+import { Media } from '@/components/Media'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
@@ -441,9 +442,7 @@ export default function EventListPage() {
                     <span className={styles.dateMonth}>{month}</span>
                   </div>
 
-                  <span className={styles.thumb} aria-hidden="true">
-                    Sin foto
-                  </span>
+                  <Media className={styles.thumb} />
 
                   <div className={styles.body}>
                     <h2 className={styles.title}>{event.name}</h2>

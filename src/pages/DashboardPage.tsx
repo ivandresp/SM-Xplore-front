@@ -7,14 +7,12 @@ import type { SkeletonVariant } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
-  ACCOUNT_STATUS_LABELS,
   ACTIVITY_STATUS_LABELS,
   ACTIVITY_STATUS_TONES,
   CONTENT_STATUS_LABELS,
   CONTENT_STATUS_TONES,
   RESERVATION_STATUS_LABELS,
   RESERVATION_STATUS_TONES,
-  ROLE_LABELS,
 } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { activitiesApi } from '@/services/activitiesApi'
@@ -721,10 +719,6 @@ export default function DashboardPage() {
       <header className={styles.header}>
         <h1 className={styles.title}>Hola, {user.fullName}</h1>
         <p className={styles.subtitle}>{ROLE_SUBTITLES[user.role]}</p>
-        <p className={styles.meta}>
-          {ROLE_LABELS[user.role]} · {ACCOUNT_STATUS_LABELS[user.status]} ·
-          Registro: {formatDateTime(user.signedUpAt)}
-        </p>
       </header>
 
       {user.role === 'TOURIST' && <TouristDashboard user={user} />}

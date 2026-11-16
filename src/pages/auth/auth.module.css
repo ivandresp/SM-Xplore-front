@@ -45,6 +45,14 @@
   }
 }
 
+@media (min-width: 768px) {
+  /* Escritorio: la tarjeta gana aire y las columnas del grid dejan de medir
+     ~224px. En móvil se queda en 34rem. */
+  .card {
+    max-width: 44rem;
+  }
+}
+
 .groupTitle {
   margin: 0.5rem 0 0;
   font-family: var(--font-heading);

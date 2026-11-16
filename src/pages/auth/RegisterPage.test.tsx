@@ -650,21 +650,28 @@ describe('RegisterPage', () => {
     expect(alerts).toMatch(/licencia/i)
   })
 
-  it('con la contraseña vacía el checklist no muestra ningún Cumple', async () => {
+  it('con la contraseña vacía el checklist no se muestra', () => {
     vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
 
     renderRegister()
+
+    expect(
+      screen.queryByRole('list', { name: 'Requisitos de la contraseña' }),
+    ).toBeNull()
+  })
+
+  it('al teclear la contraseña aparece el checklist con sus estados', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
+    const user = userEvent.setup()
+
+    renderRegister()
+    await user.type(screen.getByLabelText('Contraseña'), 'abc')
 
     const checklist = screen.getByRole('list', {
       name: 'Requisitos de la contraseña',
     })
     const items = within(checklist).getAllByRole('listitem')
 
-    expect(items.some((item) => (item.textContent ?? '').includes('Pendiente'))).toBe(
-      true,
-    )
-    expect(items.every((item) => !(item.textContent ?? '').includes('Cumple'))).toBe(
-      true,
-    )
+    expect(items.some((item) => (item.textContent ?? '').includes('Falta'))).toBe(true)
   })
 })
