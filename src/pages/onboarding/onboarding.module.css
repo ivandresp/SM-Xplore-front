@@ -91,7 +91,7 @@
   display: block;
   width: 56px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--color-border-strong);
   transition: background-color 200ms ease, transform 200ms ease;
 }
