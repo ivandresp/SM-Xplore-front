@@ -5,9 +5,15 @@ import styles from './Button.module.css'
 /**
  * `primary`: la acción que cierra la tarea, una por vista.
  * `accent`: énfasis secundario de la misma vista; nunca para reintentar ni borrar.
+ * `warm`: acciones de reserva (coral); nunca para navegación.
  * `outline`/`outlineAccent`: acciones de apoyo.
  */
-export type ButtonVariant = 'primary' | 'accent' | 'outline' | 'outlineAccent'
+export type ButtonVariant =
+  | 'primary'
+  | 'accent'
+  | 'warm'
+  | 'outline'
+  | 'outlineAccent'
 
 export type ButtonSize = 'sm' | 'md' | 'lg'
 

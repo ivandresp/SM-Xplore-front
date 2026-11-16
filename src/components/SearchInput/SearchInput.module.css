@@ -18,3 +18,11 @@
   outline: 2px solid var(--color-link);
   outline-offset: 1px;
 }
+
+.input:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+}
+
+.input:active:not(:disabled) {
+  background-color: var(--color-surface);
+}

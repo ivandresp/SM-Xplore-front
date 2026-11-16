@@ -77,6 +77,20 @@
   background-color: var(--color-accent-fill-active);
 }
 
+/* Reserva: el coral es la señal de una acción que compromete una compra. */
+.warm {
+  background-color: var(--color-warm-fill);
+  color: var(--color-on-warm);
+}
+
+.warm:hover:not(:disabled) {
+  background-color: var(--color-warm-fill-hover);
+}
+
+.warm:active:not(:disabled) {
+  background-color: var(--color-warm-fill-active);
+}
+
 .outline {
   background-color: var(--color-bg);
   border-color: var(--color-field-border);

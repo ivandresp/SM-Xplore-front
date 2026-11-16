@@ -421,7 +421,7 @@ export default function ActivityDetailPage() {
                 )}
 
                 <Button
-                  variant="accent"
+                  variant="warm"
                   size="lg"
                   block
                   disabled={isBooking || isFull}
