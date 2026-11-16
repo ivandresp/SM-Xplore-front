@@ -123,6 +123,8 @@ const PAIRS = [
   ['--color-field-border', '--color-surface-alt', 3],
   /* Texto de marca sobre rellenos tintados (hover de chip/outline). */
   ['--color-link', '--color-primary-soft'],
+  /* Aviso informativo (auth.module.css .notice): texto suave sobre el tinte. */
+  ['--color-text-soft', '--color-primary-soft'],
   /* Coral: relleno con texto oscuro y texto cálido sobre superficies.
      Blanco sobre `--color-primary` no se comprueba: la marca nunca lleva
      texto encima; para relleno con texto está `--color-accent-fill`. */

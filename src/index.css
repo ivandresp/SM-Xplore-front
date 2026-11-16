@@ -6,7 +6,9 @@
   /* Marca */
   --color-primary: #0e8c8a;
   --color-primary-hover: #0b7472;
-  --color-primary-soft: #ddf3ec;
+  /* Verde-arena: el tinte de hover/aviso sobre las superficies cálidas (D9).
+     Mantiene AA con --color-link (5.01:1), --color-text-soft (8.62:1). */
+  --color-primary-soft: #e9edd8;
   --color-primary-tint: #f8fbfa;
   --color-accent-warm: #f47c5a;
 
@@ -57,8 +59,8 @@
   --color-placeholder: #626b78;
 
   /* Superficies y bordes */
-  --color-bg: #ffffff;
-  --color-surface: #f4f5f7;
+  --color-bg: #fffdfa;
+  --color-surface: #f7f2ea;
   --color-surface-alt: #f3f4f6;
   --color-surface-soft: #f9fafb;
   --color-border: #e5e7eb;
@@ -183,11 +185,11 @@
   --color-muted: #8b98a5;
   --color-placeholder: #8b98a5;
 
-  --color-bg: #0d1519;
-  --color-surface: #111b22;
+  --color-bg: #08171c;
+  --color-surface: #0d2228;
   --color-surface-alt: #16212a;
   --color-surface-soft: #0f1920;
-  --color-border: #24323d;
+  --color-border: #1d3a41;
   --color-border-strong: #33424f;
   --color-field-border: #66767f;
 
@@ -243,11 +245,11 @@
     --color-muted: #8b98a5;
     --color-placeholder: #8b98a5;
 
-    --color-bg: #0d1519;
-    --color-surface: #111b22;
+    --color-bg: #08171c;
+    --color-surface: #0d2228;
     --color-surface-alt: #16212a;
     --color-surface-soft: #0f1920;
-    --color-border: #24323d;
+    --color-border: #1d3a41;
     --color-border-strong: #33424f;
     --color-field-border: #66767f;
 
