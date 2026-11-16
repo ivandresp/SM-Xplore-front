@@ -402,42 +402,51 @@ export default function RegisterPage({
             autoComplete="new-password"
             spellCheck={false}
             required
-            aria-describedby={PASSWORD_CHECKLIST_ID}
+            hint="Mínimo 12 caracteres; combina al menos 3 tipos."
+            aria-describedby={
+              values.password === '' ? undefined : PASSWORD_CHECKLIST_ID
+            }
             value={values.password}
             error={errorFor('password')}
             onChange={(event) => update('password', event.target.value)}
             onBlur={() => markTouched('password')}
           />
-          <ul
-            className={styles.checklist}
-            id={PASSWORD_CHECKLIST_ID}
-            aria-label="Requisitos de la contraseña"
-            aria-live="polite"
-          >
-            {checks.map((check) => (
-              <li
-                key={check.id}
-                className={classNames(
-                  styles.checklistItem,
-                  check.state === 'met' && styles.checklistMet,
-                  check.state === 'pending' && styles.checklistPending,
-                  check.state === 'empty' && styles.checklistNeutral,
-                )}
-              >
-                <span aria-hidden="true">
-                  {check.state === 'met' ? '✓' : check.state === 'empty' ? '·' : '•'}
-                </span>
-                <span>{check.label}</span>
-                <span className={styles.checkStatus}>
-                  {check.state === 'met'
-                    ? 'Cumple'
-                    : check.state === 'empty'
-                      ? 'Pendiente'
-                      : 'Falta'}
-                </span>
-              </li>
-            ))}
-          </ul>
+          {values.password !== '' && (
+            <ul
+              className={styles.checklist}
+              id={PASSWORD_CHECKLIST_ID}
+              aria-label="Requisitos de la contraseña"
+              aria-live="polite"
+            >
+              {checks.map((check) => (
+                <li
+                  key={check.id}
+                  className={classNames(
+                    styles.checklistItem,
+                    check.state === 'met' && styles.checklistMet,
+                    check.state === 'pending' && styles.checklistPending,
+                    check.state === 'empty' && styles.checklistNeutral,
+                  )}
+                >
+                  <span aria-hidden="true">
+                    {check.state === 'met'
+                      ? '✓'
+                      : check.state === 'empty'
+                        ? '·'
+                        : '•'}
+                  </span>
+                  <span>{check.label}</span>
+                  <span className={styles.checkStatus}>
+                    {check.state === 'met'
+                      ? 'Cumple'
+                      : check.state === 'empty'
+                        ? 'Pendiente'
+                        : 'Falta'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         {isTourist ? (

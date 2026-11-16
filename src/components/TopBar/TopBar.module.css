@@ -432,8 +432,8 @@
 }
 
 .dark .search {
-  border-color: transparent;
-  background-color: var(--color-bar-fill);
+  border-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.12);
 }
 
 .dark .search input {
