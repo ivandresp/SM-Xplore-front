@@ -61,8 +61,8 @@
   /* Superficies y bordes */
   --color-bg: #fffdfa;
   --color-surface: #f7f2ea;
-  --color-surface-alt: #f3f4f6;
-  --color-surface-soft: #f9fafb;
+  --color-surface-alt: #f2ece2;
+  --color-surface-soft: #fbf6ee;
   --color-border: #e5e7eb;
   --color-border-strong: #d1d5db;
   /* Límite de control: 3,47:1 sobre superficie (WCAG 1.4.11 pide 3:1). */

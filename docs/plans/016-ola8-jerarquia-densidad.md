@@ -21,6 +21,7 @@
    - claro: `--color-surface #f4f5f7→#f7f2ea`, `--color-bg #ffffff→#fffdfa`
    - oscuro: `--color-bg #0d1519→#08171c`, `--color-surface #111b22→#0d2228` (el encargo cita `#131e24` como origen; el valor real en `index.css:187` es `#111b22`: se aplica el destino), `--color-border #24323d→#1d3a41`
    - Medido AA en 11 pares: 15.62:1 texto/arena, 15.92:1 texto/mar, 6.63:1 CTA coral con texto oscuro. Re-corre `audit:visual` con los pares nuevos.
+   - Extensión 2026-11-16 (D9b): ajustar también las superficies secundarias al cálido — `--color-surface-alt #f3f4f6→#f2ece2`, `--color-surface-soft #f9fafb→#fbf6ee`. Medido AA: placeholder/surface-alt 4.59:1, field-border/surface-alt 3.22:1, muted 4.81:1.
    - Revisar `--color-primary-soft` (`#ddf3ec`): es menta fría y choca con la arena; proponer verde-arena y medir antes de aplicarlo.
    - D9 contradice la decisión 1 (prohibición de tocar tokens) **en el alcance limitado a `--color-bg`, `--color-surface`, `--color-border` y `--color-primary-soft`**: el resto de la ola 7 (radios, alturas, escala tipográfica, selector de tema) sigue intacto.
 
