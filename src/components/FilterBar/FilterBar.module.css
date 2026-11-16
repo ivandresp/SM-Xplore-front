@@ -160,4 +160,9 @@
   .panelCollapsed {
     display: block;
   }
+
+  /* Misma altura con y sin «Limpiar filtros»: el botón no empuja la tabla. */
+  .head {
+    min-height: var(--control-h-sm);
+  }
 }
