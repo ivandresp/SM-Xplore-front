@@ -113,10 +113,22 @@ const PAIRS = [
   /* Límites de control: WCAG 1.4.11 pide 3:1. */
   ['--color-field-border', '--color-bg', 3],
   ['--color-field-border', '--color-surface', 3],
+  ['--color-field-border', '--color-surface-alt', 3],
+  /* Texto de marca sobre rellenos tintados (hover de chip/outline). */
+  ['--color-link', '--color-primary-soft'],
+  /* Coral: relleno con texto oscuro y texto cálido sobre superficies.
+     Blanco sobre `--color-primary` no se comprueba: la marca nunca lleva
+     texto encima; para relleno con texto está `--color-accent-fill`. */
+  ['--color-on-warm', '--color-warm-fill'],
+  ['--color-warm-text', '--color-bg'],
+  ['--color-warm-text', '--color-surface'],
+  ['--color-warm-text', '--color-surface-alt'],
 ]
 
 const tokenSheet = readFileSync(TOKENS_FILE, 'utf8')
-const darkStart = tokenSheet.indexOf('@media (prefers-color-scheme: dark)')
+// El modo oscuro se define en `:root[data-theme='dark']` y se repite en la
+// media query para el modo sistema; el primer bloque trae los mismos valores.
+const darkStart = tokenSheet.indexOf(":root[data-theme='dark']")
 const sections = [
   ['claro', tokenSheet.slice(0, darkStart)],
   ['oscuro', tokenSheet.slice(darkStart)],
