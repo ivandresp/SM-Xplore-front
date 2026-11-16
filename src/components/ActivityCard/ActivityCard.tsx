@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
+import { Media } from '@/components/Media'
 import { formatCurrency, formatDuration } from '@/utils/format'
 import type { ActivityResponse } from '@/types'
 import styles from './ActivityCard.module.css'
@@ -12,9 +13,7 @@ export interface ActivityCardProps {
 export function ActivityCard({ activity }: ActivityCardProps) {
   return (
     <article className={styles.card}>
-      <div className={styles.media}>
-        <span className={styles.mediaNote}>Sin foto</span>
-      </div>
+      <Media chip={activity.category} />
 
       <h3 className={styles.name}>{activity.name}</h3>
       <p className={styles.meta}>

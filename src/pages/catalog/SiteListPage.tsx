@@ -116,6 +116,11 @@ export default function SiteListPage() {
     [zones],
   )
 
+  const categoryNameById = useMemo(
+    () => new Map(categories.map((category) => [category.id, category.name])),
+    [categories],
+  )
+
   const activeFilters: ActiveFilter[] = []
   if (term.trim() !== '') {
     activeFilters.push({ key: 'search', label: 'Buscar', value: term.trim() })
@@ -287,6 +292,11 @@ export default function SiteListPage() {
                 key={site.id}
                 site={site}
                 zoneName={zoneNameById.get(site.zoneId)}
+                categoryName={
+                  site.categoryId === null
+                    ? undefined
+                    : categoryNameById.get(site.categoryId)
+                }
               />
             ))}
           </div>

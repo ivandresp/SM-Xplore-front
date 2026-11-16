@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/Button'
+import { Media } from '@/components/Media'
 import { serviceTypeLabel } from '@/config/roles'
 import { formatCurrency } from '@/utils/format'
 import type { ServiceResponse } from '@/types'
@@ -11,17 +12,9 @@ export interface ServiceCardProps {
 
 /** Tarjeta del catálogo de servicios: foto (si hay), nombre, tipo, prestadora y precio. */
 export function ServiceCard({ service }: ServiceCardProps) {
-  const photo = service.photosUrls[0]
-
   return (
     <article className={styles.card}>
-      <div className={styles.media}>
-        {photo !== undefined ? (
-          <img className={styles.photo} src={photo} alt="" loading="lazy" />
-        ) : (
-          <span className={styles.mediaNote}>Sin foto</span>
-        )}
-      </div>
+      <Media photo={service.photosUrls[0]} chip={service.categoryName} />
 
       <h3 className={styles.name}>{service.name}</h3>
       <p className={styles.meta}>

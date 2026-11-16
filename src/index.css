@@ -123,6 +123,10 @@
   --control-h-md: 2.75rem;
   --control-h-lg: 3.25rem;
 
+  /* Alto fijo del bloque de imagen de las tarjetas (Media): la grilla no se
+     mueve cuando una tarjeta pasa de foto a fallback. */
+  --media-h: 116px;
+
   /* Radios con un rol cada uno: control (campos y botones), media (imágenes
      dentro de tarjetas), superficie (tarjeta/panel) y píldora (solo chips,
      badges y contadores). Los nombres antiguos son alias de migración. */
