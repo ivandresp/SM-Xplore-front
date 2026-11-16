@@ -206,7 +206,7 @@
   margin-left: auto;
   padding: 0.3rem 0.65rem;
   border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-heading);

@@ -243,7 +243,7 @@
   align-items: center;
   padding: 0.45rem 0.85rem;
   border: 1px solid var(--color-border-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-heading);

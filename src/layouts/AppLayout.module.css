@@ -98,7 +98,7 @@
 /* Elementos de la barra superior del panel */
 .role {
   padding: 0.35rem 0.85rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: rgba(255, 255, 255, 0.94);
   /* Fijo: la píldora es blanca en ambos temas, sobre la barra oscura. */
   color: var(--color-bar-fill);
@@ -109,9 +109,10 @@
 }
 
 .logout {
-  padding: 0.35rem 0.85rem;
+  height: var(--control-h-sm);
+  padding: 0 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background-color: transparent;
   color: var(--color-on-bar);
   font-family: var(--font-heading);
@@ -139,6 +140,6 @@
   .logout {
     display: inline-flex;
     align-items: center;
-    min-height: 2.75rem;
+    min-height: var(--control-h-md);
   }
 }

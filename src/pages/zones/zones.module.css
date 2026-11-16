@@ -78,7 +78,7 @@
   display: inline-block;
   padding: 0.15rem 0.6rem;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: var(--color-surface-alt);
   font-size: 0.85rem;
 }

@@ -145,10 +145,10 @@
   place-items: center;
   /* Objetivo táctil de 44x44 CSS px (WCAG 2.5.5 / HIG). */
   width: 2.75rem;
-  height: 2.75rem;
+  height: var(--control-h-md);
   padding: 0;
   border: 1px solid var(--color-on-action);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background-color: var(--color-ink);
   color: var(--color-on-action);
   font-size: 1.25rem;

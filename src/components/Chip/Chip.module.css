@@ -4,7 +4,7 @@
   justify-content: center;
   padding: var(--space-2) var(--space-4);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-data);
+  border-radius: var(--radius-pill);
   background-color: var(--color-bg);
   color: var(--color-text-soft);
   font-family: var(--font-heading);
@@ -21,7 +21,7 @@
 /* Objetivo tactil de 44 px solo con puntero grueso; el raton conserva 37 px. */
 @media (pointer: coarse) {
   .chip {
-    min-height: 44px;
+    min-height: var(--control-h-md);
   }
 }
 
