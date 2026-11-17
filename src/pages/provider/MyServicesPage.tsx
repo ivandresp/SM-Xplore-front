@@ -77,30 +77,39 @@ export default function MyServicesPage() {
   const columns: Column<ServiceResponse>[] = [
     {
       header: t("Servicio"),
+      className: styles.serviceTitleColumn,
       render: (service) => (
-        <div>
-          <p className={styles.names}>{service.name}</p>
-          <p className={styles.meta}>
-            {serviceTypeLabel(service.type)} ·{' '}
-            {formatCurrency(service.price)}
-          </p>
-        </div>
+        <p className={styles.serviceTitle}>{service.name}</p>
       ),
     },
     {
+      header: t("Tipo de servicio"),
+      className: styles.serviceDataColumn,
+      render: (service) => serviceTypeLabel(service.type),
+    },
+    {
+      header: t("Precio por persona"),
+      className: styles.serviceDataColumn,
+      render: (service) => formatCurrency(service.price),
+    },
+    {
       header: t("Ubicación"),
+      className: styles.serviceDataColumn,
       render: (service) => `${service.latitude}, ${service.longitude}`,
     },
     {
       header: t("Fotos"),
+      className: styles.serviceDataColumn,
       render: (service) => service.photosUrls.length,
     },
     {
       header: t("Capacidad"),
+      className: styles.serviceDataColumn,
       render: (service) => service.maxCapacity,
     },
     {
       header: t("Estado"),
+      className: styles.serviceDataColumn,
       render: (service) => (
         <StatusBadge tone={CONTENT_STATUS_TONES[service.status]}>
           {CONTENT_STATUS_LABELS[service.status]}
@@ -109,6 +118,7 @@ export default function MyServicesPage() {
     },
     {
       header: t("Acciones"),
+      className: styles.serviceDataColumn,
       align: 'right',
       render: (service) => (
         <Link to={`/app/mis-servicios/${service.id}`}>

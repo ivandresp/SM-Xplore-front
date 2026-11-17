@@ -2,6 +2,7 @@ import { fireEvent, act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { formatCurrency } from '@/utils/format'
 import ServiceListPage from './ServiceListPage'
 
 const SERVICE = {
@@ -80,7 +81,17 @@ describe('ServiceListPage', () => {
     renderServices('/servicios?precioMax=100000')
 
     expect(await screen.findByText('Alquiler de kayak')).toBeTruthy()
-    expect(screen.getByText('1 resultado')).toBeTruthy()
+    await waitFor(() => {
+      const card = screen.getByRole('link', { name: SERVICE.name })
+      expect(card.getAttribute('href')).toBe('/servicios/sv-1')
+      expect(card.textContent).toContain('Alojamiento')
+      expect(card.textContent).toContain(SERVICE.categoryName)
+      expect(card.textContent).toContain(formatCurrency(SERVICE.price))
+      expect(card.textContent).not.toContain(SERVICE.providerName)
+      expect(card.querySelector('a, button')).toBeNull()
+
+      expect(screen.getByText('1 resultado')).toBeTruthy()
+    })
     expect(
       screen.getByRole('button', { name: /Quitar filtro Precio/ }),
     ).toBeTruthy()

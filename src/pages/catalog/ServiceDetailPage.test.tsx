@@ -81,6 +81,15 @@ describe('ServiceDetailPage', () => {
     )
 
     expect(await screen.findByRole('heading', { name: 'Habitación doble' })).toBeTruthy()
+    expect(screen.queryByText('Alojamiento · Hotel Marina')).toBeNull()
+    expect(screen.queryByText(/El API de reservas/)).toBeNull()
+    const contact = screen.getByRole('link', { name: 'Contactar a la prestadora' })
+    expect(contact.getAttribute('href')).toBe('/prestadoras/p-1')
+    const card = contact.closest('article')!
+    expect(card.textContent).toContain('250.000')
+    expect(card.textContent).toContain('Los servicios se contratan directamente con la prestadora.')
+    expect(screen.queryByText('Ver perfil de la prestadora')).toBeNull()
+
     expect(
       screen.getByRole('img', { name: /Mapa de Habitación doble en 11\.24040, -74\.19900/ }),
     ).toBeTruthy()
