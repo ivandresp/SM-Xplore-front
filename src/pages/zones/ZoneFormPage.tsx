@@ -7,6 +7,8 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { ImageUploader } from '@/components/ImageUploader'
+import { LocationPicker } from '@/components/LocationPicker'
+import type { MapPoint } from '@/components/LocationPicker'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
@@ -20,22 +22,13 @@ import { describeApiError } from '@/utils/errors'
 import type { CategoryResponse, Site, Zone } from '@/types'
 import styles from './zones.module.css'
 
-function parseCoordinate(raw: string): number | null {
-  if (raw.trim() === '') {
-    return null
-  }
-
-  const value = Number(raw.replace(',', '.'))
-  return Number.isFinite(value) ? value : null
-}
-
 /** Devuelve el mensaje de error de las coordenadas, o null si son válidas. */
 function validateCoordinates(
   latitude: number | null,
   longitude: number | null,
 ): string | null {
-  if (latitude === null || longitude === null) {
-    return t("Escribe la latitud y la longitud del sitio.")
+  if (latitude === null || longitude === null || !Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+    return t("Selecciona la ubicación del sitio en el mapa.")
   }
   if (latitude < -90 || latitude > 90) {
     return t("La latitud debe estar entre -90 y 90.")
@@ -66,8 +59,7 @@ export default function ZoneFormPage() {
   const [newSiteName, setNewSiteName] = useState('')
   const [newCategoryId, setNewCategoryId] = useState('')
   const [newMaxCapacity, setNewMaxCapacity] = useState('10')
-  const [newLatitude, setNewLatitude] = useState('')
-  const [newLongitude, setNewLongitude] = useState('')
+  const [newLocation, setNewLocation] = useState<MapPoint | null>(null)
   const [newPhotoUrls, setNewPhotoUrls] = useState<string[]>([])
   const [newPhotosUploading, setNewPhotosUploading] = useState(false)
 
@@ -75,8 +67,7 @@ export default function ZoneFormPage() {
   const [editName, setEditName] = useState('')
   const [editCategoryId, setEditCategoryId] = useState('')
   const [editMaxCapacity, setEditMaxCapacity] = useState('')
-  const [editLatitude, setEditLatitude] = useState('')
-  const [editLongitude, setEditLongitude] = useState('')
+  const [editLocation, setEditLocation] = useState<MapPoint | null>(null)
   const [editPhotoUrls, setEditPhotoUrls] = useState<string[]>([])
   const [editPhotosUploading, setEditPhotosUploading] = useState(false)
   const [isSavingSite, setIsSavingSite] = useState(false)
@@ -182,10 +173,10 @@ export default function ZoneFormPage() {
       return
     }
 
-    const latitude = parseCoordinate(newLatitude)
-    const longitude = parseCoordinate(newLongitude)
+    const latitude = newLocation?.latitude ?? null
+    const longitude = newLocation?.longitude ?? null
     const coordinateError = validateCoordinates(latitude, longitude)
-    if (coordinateError !== null) {
+    if (coordinateError !== null || newLocation === null) {
       setAddError(() => validateCoordinates(latitude, longitude))
       return
     }
@@ -209,16 +200,15 @@ export default function ZoneFormPage() {
         zoneId: zone.id,
         name: trimmedName,
         categoryId: newCategoryId,
-        latitude: latitude as number,
-        longitude: longitude as number,
+        latitude: newLocation.latitude,
+        longitude: newLocation.longitude,
         maxCapacity: capacity,
         photoUrls: newPhotoUrls,
       })
 
       setSites((current) => [...current, created])
       setNewSiteName('')
-      setNewLatitude('')
-      setNewLongitude('')
+      setNewLocation(null)
       setNewPhotoUrls([])
     } catch (cause) {
       setAddError(() => describeApiError(cause))
@@ -232,8 +222,7 @@ export default function ZoneFormPage() {
     setEditName(site.name)
     setEditCategoryId(site.categoryId ?? '')
     setEditMaxCapacity(String(site.maxCapacity))
-    setEditLatitude(String(site.latitude))
-    setEditLongitude(String(site.longitude))
+    setEditLocation({ latitude: site.latitude, longitude: site.longitude })
     setEditPhotoUrls([...site.photoUrls])
     setEditError(null)
   }
@@ -269,10 +258,10 @@ export default function ZoneFormPage() {
       return
     }
 
-    const latitude = parseCoordinate(editLatitude)
-    const longitude = parseCoordinate(editLongitude)
+    const latitude = editLocation?.latitude ?? null
+    const longitude = editLocation?.longitude ?? null
     const coordinateError = validateCoordinates(latitude, longitude)
-    if (coordinateError !== null) {
+    if (coordinateError !== null || editLocation === null) {
       setEditError(() => validateCoordinates(latitude, longitude))
       return
     }
@@ -296,8 +285,8 @@ export default function ZoneFormPage() {
         name: trimmedName,
         categoryId: editCategoryId,
         zoneId: site.zoneId,
-        latitude: latitude as number,
-        longitude: longitude as number,
+        latitude: editLocation.latitude,
+        longitude: editLocation.longitude,
         maxCapacity: capacity,
         photoUrls: editPhotoUrls,
       })
@@ -437,32 +426,16 @@ export default function ZoneFormPage() {
                           />
                         </div>
 
-                        <div className={`${styles.grid} ${styles.twoColumns}`}>
-                          <Field
-                            label={t("Latitud")}
-                            type="number"
-                            step="any"
-                            min={-90}
-                            max={90}
-                            required
-                            value={editLatitude}
-                            onChange={(changeEvent) =>
-                              setEditLatitude(changeEvent.target.value)
-                            }
-                          />
-                          <Field
-                            label={t("Longitud")}
-                            type="number"
-                            step="any"
-                            min={-180}
-                            max={180}
-                            required
-                            value={editLongitude}
-                            onChange={(changeEvent) =>
-                              setEditLongitude(changeEvent.target.value)
-                            }
-                          />
-                        </div>
+                        <LocationPicker
+                          key={site.id}
+                          value={editLocation}
+                          onChange={(point) => {
+                            setEditLocation(point)
+                            setEditError(null)
+                          }}
+                          defaultCenter={site}
+                          disabled={isSavingSite}
+                        />
 
                         <ImageUploader
                           className={styles.full}
@@ -591,34 +564,15 @@ export default function ZoneFormPage() {
                   />
                 </div>
 
-                <div className={`${styles.grid} ${styles.twoColumns}`}>
-                  <Field
-                    label={t("Latitud")}
-                    type="number"
-                    step="any"
-                    min={-90}
-                    max={90}
-                    placeholder="11.24194"
-                    required
-                    value={newLatitude}
-                    onChange={(changeEvent) =>
-                      setNewLatitude(changeEvent.target.value)
-                    }
-                  />
-                  <Field
-                    label={t("Longitud")}
-                    type="number"
-                    step="any"
-                    min={-180}
-                    max={180}
-                    placeholder="-74.19904"
-                    required
-                    value={newLongitude}
-                    onChange={(changeEvent) =>
-                      setNewLongitude(changeEvent.target.value)
-                    }
-                  />
-                </div>
+                <LocationPicker
+                  value={newLocation}
+                  onChange={(point) => {
+                    setNewLocation(point)
+                    setAddError(null)
+                  }}
+                  defaultCenter={sites[0]}
+                  disabled={isAddingSite}
+                />
 
                 <ImageUploader
                   className={styles.full}

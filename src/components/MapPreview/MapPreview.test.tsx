@@ -180,6 +180,34 @@ describe('MapPreview', () => {
     expect(screen.queryByRole('button')).toBeNull()
   })
 
+  it('notifica carga, listo y fallo a un selector sin confundir errores parciales con listo', () => {
+    const reportState = vi.fn()
+    const { rerender } = render(<MapPreview label="Selector" latitude={11.2404} longitude={-74.199} onLoadStateChange={reportState} />)
+    expect(reportState).toHaveBeenLastCalledWith('loading')
+    loadAll()
+    expect(reportState).toHaveBeenLastCalledWith('ready')
+    rerender(<MapPreview label="Selector" latitude={11.3} longitude={-74.1} onLoadStateChange={reportState} />)
+    fireEvent.error(tileImages()[0])
+    fireEvent.error(tileImages()[0])
+    loadAll()
+    expect(reportState).toHaveBeenLastCalledWith('error')
+    expect(screen.queryByText('No pudimos cargar el mapa.')).toBeNull()
+  })
+
+  it('desplaza tiles sin remontarlos ni volver a cargar al arrastrar y adapta la ventana', () => {
+    const { rerender } = render(<MapPreview label="Selector" latitude={11.2404} longitude={-74.199} size={320} showMarker={false} />)
+    loadAll()
+    const image = tileImages()[0]
+    const left = Number.parseFloat(image.style.left)
+    const top = Number.parseFloat(image.style.top)
+    rerender(<MapPreview label="Selector" latitude={11.2404} longitude={-74.199} size={320} showMarker={false} panOffset={{ x: 32, y: -16 }} />)
+    expect(tileImages()[0]).toBe(image)
+    expect(Number.parseFloat(image.style.left)).toBeCloseTo(left + 32, 3)
+    expect(Number.parseFloat(image.style.top)).toBeCloseTo(top - 16, 3)
+    expect(screen.getByRole('img').style.width).toBe('320px')
+    expect(screen.getByRole('img').getAttribute('aria-busy')).toBe('false')
+  })
+
   it('no deja que un zoom inválido rompa la URL del tile', () => {
     render(<MapPreview label="Playa Blanca" latitude={11.2404} longitude={-74.199} zoom={Number.NaN} />)
 

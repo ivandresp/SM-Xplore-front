@@ -7,6 +7,11 @@ export const MAX_LATITUDE = 85.0511287798066
 /** Niveles de zoom que sirve OSM (z=19 ya es una manzana). */
 export const MAX_ZOOM = 19
 
+export interface MapPoint {
+  latitude: number
+  longitude: number
+}
+
 export interface TileRef {
   x: number
   y: number
@@ -53,6 +58,17 @@ export function projectPoint(
   }
 }
 
+/** Inversa de Web Mercator: cámara/clic en unidades de tile → coordenadas válidas. */
+export function unprojectPoint(x: number, y: number, zoom: number): MapPoint {
+  const world = 2 ** clampZoom(zoom)
+  const wrappedX = ((x % world) + world) % world
+  const boundedY = Math.max(0, Math.min(world, y))
+  return {
+    latitude: Math.atan(Math.sinh(Math.PI * (1 - 2 * boundedY / world))) * 180 / Math.PI,
+    longitude: wrappedX / world * 360 - 180,
+  }
+}
+
 /**
  * Devuelve el punto utilizable, o `null` si la ficha no trae coordenadas
  * válidas. Un `0` es una coordenada legítima; `null` no.
@@ -60,7 +76,7 @@ export function projectPoint(
 export function coordinatePoint(
   latitude: number | null | undefined,
   longitude: number | null | undefined,
-): { latitude: number; longitude: number } | null {
+): MapPoint | null {
   if (
     typeof latitude !== 'number' ||
     typeof longitude !== 'number' ||
@@ -75,22 +91,24 @@ export function coordinatePoint(
   return { latitude, longitude }
 }
 
-/** Ventana de TILE_SIZE×TILE_SIZE centrada en el punto, en tiles que la cubren. */
+/** Ventana cuadrada centrada en el punto, en los tiles que la cubren. */
 export function mercatorFrame(
   latitude: number,
   longitude: number,
   zoom: number,
+  size = TILE_SIZE,
 ): MapFrame {
+  const viewportSize = Number.isFinite(size) && size > 0 ? size : TILE_SIZE
   const frameZoom = clampZoom(zoom)
   const world = 2 ** frameZoom
   const point = projectPoint(latitude, longitude, frameZoom)
-  const windowLeft = point.x * TILE_SIZE - TILE_SIZE / 2
-  const windowTop = point.y * TILE_SIZE - TILE_SIZE / 2
+  const windowLeft = point.x * TILE_SIZE - viewportSize / 2
+  const windowTop = point.y * TILE_SIZE - viewportSize / 2
 
   const firstColumn = Math.floor(windowLeft / TILE_SIZE)
-  const lastColumn = Math.ceil((windowLeft + TILE_SIZE) / TILE_SIZE) - 1
+  const lastColumn = Math.ceil((windowLeft + viewportSize) / TILE_SIZE) - 1
   const firstRow = Math.max(0, Math.floor(windowTop / TILE_SIZE))
-  const lastRow = Math.min(world - 1, Math.ceil((windowTop + TILE_SIZE) / TILE_SIZE) - 1)
+  const lastRow = Math.min(world - 1, Math.ceil((windowTop + viewportSize) / TILE_SIZE) - 1)
 
   const tiles: TileRef[] = []
   for (let row = firstRow; row <= lastRow; row += 1) {
@@ -107,8 +125,8 @@ export function mercatorFrame(
   return {
     zoom: frameZoom,
     tiles,
-    markerLeft: TILE_SIZE / 2,
-    markerTop: TILE_SIZE / 2,
+    markerLeft: viewportSize / 2,
+    markerTop: viewportSize / 2,
   }
 }
 

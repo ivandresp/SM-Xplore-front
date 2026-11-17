@@ -7,6 +7,7 @@ import {
   mercatorFrame,
   projectPoint,
   tileUrl,
+  unprojectPoint,
 } from './mercator'
 
 describe('projectPoint (Web Mercator, z/x/y)', () => {
@@ -51,6 +52,28 @@ describe('projectPoint (Web Mercator, z/x/y)', () => {
   })
 })
 
+describe('unprojectPoint', () => {
+  it('recupera el punto original, incluido 0,0, en diferentes niveles', () => {
+    for (const zoom of [0, 14, 19]) {
+      for (const [latitude, longitude] of [[0, 0], [11.2404, -74.199], [-33.9, 151.2]]) {
+        const projected = projectPoint(latitude, longitude, zoom)
+        const recovered = unprojectPoint(projected.x, projected.y, zoom)
+        expect(recovered.latitude).toBeCloseTo(latitude, 8)
+        expect(recovered.longitude).toBeCloseTo(longitude, 8)
+      }
+    }
+  })
+
+  it('envuelve longitud y limita latitud al mundo de Mercator', () => {
+    const north = unprojectPoint(2.5, -1, 1)
+    expect(north.longitude).toBeCloseTo(-90, 8)
+    expect(north.latitude).toBeCloseTo(MAX_LATITUDE, 8)
+    const south = unprojectPoint(-0.5, 3, 1)
+    expect(south.longitude).toBeCloseTo(90, 8)
+    expect(south.latitude).toBeCloseTo(-MAX_LATITUDE, 8)
+  })
+})
+
 describe('clampZoom', () => {
   it('recorta al rango 0-19 y trunca decimales', () => {
     expect(clampZoom(14.9)).toBe(14)
@@ -65,6 +88,13 @@ describe('clampZoom', () => {
 })
 
 describe('mercatorFrame', () => {
+  it('reserva una ventana configurable centrada en las coordenadas', () => {
+    const frame = mercatorFrame(0, 0, 14, 320)
+    expect(frame.markerLeft).toBe(160)
+    expect(frame.markerTop).toBe(160)
+    expect(frame.tiles.some((tile) => tile.left <= 0 && tile.left + TILE_SIZE > 0)).toBe(true)
+  })
+
   it('nunca devuelve un zoom NaN: sin zoom válido no hay tiles ni enlace roto', () => {
     const frame = mercatorFrame(0, 0, Number.NaN)
 
