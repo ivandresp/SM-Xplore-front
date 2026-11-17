@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -17,6 +20,7 @@ import type { ActivityResponse, ActivityStatus } from '@/types'
 import styles from './guide.module.css'
 
 export default function ActivityManagePage() {
+  useLanguage()
   const { activityId } = useParams<{ activityId: string }>()
   const navigate = useNavigate()
 
@@ -28,8 +32,8 @@ export default function ActivityManagePage() {
   const [status, setStatus] = useState<ActivityStatus>('DRAFT')
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -52,7 +56,7 @@ export default function ActivityManagePage() {
         setStatus(found.status)
         setError(null)
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -63,7 +67,7 @@ export default function ActivityManagePage() {
     return () => {
       cancelled = true
     }
-  }, [activityId, reloadToken])
+  }, [activityId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -74,7 +78,7 @@ export default function ActivityManagePage() {
   if (isLoading) {
     return (
       <section>
-        <Skeleton variant="text" count={6} label="Cargando actividad…" />
+        <Skeleton variant="text" count={6} label={t("Cargando actividad…")} />
       </section>
     )
   }
@@ -83,13 +87,12 @@ export default function ActivityManagePage() {
     return (
       <section>
         <Link to="/app/mis-actividades" className={styles.back}>
-          ← Volver a mis actividades
-        </Link>
+          {t("← Volver a mis actividades")}</Link>
         <StateMessage
-          title="No se pudo cargar la actividad"
-          description={error ?? 'No se encontró la actividad.'}
+          title={t("No se pudo cargar la actividad")}
+          description={error ?? t("No se encontró la actividad.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -99,7 +102,7 @@ export default function ActivityManagePage() {
 
   async function runAction(
     action: () => Promise<ActivityResponse>,
-    message: string,
+    message: () => string,
   ) {
     setIsWorking(true)
     setError(null)
@@ -111,7 +114,7 @@ export default function ActivityManagePage() {
       setStatus(updated.status)
       setFeedback(message)
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -137,9 +140,9 @@ export default function ActivityManagePage() {
           : await activitiesApi.changeStatus(current.id, { status })
 
       setActivity(withStatus)
-      setFeedback('Cambios guardados.')
+      setFeedback(() => t("Cambios guardados."))
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -148,15 +151,14 @@ export default function ActivityManagePage() {
   return (
     <section>
       <Link to="/app/mis-actividades" className={styles.back}>
-        ← Volver a mis actividades
-      </Link>
+        {t("← Volver a mis actividades")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Mis actividades', to: '/app/mis-actividades' },
+          { label: t("Mis actividades"), to: '/app/mis-actividades' },
           { label: current.name },
         ]}
-        title="Editar actividad"
+        title={t("Editar actividad")}
         actions={
           <StatusBadge tone={ACTIVITY_STATUS_TONES[current.status]}>
             {ACTIVITY_STATUS_LABELS[current.status]}
@@ -182,24 +184,24 @@ export default function ActivityManagePage() {
           }}
           noValidate
         >
-          <h2 className={styles.cardTitle}>Información de la actividad</h2>
+          <h2 className={styles.cardTitle}>{t("Información de la actividad")}</h2>
 
           <div className={`${styles.grid} ${styles.twoColumns}`}>
             <Field
-              label="Nombre de la actividad"
+              label={t("Nombre de la actividad")}
               required
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
             <Field
-              label="Categoría"
+              label={t("Categoría")}
               required
               value={category}
               onChange={(event) => setCategory(event.target.value)}
             />
 
             <label className={styles.full}>
-              <span className={styles.summaryValue}>Descripción</span>
+              <span className={styles.summaryValue}>{t("Descripción")}</span>
               <textarea
                 className={styles.textarea}
                 value={description}
@@ -208,7 +210,7 @@ export default function ActivityManagePage() {
             </label>
 
             <Field
-              label="Precio por persona (COP)"
+              label={t("Precio por persona (COP)")}
               type="number"
               min={0}
               required
@@ -216,19 +218,19 @@ export default function ActivityManagePage() {
               onChange={(event) => setPrice(event.target.value)}
             />
             <Field
-              label="Duración"
+              label={t("Duración")}
               value={formatDurationLong(current.durationMinutes)}
               readOnly
               disabled
             />
             <Field
-              label="Capacidad máxima"
+              label={t("Capacidad máxima")}
               value={`${current.maxCapacity} personas`}
               readOnly
               disabled
             />
             <Field
-              label="Fechas"
+              label={t("Fechas")}
               value={`${current.startsAt.slice(0, 10)} → ${current.endsAt.slice(0, 10)}`}
               readOnly
               disabled
@@ -237,7 +239,7 @@ export default function ActivityManagePage() {
 
           <div className={styles.actions}>
             <Button variant="accent" size="lg" type="submit" disabled={isWorking}>
-              {isWorking ? 'Guardando…' : 'Guardar cambios'}
+              {isWorking ? t("Guardando…") : t("Guardar cambios")}
             </Button>
             <Button
               variant="outlineAccent"
@@ -246,12 +248,11 @@ export default function ActivityManagePage() {
               onClick={() =>
                 void runAction(
                   () => activitiesApi.changeStatus(current.id, { status: 'PAUSED' }),
-                  'Actividad despublicada (pausada).',
+                  () => t("Actividad despublicada (pausada)."),
                 )
               }
             >
-              Despublicar
-            </Button>
+              {t("Despublicar")}</Button>
             <Button
               variant="outline"
               size="lg"
@@ -259,23 +260,20 @@ export default function ActivityManagePage() {
               onClick={() =>
                 void runAction(
                   () => activitiesApi.cancel(current.id),
-                  'Actividad cancelada.',
+                  () => t("Actividad cancelada."),
                 )
               }
             >
-              Eliminar actividad
-            </Button>
+              {t("Eliminar actividad")}</Button>
           </div>
 
           <p className={styles.notice}>
-            Duración, capacidad y fechas se editan en «Disponibilidad». Cancelar
-            una actividad no la borra: deja de mostrarse en el catálogo.
-          </p>
+            {t("Duración, capacidad y fechas se editan en «Disponibilidad». Cancelar una actividad no la borra: deja de mostrarse en el catálogo.")}</p>
         </form>
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Estado de la publicación</h2>
+            <h2 className={styles.cardTitle}>{t("Estado de la publicación")}</h2>
 
             {(['PUBLISHED', 'PAUSED', 'DRAFT'] as ActivityStatus[]).map(
               (option) => (
@@ -292,29 +290,25 @@ export default function ActivityManagePage() {
             )}
 
             <p className={styles.muted}>
-              Se aplica al guardar. Pasar de borrador a publicado también se
-              puede dejar para después.
-            </p>
+              {t("Se aplica al guardar. Pasar de borrador a publicado también se puede dejar para después.")}</p>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Resumen</h2>
+            <h2 className={styles.cardTitle}>{t("Resumen")}</h2>
             <div className={styles.summaryLine}>
-              <span>Precio actual</span>
+              <span>{t("Precio actual")}</span>
               <span className={styles.summaryValue}>
                 {formatCurrency(current.price)}
               </span>
             </div>
             <div className={styles.summaryLine}>
-              <span>Capacidad</span>
+              <span>{t("Capacidad")}</span>
               <span className={styles.summaryValue}>
-                {current.maxCapacity} personas
-              </span>
+                {current.maxCapacity} {" "}{t("personas")}</span>
             </div>
             <Link to={`/app/disponibilidad?id=${current.id}`}>
               <Button variant="outlineAccent" block>
-                Gestionar disponibilidad
-              </Button>
+                {t("Gestionar disponibilidad")}</Button>
             </Link>
           </article>
         </div>
@@ -325,8 +319,7 @@ export default function ActivityManagePage() {
           variant="outline"
           onClick={() => navigate('/app/mis-actividades')}
         >
-          Volver al listado
-        </Button>
+          {t("Volver al listado")}</Button>
       </div>
     </section>
   )

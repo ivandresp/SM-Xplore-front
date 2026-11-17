@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { ImageUploader } from '@/components/ImageUploader'
@@ -21,6 +24,7 @@ import styles from './provider.module.css'
 const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
 
 export default function ServiceFormPage() {
+  useLanguage()
   const navigate = useNavigate()
 
   const [name, setName] = useState('')
@@ -43,8 +47,8 @@ export default function ServiceFormPage() {
 
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingCatalogs, setIsLoadingCatalogs] = useState(true)
-  const [catalogError, setCatalogError] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [catalogError, setCatalogError] = useMessageState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   // El formulario necesita los tres catálogos para armar un servicio válido.
@@ -69,7 +73,7 @@ export default function ServiceFormPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setCatalogError(describeApiError(cause))
+          setCatalogError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) setIsLoadingCatalogs(false)
@@ -81,7 +85,7 @@ export default function ServiceFormPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, setCatalogError])
 
   function retryCatalogs() {
     setIsLoadingCatalogs(true)
@@ -98,21 +102,21 @@ export default function ServiceFormPage() {
     formEvent.preventDefault()
 
     if (photosUploading) {
-      setError('Espera a que terminen de subirse las fotos.')
+      setError(() => t("Espera a que terminen de subirse las fotos."))
       return
     }
 
-    const missing =
+    const missing = () =>
       categoryId === ''
-        ? 'la categoría'
+        ? t("la categoría")
         : zoneId === ''
-          ? 'la zona'
+          ? t("la zona")
           : siteId === ''
-            ? 'el atractivo'
+            ? t("el atractivo")
             : null
 
-    if (missing !== null) {
-      setError(`Selecciona ${missing}.`)
+    if (missing() !== null) {
+      setError(() => t("Selecciona {0}.", [missing()]))
       return
     }
 
@@ -139,27 +143,26 @@ export default function ServiceFormPage() {
 
       navigate('/app/mis-servicios')
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsSaving(false)
     }
   }
 
   if (isLoadingCatalogs) {
-    return <Skeleton variant="text" count={6} label="Cargando formulario…" />
+    return <Skeleton variant="text" count={6} label={t("Cargando formulario…")} />
   }
 
   if (catalogError !== null) {
     return (
       <section>
         <Link to="/app/mis-servicios" className={styles.back}>
-          ← Volver a mis servicios
-        </Link>
+          {t("← Volver a mis servicios")}</Link>
         <StateMessage
-          title="No se pudieron cargar los catálogos"
+          title={t("No se pudieron cargar los catálogos")}
           description={catalogError}
           tone="error"
-          action={<Button onClick={retryCatalogs}>Reintentar</Button>}
+          action={<Button onClick={retryCatalogs}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -168,16 +171,15 @@ export default function ServiceFormPage() {
   return (
     <section>
       <Link to="/app/mis-servicios" className={styles.back}>
-        ← Volver a mis servicios
-      </Link>
+        {t("← Volver a mis servicios")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Mis servicios', to: '/app/mis-servicios' },
-          { label: 'Nuevo servicio' },
+          { label: t("Mis servicios"), to: '/app/mis-servicios' },
+          { label: t("Nuevo servicio") },
         ]}
-        title="Registrar servicio"
-        description="El servicio se publica en el catálogo apenas se crea."
+        title={t("Registrar servicio")}
+        description={t("El servicio se publica en el catálogo apenas se crea.")}
       />
 
       {error !== null && (
@@ -188,19 +190,19 @@ export default function ServiceFormPage() {
 
       <div className={styles.layout}>
         <form className={styles.card} onSubmit={handleSubmit} noValidate>
-          <h2 className={styles.cardTitle}>Información del servicio</h2>
+          <h2 className={styles.cardTitle}>{t("Información del servicio")}</h2>
 
           <div className={`${styles.grid} ${styles.twoColumns}`}>
             <Field
-              label="Nombre del servicio"
-              placeholder="Ej: Alquiler de kayak"
+              label={t("Nombre del servicio")}
+              placeholder={t("Ej: Alquiler de kayak")}
               required
               value={name}
               onChange={(changeEvent) => setName(changeEvent.target.value)}
             />
 
             <SelectField
-              label="Tipo de servicio"
+              label={t("Tipo de servicio")}
               value={type}
               onChange={(changeEvent) => setType(changeEvent.target.value)}
               options={SERVICE_TYPES.map((value) => ({
@@ -210,12 +212,12 @@ export default function ServiceFormPage() {
             />
 
             <SelectField
-              label="Categoría"
+              label={t("Categoría")}
               required
               value={categoryId}
               onChange={(changeEvent) => setCategoryId(changeEvent.target.value)}
               options={[
-                { value: '', label: 'Selecciona una categoría' },
+                { value: '', label: t("Selecciona una categoría") },
                 ...categories.map((category) => ({
                   value: category.id,
                   label: category.name,
@@ -224,7 +226,7 @@ export default function ServiceFormPage() {
             />
 
             <SelectField
-              label="Zona"
+              label={t("Zona")}
               required
               value={zoneId}
               onChange={(changeEvent) => {
@@ -232,23 +234,23 @@ export default function ServiceFormPage() {
                 setSiteId('')
               }}
               options={[
-                { value: '', label: 'Selecciona una zona' },
+                { value: '', label: t("Selecciona una zona") },
                 ...zones.map((zone) => ({ value: zone.id, label: zone.name })),
               ]}
             />
 
             <SelectField
-              label="Atractivo"
+              label={t("Atractivo")}
               required
               hint={
                 zoneId === ''
-                  ? 'Elige primero una zona para acotar la lista.'
+                  ? t("Elige primero una zona para acotar la lista.")
                   : undefined
               }
               value={siteId}
               onChange={(changeEvent) => setSiteId(changeEvent.target.value)}
               options={[
-                { value: '', label: 'Selecciona un atractivo' },
+                { value: '', label: t("Selecciona un atractivo") },
                 ...siteOptions.map((site) => ({
                   value: site.id,
                   label: site.name,
@@ -257,7 +259,7 @@ export default function ServiceFormPage() {
             />
 
             <Field
-              label="Precio por persona (COP)"
+              label={t("Precio por persona (COP)")}
               type="number"
               min={0}
               required
@@ -266,7 +268,7 @@ export default function ServiceFormPage() {
             />
 
             <Field
-              label="Capacidad máxima"
+              label={t("Capacidad máxima")}
               type="number"
               min={1}
               required
@@ -275,7 +277,7 @@ export default function ServiceFormPage() {
             />
 
             <Field
-              label="Latitud"
+              label={t("Latitud")}
               inputMode="decimal"
               placeholder="11.2404"
               required
@@ -284,7 +286,7 @@ export default function ServiceFormPage() {
             />
 
             <Field
-              label="Longitud"
+              label={t("Longitud")}
               inputMode="decimal"
               placeholder="-74.1990"
               required
@@ -293,8 +295,8 @@ export default function ServiceFormPage() {
             />
 
             <Field
-              label="Política de cancelación"
-              placeholder="Cancelación gratuita hasta 24 h antes"
+              label={t("Política de cancelación")}
+              placeholder={t("Cancelación gratuita hasta 24 h antes")}
               value={cancellationPolicy}
               onChange={(changeEvent) =>
                 setCancellationPolicy(changeEvent.target.value)
@@ -302,7 +304,7 @@ export default function ServiceFormPage() {
             />
 
             <label className={styles.full}>
-              <span className={styles.names}>Descripción</span>
+              <span className={styles.names}>{t("Descripción")}</span>
               <textarea
                 className={styles.textarea}
                 value={description}
@@ -312,12 +314,12 @@ export default function ServiceFormPage() {
 
             <ImageUploader
               className={styles.full}
-              label="Fotos del servicio"
+              label={t("Fotos del servicio")}
               folder="sm-xplore/services"
               value={photoUrls}
               onChange={setPhotoUrls}
               onUploadingChange={setPhotosUploading}
-              hint="Se suben a Cloudinary y se guardan como URLs del servicio. La primera será la portada."
+              hint={t("Se suben a Cloudinary y se guardan como URLs del servicio. La primera será la portada.")}
             />
           </div>
 
@@ -328,23 +330,20 @@ export default function ServiceFormPage() {
               type="submit"
               disabled={isSaving || photosUploading}
             >
-              {isSaving ? 'Guardando…' : 'Crear servicio'}
+              {isSaving ? t("Guardando…") : t("Crear servicio")}
             </Button>
             <Link to="/app/mis-servicios">
               <Button variant="outline" size="lg">
-                Cancelar
-              </Button>
+                {t("Cancelar")}</Button>
             </Link>
           </div>
         </form>
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Cómo funciona</h2>
+            <h2 className={styles.cardTitle}>{t("Cómo funciona")}</h2>
             <p className={styles.meta}>
-              El servicio se publica al crearse. Para ocultarlo del catálogo,
-              cámbialo a inactivo desde «Gestionar».
-            </p>
+              {t("El servicio se publica al crearse. Para ocultarlo del catálogo, cámbialo a inactivo desde «Gestionar».")}</p>
           </article>
         </div>
       </div>

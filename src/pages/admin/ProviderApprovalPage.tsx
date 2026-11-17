@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import { Field } from '@/components/FormField'
@@ -26,14 +29,15 @@ function statusKey(value: string | null): ProviderRegistrationStatus | null {
 }
 
 export default function ProviderApprovalPage() {
+  useLanguage()
   const { providerId } = useParams<{ providerId: string }>()
 
   const [provider, setProvider] = useState<AdminUserDetail | null>(null)
   const [reason, setReason] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -54,7 +58,7 @@ export default function ProviderApprovalPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -68,7 +72,7 @@ export default function ProviderApprovalPage() {
     return () => {
       cancelled = true
     }
-  }, [providerId, reloadToken])
+  }, [providerId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -94,32 +98,31 @@ export default function ProviderApprovalPage() {
       setProvider(updated)
       setReason('')
       setFeedback(
-        decision === 'APROBADO'
-          ? 'Prestadora aprobada: se notificó por correo.'
-          : 'Registro rechazado: se notificó por correo.',
+        () => decision === 'APROBADO'
+          ? t("Prestadora aprobada: se notificó por correo.")
+          : t("Registro rechazado: se notificó por correo."),
       )
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
   }
 
   if (isLoading) {
-    return <Skeleton variant="text" count={4} label="Cargando solicitud…" />
+    return <Skeleton variant="text" count={4} label={t("Cargando solicitud…")} />
   }
 
   if (provider === null) {
     return (
       <section>
         <Link to="/app/usuarios" className={styles.back}>
-          ← Volver al listado
-        </Link>
+          {t("← Volver al listado")}</Link>
         <StateMessage
-          title="No se pudo cargar la solicitud"
-          description={error ?? 'No se encontró la solicitud.'}
+          title={t("No se pudo cargar la solicitud")}
+          description={error ?? t("No se encontró la solicitud.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -129,12 +132,9 @@ export default function ProviderApprovalPage() {
     return (
       <section>
         <Link to={`/app/usuarios/${provider.id}`} className={styles.back}>
-          ← Volver al detalle
-        </Link>
+          {t("← Volver al detalle")}</Link>
         <p className={`${styles.feedback} ${styles.warning}`} role="alert">
-          La cuenta no es una prestadora de servicios. Solo las prestadoras
-          tienen registro que aprobar o rechazar.
-        </p>
+          {t("La cuenta no es una prestadora de servicios. Solo las prestadoras tienen registro que aprobar o rechazar.")}</p>
       </section>
     )
   }
@@ -146,17 +146,16 @@ export default function ProviderApprovalPage() {
   return (
     <section>
       <Link to="/app/usuarios" className={styles.back}>
-        ← Volver al listado
-      </Link>
+        {t("← Volver al listado")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Usuarios', to: '/app/usuarios' },
-          { label: 'Prestadoras' },
-          { label: 'Revisión' },
+          { label: t("Usuarios"), to: '/app/usuarios' },
+          { label: t("Prestadoras") },
+          { label: t("Revisión") },
         ]}
         title={provider.fullName}
-        description="Revisa los datos de la prestadora y registra la decisión."
+        description={t("Revisa los datos de la prestadora y registra la decisión.")}
         actions={
           <>
             <StatusBadge tone={ACCOUNT_STATUS_TONES[provider.status]}>
@@ -167,7 +166,7 @@ export default function ProviderApprovalPage() {
                 {PROVIDER_STATUS_LABELS[currentStatus]}
               </StatusBadge>
             ) : (
-              <StatusBadge tone="neutral">Sin registro</StatusBadge>
+              <StatusBadge tone="neutral">{t("Sin registro")}</StatusBadge>
             )}
           </>
         }
@@ -185,30 +184,30 @@ export default function ProviderApprovalPage() {
       )}
 
       <article className={styles.card}>
-        <h2 className={styles.cardTitle}>Datos de la solicitud</h2>
+        <h2 className={styles.cardTitle}>{t("Datos de la solicitud")}</h2>
         <DefList
           items={[
-            { label: 'Razón social', value: provider.fullName },
+            { label: t("Razón social"), value: provider.fullName },
             { label: 'NIT', value: profile?.nit ?? '—' },
-            { label: 'Correo', value: provider.email },
-            { label: 'Teléfono', value: provider.phone || '—' },
-            { label: 'Tipo de negocio', value: profile?.businessType ?? '—' },
-            { label: 'Sitio web', value: profile?.websiteUrl ?? '—' },
+            { label: t("Correo"), value: provider.email },
+            { label: t("Teléfono"), value: provider.phone || '—' },
+            { label: t("Tipo de negocio"), value: profile?.businessType ?? '—' },
+            { label: t("Sitio web"), value: profile?.websiteUrl ?? '—' },
             {
-              label: 'Ubicación',
+              label: t("Ubicación"),
               value:
                 profile?.latitude != null && profile?.longitude != null
                   ? `${profile.latitude}, ${profile.longitude}`
                   : '—',
             },
             {
-              label: 'Inicio de operación',
+              label: t("Inicio de operación"),
               value: profile?.startOperationDate
                 ? formatDate(profile.startOperationDate)
                 : '—',
             },
             {
-              label: 'Cuenta creada',
+              label: t("Cuenta creada"),
               value: formatDate(provider.signedUpAt),
             },
           ]}
@@ -216,14 +215,12 @@ export default function ProviderApprovalPage() {
       </article>
 
       <article className={styles.card}>
-        <h2 className={styles.cardTitle}>Decisión</h2>
+        <h2 className={styles.cardTitle}>{t("Decisión")}</h2>
         <p className={styles.description}>
-          El motivo queda en la notificación que recibe la prestadora. Aprobar o
-          rechazar no cambia el estado de la cuenta.
-        </p>
+          {t("El motivo queda en la notificación que recibe la prestadora. Aprobar o rechazar no cambia el estado de la cuenta.")}</p>
         <div className={styles.form}>
           <Field
-            label="Motivo (obligatorio al rechazar)"
+            label={t("Motivo (obligatorio al rechazar)")}
             maxLength={500}
             value={reason}
             onChange={(event) => setReason(event.target.value)}
@@ -235,20 +232,18 @@ export default function ProviderApprovalPage() {
             disabled={isWorking || !isPending}
             onClick={() => void review('APROBADO')}
           >
-            Aprobar
-          </Button>
+            {t("Aprobar")}</Button>
           <Button
             variant="outline"
             disabled={isWorking || !isPending || reason.trim() === ''}
             onClick={() => void review('RECHAZADO')}
           >
-            Rechazar
-          </Button>
+            {t("Rechazar")}</Button>
           {!isPending && (
             <p className={styles.actionsNote}>
               {currentStatus === null
-                ? 'La prestadora no tiene un registro que revisar.'
-                : `El registro ya está en estado ${PROVIDER_STATUS_LABELS[currentStatus].toLowerCase()}.`}
+                ? t("La prestadora no tiene un registro que revisar.")
+                : t("El registro ya está en estado {0}.", [PROVIDER_STATUS_LABELS[currentStatus].toLowerCase()])}
             </p>
           )}
         </div>

@@ -1,6 +1,9 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -23,18 +26,18 @@ type CreateField =
   | 'nit'
 
 const ROLE_OPTIONS = [
-  { value: 'GUIDE', label: 'Guía turístico' },
-  { value: 'DESTINATION_MANAGER', label: 'Gestora de destinos' },
-  { value: 'ADMIN', label: 'Administrador' },
+  { value: 'GUIDE', get label() { return t("Guía turístico") } },
+  { value: 'DESTINATION_MANAGER', get label() { return t("Gestora de destinos") } },
+  { value: 'ADMIN', get label() { return t("Administrador") } },
 ]
 
 const LABELS: Record<CreateField, string> = {
-  fullName: 'Nombre completo',
-  email: 'Correo',
-  phone: 'Teléfono',
-  dniType: 'Tipo de documento',
-  dniNumber: 'Número de documento',
-  license: 'Licencia',
+  get fullName() { return t("Nombre completo") },
+  get email() { return t("Correo") },
+  get phone() { return t("Teléfono") },
+  get dniType() { return t("Tipo de documento") },
+  get dniNumber() { return t("Número de documento") },
+  get license() { return t("Licencia") },
   nit: 'NIT',
 }
 
@@ -51,6 +54,7 @@ const ORDER: readonly CreateField[] = [
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function CreateUserPage() {
+  useLanguage()
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -64,7 +68,7 @@ export default function CreateUserPage() {
   const [nit, setNit] = useState('')
   const [startOperationDate, setStartOperationDate] = useState('')
   const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
 
   const isGuide = role === 'GUIDE'
   const needsNit = role === 'DESTINATION_MANAGER'
@@ -77,28 +81,28 @@ export default function CreateUserPage() {
       const errors: Partial<Record<CreateField, string>> = {}
 
       if (values.fullName.trim() === '') {
-        errors.fullName = 'Escribe el nombre.'
+        errors.fullName = t("Escribe el nombre.")
       }
       if (!EMAIL.test(values.email.trim())) {
-        errors.email = 'Escribe un correo válido, con @ y dominio.'
+        errors.email = t("Escribe un correo válido, con @ y dominio.")
       }
       if (
         values.phone.trim() !== '' &&
         !/^[0-9+()\-\s]{7,20}$/.test(values.phone.trim())
       ) {
-        errors.phone = 'Usa entre 7 y 20 dígitos; puedes incluir +, () o guiones.'
+        errors.phone = t("Usa entre 7 y 20 dígitos; puedes incluir +, () o guiones.")
       }
       if (isGuide && values.dniType.trim() === '') {
-        errors.dniType = 'Un guía necesita tipo de documento.'
+        errors.dniType = t("Un guía necesita tipo de documento.")
       }
       if (isGuide && values.dniNumber.trim() === '') {
-        errors.dniNumber = 'Un guía necesita número de documento.'
+        errors.dniNumber = t("Un guía necesita número de documento.")
       }
       if (isGuide && values.license.trim() === '') {
-        errors.license = 'Un guía necesita número de licencia.'
+        errors.license = t("Un guía necesita número de licencia.")
       }
       if (needsNit && !/^[0-9\-]{6,30}$/.test(values.nit.trim())) {
-        errors.nit = 'El NIT lleva entre 6 y 30 dígitos o guiones.'
+        errors.nit = t("El NIT lleva entre 6 y 30 dígitos o guiones.")
       }
 
       return errors
@@ -141,7 +145,7 @@ export default function CreateUserPage() {
       navigate(`/app/usuarios/${created.id}`, { replace: true })
     } catch (cause) {
       if (!form.applyValidationErrors(cause)) {
-        setError(describeApiError(cause))
+        setError(() => describeApiError(cause))
       }
     } finally {
       setIsSaving(false)
@@ -151,16 +155,15 @@ export default function CreateUserPage() {
   return (
     <section>
       <Link to="/app/usuarios" className={styles.back}>
-        ← Volver al listado
-      </Link>
+        {t("← Volver al listado")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Usuarios', to: '/app/usuarios' },
-          { label: 'Crear usuario' },
+          { label: t("Usuarios"), to: '/app/usuarios' },
+          { label: t("Crear usuario") },
         ]}
-        title="Crear usuario interno"
-        description="Solo se crean cuentas de guía, gestora de destinos o administrador. La persona recibe una invitación por correo para fijar su contraseña."
+        title={t("Crear usuario interno")}
+        description={t("Solo se crean cuentas de guía, gestora de destinos o administrador. La persona recibe una invitación por correo para fijar su contraseña.")}
       />
 
       {error !== null && (
@@ -175,17 +178,17 @@ export default function CreateUserPage() {
       )}
 
       <form className={styles.card} onSubmit={handleSubmit} noValidate ref={formRef}>
-        <h2 className={styles.cardTitle}>Datos de la cuenta</h2>
+        <h2 className={styles.cardTitle}>{t("Datos de la cuenta")}</h2>
 
         <div className={styles.stack}>
           <SelectField
-            label="Rol"
+            label={t("Rol")}
             options={ROLE_OPTIONS}
             value={role}
             onChange={(event) => setRole(event.target.value as CreatableRole)}
           />
           <Field
-            label="Nombre completo"
+            label={t("Nombre completo")}
             name="fullName"
             maxLength={150}
             required
@@ -195,7 +198,7 @@ export default function CreateUserPage() {
             onBlur={() => form.markTouched('fullName')}
           />
           <Field
-            label="Correo"
+            label={t("Correo")}
             type="email"
             name="email"
             maxLength={150}
@@ -204,23 +207,23 @@ export default function CreateUserPage() {
             error={form.errorOf('email')}
             onChange={(event) => setEmail(event.target.value)}
             onBlur={() => form.markTouched('email')}
-            hint="Ahí llega la invitación para activar la cuenta."
+            hint={t("Ahí llega la invitación para activar la cuenta.")}
           />
           <Field
-            label="Teléfono"
+            label={t("Teléfono")}
             name="phone"
             maxLength={20}
             value={phone}
             error={form.errorOf('phone')}
             onChange={(event) => setPhone(event.target.value)}
             onBlur={() => form.markTouched('phone')}
-            hint="Opcional. Entre 7 y 20 caracteres."
+            hint={t("Opcional. Entre 7 y 20 caracteres.")}
           />
 
           {(isGuide || role === 'ADMIN') && (
             <>
               <Field
-                label={isGuide ? 'Tipo de documento' : 'Tipo de documento (opcional)'}
+                label={isGuide ? t("Tipo de documento") : t("Tipo de documento (opcional)")}
                 name="dniType"
                 maxLength={20}
                 required={isGuide}
@@ -230,7 +233,7 @@ export default function CreateUserPage() {
                 onBlur={() => form.markTouched('dniType')}
               />
               <Field
-                label={isGuide ? 'Número de documento' : 'Número de documento (opcional)'}
+                label={isGuide ? t("Número de documento") : t("Número de documento (opcional)")}
                 name="dniNumber"
                 maxLength={30}
                 required={isGuide}
@@ -244,7 +247,7 @@ export default function CreateUserPage() {
 
           {isGuide && (
             <Field
-              label="Licencia"
+              label={t("Licencia")}
               name="license"
               maxLength={50}
               required
@@ -270,22 +273,21 @@ export default function CreateUserPage() {
 
           {role !== 'ADMIN' && (
             <Field
-              label="Inicio de operación"
+              label={t("Inicio de operación")}
               name="startOperationDate"
               type="date"
               value={startOperationDate}
               onChange={(event) => setStartOperationDate(event.target.value)}
-              hint="Opcional."
+              hint={t("Opcional.")}
             />
           )}
         </div>
 
         <div className={styles.actions}>
           <Button variant="primary" type="submit" loading={isSaving}>
-            Crear usuario
-          </Button>
+            {t("Crear usuario")}</Button>
           <Link to="/app/usuarios">
-            <Button variant="outline">Cancelar</Button>
+            <Button variant="outline">{t("Cancelar")}</Button>
           </Link>
         </div>
       </form>

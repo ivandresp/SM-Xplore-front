@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { RefObject } from 'react'
+import { useMessageState } from '@/hooks/useMessageState'
 import { fieldErrorsFrom, focusFirstInvalid, summaryOf } from '@/utils/formErrors'
 import type { FieldErrors } from '@/utils/formErrors'
 
@@ -42,8 +43,8 @@ export function useFormValidation<K extends string, V>({
 }: UseFormValidationOptions<K, V>): FormValidation<K> {
   const [touched, setTouched] = useState<Partial<Record<K, boolean>>>({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
-  const [server, setServer] = useState<FieldErrors<K>>({})
-  const [serverSummary, setServerSummary] = useState<string | null>(null)
+  const [server, setServer] = useMessageState<FieldErrors<K>>({})
+  const [serverSummary, setServerSummary] = useMessageState<string | null>(null)
 
   const client = validate(values)
   const visible: FieldErrors<K> = {}
@@ -85,9 +86,9 @@ export function useFormValidation<K extends string, V>({
         return false
       }
       const named = order.filter((field) => result.fields[field] !== undefined)
-      setServer(result.fields)
+      setServer(() => fieldErrorsFrom(error, labels, order)?.fields ?? {})
       setSubmitAttempted(true)
-      setServerSummary(named.length > 1 ? result.summary : null)
+      setServerSummary(() => named.length > 1 ? fieldErrorsFrom(error, labels, order)?.summary ?? null : null)
       focusFirstInvalid(formRef.current, result.first)
       return true
     },

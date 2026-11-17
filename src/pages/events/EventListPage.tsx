@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { getLocale, translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { FilterBar } from '@/components/FilterBar'
 import type { ActiveFilter } from '@/components/FilterBar'
@@ -36,11 +39,11 @@ const PAGE_SIZE = 10
 
 
 const SORT_OPTIONS: Array<{ value: EventSort; label: string }> = [
-  { value: 'dateAsc', label: 'Fecha: próximos primero' },
-  { value: 'dateDesc', label: 'Fecha: últimos primero' },
-  { value: 'priceAsc', label: 'Precio: menor a mayor' },
-  { value: 'priceDesc', label: 'Precio: mayor a menor' },
-  { value: 'name', label: 'Nombre (A–Z)' },
+  { value: 'dateAsc', get label() { return t("Fecha: próximos primero") } },
+  { value: 'dateDesc', get label() { return t("Fecha: últimos primero") } },
+  { value: 'priceAsc', get label() { return t("Precio: menor a mayor") } },
+  { value: 'priceDesc', get label() { return t("Precio: mayor a menor") } },
+  { value: 'name', get label() { return t("Nombre (A–Z)") } },
 ]
 
 const FILTER_KEYS = [
@@ -65,7 +68,7 @@ function dateToIso(value: string, endOfDay = false): string | undefined {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(getLocale(), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -75,11 +78,11 @@ function formatDate(value: string): string {
 function dateParts(value: string) {
   const date = new Date(value)
   return {
-    day: new Intl.DateTimeFormat('es-CO', { day: 'numeric' }).format(date),
-    month: new Intl.DateTimeFormat('es-CO', { month: 'short' })
+    day: new Intl.DateTimeFormat(getLocale(), { day: 'numeric' }).format(date),
+    month: new Intl.DateTimeFormat(getLocale(), { month: 'short' })
       .format(date)
       .replace('.', ''),
-    time: new Intl.DateTimeFormat('es-CO', {
+    time: new Intl.DateTimeFormat(getLocale(), {
       hour: 'numeric',
       minute: '2-digit',
     }).format(date),
@@ -87,11 +90,12 @@ function dateParts(value: string) {
 }
 
 export default function EventListPage() {
+  useLanguage()
   const { user, isAuthenticated } = useAuth()
   const [params, setParams] = useSearchParams()
   const [term, setTerm] = useSearchParamTerm()
   const [category, setCategory] = useSearchParamText('categoria')
-  const [siteId, setSiteId] = useFilterParam('sitio')
+  const [siteId, setSiteId] = useFilterParam(t("sitio"))
   const [maxPrice, setMaxPrice] = useFilterParam('precioMax')
   const [fromDate, setFromDate] = useFilterParam('desde')
   const [toDate, setToDate] = useFilterParam('hasta')
@@ -104,7 +108,7 @@ export default function EventListPage() {
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
   const isFirstLoad = result === null
@@ -143,7 +147,7 @@ export default function EventListPage() {
       .list({
         search: current.get('search') ?? undefined,
         category: current.get('categoria') ?? undefined,
-        siteId: current.get('sitio') ?? undefined,
+        siteId: current.get(t("sitio")) ?? undefined,
         priceMax: Number(current.get('precioMax')) || undefined,
         startsAfter: dateToIso(current.get('desde') ?? ''),
         startsBefore: dateToIso(current.get('hasta') ?? '', true),
@@ -159,7 +163,7 @@ export default function EventListPage() {
       .catch((cause: unknown) => {
         if (!cancelled) {
           setResult(null)
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       })
       .finally(() => {
@@ -169,7 +173,7 @@ export default function EventListPage() {
     return () => {
       cancelled = true
     }
-  }, [queryKey, reloadToken])
+  }, [queryKey, reloadToken, setError])
 
   const siteOptions = useMemo(
     () => [...sites].sort((a, b) => a.name.localeCompare(b.name, 'es')),
@@ -198,38 +202,38 @@ export default function EventListPage() {
 
   const activeFilters: ActiveFilter[] = []
   if (term.trim() !== '') {
-    activeFilters.push({ key: 'search', label: 'Buscar', value: term.trim() })
+    activeFilters.push({ key: 'search', label: t("Buscar"), value: term.trim() })
   }
   if (category.trim() !== '') {
     activeFilters.push({
       key: 'categoria',
-      label: 'Categoría',
+      label: t("Categoría"),
       value: category.trim(),
     })
   }
   if (siteId !== '') {
     activeFilters.push({
       key: 'sitio',
-      label: 'Atractivo',
-      value: siteNameById.get(siteId) ?? 'Seleccionado',
+      label: t("Atractivo"),
+      value: siteNameById.get(siteId) ?? t('Seleccionado'),
     })
   }
   if (maxPrice !== '') {
     activeFilters.push({
       key: 'precioMax',
-      label: 'Precio',
-      value: `Hasta ${formatCurrency(Number(maxPrice))}`,
+      label: t("Precio"),
+      value: t('Hasta {0}', [formatCurrency(Number(maxPrice))]),
     })
   }
   if (fromDate !== '') {
     activeFilters.push({
       key: 'desde',
-      label: 'Desde',
+      label: t("Desde"),
       value: formatDate(fromDate),
     })
   }
   if (toDate !== '') {
-    activeFilters.push({ key: 'hasta', label: 'Hasta', value: formatDate(toDate) })
+    activeFilters.push({ key: 'hasta', label: t("Hasta"), value: formatDate(toDate) })
   }
 
   function removeParam(key: string) {
@@ -276,31 +280,31 @@ export default function EventListPage() {
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
   const resultSummary = isBusy
-    ? 'Buscando…'
+    ? t("Buscando…")
     : error !== null
-      ? 'Resultados no disponibles'
+      ? t("Resultados no disponibles")
       : `${total} ${total === 1 ? 'evento' : 'eventos'}`
 
   return (
     <div className={styles.page}>
       <PageHeader
         serif
-        title="Eventos en Santa Marta"
+        title={t("Eventos en Santa Marta")}
         actions={
           <>
             <SelectField
-              aria-label="Ordenar resultados"
+              aria-label={t("Ordenar resultados")}
               className={styles.sort}
               options={SORT_OPTIONS.map((option) => ({
                 value: option.value,
-                label: `Ordenar: ${option.label}`,
+                label: t("Ordenar: {0}", [option.label]),
               }))}
               value={sort}
               onChange={(event) => setSortParam(event.target.value)}
             />
             {isAuthenticated && user?.role === 'TOURIST' ? (
               <Link to="/eventos/planificados">
-                <Button variant="outline">Mis eventos planificados</Button>
+                <Button variant="outline">{t("Mis eventos planificados")}</Button>
               </Link>
             ) : null}
           </>
@@ -314,31 +318,31 @@ export default function EventListPage() {
         resultSummary={resultSummary}
       >
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Buscar</span>
+          <span className={styles.fieldLabel}>{t("Buscar")}</span>
           <SearchInput
             value={term}
             onChange={setTerm}
-            label="Buscar eventos por nombre"
-            placeholder="Nombre del evento…"
+            label={t("Buscar eventos por nombre")}
+            placeholder={t("Nombre del evento…")}
             className={styles.control}
           />
         </label>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Categoría</span>
+          <span className={styles.fieldLabel}>{t("Categoría")}</span>
           <input
             className={styles.control}
             type="search"
             value={category}
-            placeholder="Música, cultura…"
+            placeholder={t("Música, cultura…")}
             onChange={(event) => setCategory(event.target.value)}
           />
         </label>
 
         <SelectField
-          label="Atractivo"
+          label={t("Atractivo")}
           className={styles.control}
-          placeholder="Todos los atractivos"
+          placeholder={t("Todos los atractivos")}
           value={siteId}
           disabled={siteOptions.length === 0}
           onChange={(event) => setSiteId(event.target.value)}
@@ -354,7 +358,7 @@ export default function EventListPage() {
         />
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Desde</span>
+          <span className={styles.fieldLabel}>{t("Desde")}</span>
           <input
             className={styles.control}
             type="date"
@@ -364,7 +368,7 @@ export default function EventListPage() {
         </label>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Hasta</span>
+          <span className={styles.fieldLabel}>{t("Hasta")}</span>
           <input
             className={styles.control}
             type="date"
@@ -374,14 +378,14 @@ export default function EventListPage() {
         </label>
 
         <SelectField
-          label="Precio"
+          label={t("Precio")}
           className={styles.control}
-          placeholder="Cualquier precio"
+          placeholder={t("Cualquier precio")}
           value={maxPrice}
           onChange={(event) => setMaxPrice(event.target.value)}
           options={MAX_PRICE_OPTIONS.map((value) => ({
             value: String(value),
-            label: `Hasta ${formatCurrency(value)}`,
+            label: t("Hasta {0}", [formatCurrency(value)]),
           }))}
         />
       </FilterBar>
@@ -399,12 +403,11 @@ export default function EventListPage() {
         {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
-            title="No pudimos cargar los eventos"
+            title={t("No pudimos cargar los eventos")}
             description={error}
             action={
               <Button variant="accent" onClick={retry} disabled={isLoading}>
-                Reintentar
-              </Button>
+                {t("Reintentar")}</Button>
             }
           />
         )}
@@ -413,19 +416,18 @@ export default function EventListPage() {
           <StateMessage
             title={
               hasActiveFilters
-                ? 'No hay eventos publicados con esos filtros'
-                : 'Todavía no hay eventos publicados'
+                ? t("No hay eventos publicados con esos filtros")
+                : t("Todavía no hay eventos publicados")
             }
             description={
               hasActiveFilters
-                ? 'Prueba con otra fecha, categoría o atractivo.'
-                : 'Cuando las gestoras publiquen eventos aparecerán aquí.'
+                ? t("Prueba con otra fecha, categoría o atractivo.")
+                : t("Cuando las gestoras publiquen eventos aparecerán aquí.")
             }
             action={
               hasActiveFilters ? (
                 <Button variant="outline" onClick={clearFilters}>
-                  Limpiar filtros
-                </Button>
+                  {t("Limpiar filtros")}</Button>
               ) : undefined
             }
           />
@@ -450,21 +452,20 @@ export default function EventListPage() {
                       {event.category} · {time} ·{' '}
                       {event.siteName ||
                         siteNameById.get(event.siteId) ||
-                        'Lugar por confirmar'}{' '}
-                      · aforo {event.maxCapacity}
+                        t("Lugar por confirmar")}{' '}
+                      {t("· aforo")}{" "}{event.maxCapacity}
                     </p>
                   </div>
 
                   <div className={styles.side}>
                     <span className={styles.price}>
                       {event.price === 0
-                        ? 'Gratis'
+                        ? t("Gratis")
                         : formatCurrency(event.price)}
                     </span>
                     <Link to={`/eventos/${event.id}`}>
                       <Button variant="outline" size="sm">
-                        Ver detalle
-                      </Button>
+                        {t("Ver detalle")}</Button>
                     </Link>
                   </div>
                 </article>

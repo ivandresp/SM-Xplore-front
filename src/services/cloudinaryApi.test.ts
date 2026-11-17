@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setLanguage } from '@/i18n/language'
 import {
   CLOUDINARY_MAX_IMAGE_BYTES,
   ImageUploadError,
@@ -33,11 +34,13 @@ const CLOUDINARY_RESPONSE = {
 
 describe('cloudinaryApi', () => {
   beforeEach(() => {
+    setLanguage('es')
     vi.stubEnv('VITE_CLOUDINARY_CLOUD_NAME', 'demo')
     vi.stubEnv('VITE_CLOUDINARY_UPLOAD_PRESET', 'sm-xplore-unsigned')
   })
 
   afterEach(() => {
+    setLanguage('es')
     vi.unstubAllEnvs()
     vi.unstubAllGlobals()
   })
@@ -160,4 +163,47 @@ describe('cloudinaryApi', () => {
 
     expect(error.code).toBe('INVALID_RESPONSE')
   })
+
+  it('traduce la validacion sin cambiar el nombre del archivo', () => {
+    setLanguage('en')
+    const filename = 'Contraseña.pdf'
+    expect(validateImageFile(imageFile(filename, 'application/pdf'))).toBe(
+      '“Contraseña.pdf” is not a supported image. Use JPG, PNG or WebP.',
+    )
+    expect(validateImageFile(imageFile('vacia.jpg', 'image/jpeg', ''))).toBe(
+      '“vacia.jpg” is empty.',
+    )
+  })
+
+  it('recalcula un error existente por codigo al cambiar de idioma sin mostrar detail', () => {
+    const error = new ImageUploadError(
+      'REJECTED',
+      'mensaje antiguo que no se debe mostrar',
+      400,
+      'Raw Cloudinary message',
+    )
+    setLanguage('en')
+    expect(describeImageUploadError(error)).toBe(
+      'Cloudinary rejected the image. Check the format or the upload preset settings.',
+    )
+    setLanguage('es')
+    expect(describeImageUploadError(error)).toBe(
+      'Cloudinary rechazó la imagen. Revisa el formato o la configuración del preset de carga.',
+    )
+  })
+
+  it('conserva el nombre del archivo en errores guardados al cambiar de idioma', async () => {
+    const error = await uploadImage(
+      imageFile('documento.pdf', 'application/pdf'),
+    ).catch((cause) => cause)
+    setLanguage('en')
+    expect(describeImageUploadError(error)).toBe(
+      '“documento.pdf” is not a supported image. Use JPG, PNG or WebP.',
+    )
+    setLanguage('es')
+    expect(describeImageUploadError(error)).toBe(
+      '«documento.pdf» no es una imagen compatible. Usa JPG, PNG o WebP.',
+    )
+  })
+
 })

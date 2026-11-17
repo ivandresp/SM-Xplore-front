@@ -1,5 +1,7 @@
 import { Suspense } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Skeleton } from '@/components/Skeleton'
 import { TopBar } from '@/components/TopBar'
 import { navItemsFor } from '@/config/navigation'
@@ -13,6 +15,7 @@ function linkClassName({ isActive }: { isActive: boolean }) {
 
 /** Shell del panel de gestión: barra navy + menú lateral según el rol. */
 export function AppLayout() {
+  useLanguage()
   const { user, logout } = useAuth()
   const { pathname } = useLocation()
 
@@ -45,8 +48,7 @@ export function AppLayout() {
               className={styles.logout}
               onClick={logout}
             >
-              Salir
-            </button>
+              {t("Salir")}</button>
           </>
         }
       />
@@ -74,7 +76,7 @@ export function AppLayout() {
 
         <main className={styles.content}>
           <Suspense
-            fallback={<Skeleton variant="card" count={3} label="Cargando la pagina" />}
+            fallback={<Skeleton variant="card" count={3} label={t("Cargando la pagina")} />}
           >
             <Outlet />
           </Suspense>

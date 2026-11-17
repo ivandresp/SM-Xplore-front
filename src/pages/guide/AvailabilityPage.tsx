@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -31,6 +34,7 @@ const FINAL_RESERVATION_STATUSES: ReservationStatus[] = [
 ]
 
 export default function AvailabilityPage() {
+  useLanguage()
   const { user } = useAuth()
   const [searchParams] = useSearchParams()
 
@@ -43,8 +47,8 @@ export default function AvailabilityPage() {
   const [activeReservations, setActiveReservations] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   const guideId = user?.id
@@ -77,7 +81,7 @@ export default function AvailabilityPage() {
 
         setError(null)
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -89,7 +93,7 @@ export default function AvailabilityPage() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guideId, reloadToken])
+  }, [guideId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -151,7 +155,7 @@ export default function AvailabilityPage() {
 
   async function runAction(
     action: () => Promise<ActivityResponse>,
-    message: string,
+    message: () => string,
   ) {
     setIsWorking(true)
     setError(null)
@@ -166,7 +170,7 @@ export default function AvailabilityPage() {
       )
       setFeedback(message)
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -181,7 +185,7 @@ export default function AvailabilityPage() {
 
     if (date === '' || startTime === '' || endTime === '' || capacity < 1) {
       setError(
-        'Elige la fecha, la hora de inicio y de fin, y un cupo de al menos 1 persona.',
+        () => t("Elige la fecha, la hora de inicio y de fin, y un cupo de al menos 1 persona."),
       )
       return
     }
@@ -205,9 +209,9 @@ export default function AvailabilityPage() {
           activity.id === updated.id ? updated : activity,
         ),
       )
-      setFeedback('Fechas y cupos actualizados.')
+      setFeedback(() => t("Fechas y cupos actualizados."))
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -216,7 +220,7 @@ export default function AvailabilityPage() {
   if (isLoading) {
     return (
       <section>
-        <Skeleton variant="text" count={5} label="Cargando actividades…" />
+        <Skeleton variant="text" count={5} label={t("Cargando actividades…")} />
       </section>
     )
   }
@@ -224,8 +228,8 @@ export default function AvailabilityPage() {
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Disponibilidad' }, { label: 'Fechas y cupos' }]}
-        title="Disponibilidad y cupos"
+        breadcrumb={[{ label: t("Disponibilidad") }, { label: t("Fechas y cupos") }]}
+        title={t("Disponibilidad y cupos")}
         actions={
           selected !== undefined ? (
             <StatusBadge tone={ACTIVITY_STATUS_TONES[selected.status]}>
@@ -239,14 +243,14 @@ export default function AvailabilityPage() {
         <StateMessage
           title={
             activities.length === 0
-              ? 'No se pudieron cargar tus actividades'
-              : 'No se pudo aplicar el cambio'
+              ? t("No se pudieron cargar tus actividades")
+              : t("No se pudo aplicar el cambio")
           }
           description={error}
           tone="error"
           action={
             activities.length === 0 ? (
-              <Button onClick={retry}>Reintentar</Button>
+              <Button onClick={retry}>{t("Reintentar")}</Button>
             ) : undefined
           }
         />
@@ -258,11 +262,11 @@ export default function AvailabilityPage() {
       {activities.length === 0 ? (
         error === null ? (
           <StateMessage
-            title="No tienes actividades todavía"
-            description="Crea la primera para gestionar su disponibilidad."
+            title={t("No tienes actividades todavía")}
+            description={t("Crea la primera para gestionar su disponibilidad.")}
             action={
               <Link to="/app/mis-actividades/nueva">
-                <Button variant="outline">Crear actividad</Button>
+                <Button variant="outline">{t("Crear actividad")}</Button>
               </Link>
             }
           />
@@ -270,12 +274,12 @@ export default function AvailabilityPage() {
       ) : (
         <div className={styles.layout}>
           <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Fechas y cupos</h2>
+            <h2 className={styles.cardTitle}>{t("Fechas y cupos")}</h2>
 
             <div className={`${styles.grid} ${styles.twoColumns}`}>
               <div className={styles.full}>
                 <SelectField
-                  label="Actividad"
+                  label={t("Actividad")}
                   value={selectedId}
                   onChange={(event) => selectActivity(event.target.value)}
                   options={activities.map((activity) => ({
@@ -286,7 +290,7 @@ export default function AvailabilityPage() {
               </div>
 
               <Field
-                label="Fecha"
+                label={t("Fecha")}
                 type="date"
                 required
                 value={date}
@@ -294,14 +298,14 @@ export default function AvailabilityPage() {
               />
               <div className={`${styles.grid} ${styles.twoColumns}`}>
                 <Field
-                  label="Hora inicio"
+                  label={t("Hora inicio")}
                   type="time"
                   required
                   value={startTime}
                   onChange={(event) => setStartTime(event.target.value)}
                 />
                 <Field
-                  label="Hora fin"
+                  label={t("Hora fin")}
                   type="time"
                   required
                   value={endTime}
@@ -310,7 +314,7 @@ export default function AvailabilityPage() {
               </div>
 
               <Field
-                label="Capacidad máxima (cupos)"
+                label={t("Capacidad máxima (cupos)")}
                 type="number"
                 min={1}
                 required
@@ -326,7 +330,7 @@ export default function AvailabilityPage() {
                 disabled={isWorking}
                 onClick={() => void save()}
               >
-                {isWorking ? 'Guardando…' : 'Guardar cambios'}
+                {isWorking ? t("Guardando…") : t("Guardar cambios")}
               </Button>
               <Button
                 variant="outline"
@@ -339,12 +343,11 @@ export default function AvailabilityPage() {
                       activitiesApi.changeStatus(selected.id, {
                         status: 'PAUSED',
                       }),
-                    'Fechas cerradas temporalmente (actividad pausada).',
+                    () => t("Fechas cerradas temporalmente (actividad pausada)."),
                   )
                 }
               >
-                Cerrar temporalmente
-              </Button>
+                {t("Cerrar temporalmente")}</Button>
               <Button
                 variant="outline"
                 size="lg"
@@ -353,56 +356,47 @@ export default function AvailabilityPage() {
                   selected !== undefined &&
                   void runAction(
                     () => activitiesApi.cancel(selected.id),
-                    'Actividad cancelada.',
+                    () => t("Actividad cancelada."),
                   )
                 }
               >
-                Cancelar actividad
-              </Button>
+                {t("Cancelar actividad")}</Button>
             </div>
 
             <p className={styles.notice}>
-              La actividad tiene una sola fecha de inicio y fin, sin turnos ni
-              cierres por día. «Cerrar temporalmente» la pausa entera.
-            </p>
+              {t("La actividad tiene una sola fecha de inicio y fin, sin turnos ni cierres por día. «Cerrar temporalmente» la pausa entera.")}</p>
           </div>
 
           <div className={styles.column}>
             <article className={styles.card}>
-              <h2 className={styles.cardTitle}>Cupos</h2>
+              <h2 className={styles.cardTitle}>{t("Cupos")}</h2>
               <div className={styles.summaryLine}>
-                <span>Capacidad máxima</span>
+                <span>{t("Capacidad máxima")}</span>
                 <span className={styles.summaryValue}>
-                  {selected?.maxCapacity ?? 0} personas
-                </span>
+                  {selected?.maxCapacity ?? 0} {" "}{t("personas")}</span>
               </div>
               <div className={styles.summaryLine}>
-                <span>Cupos por turno</span>
+                <span>{t("Cupos por turno")}</span>
                 <span className={styles.summaryValue}>
-                  {selected?.maxCapacity ?? 0} cupos
-                </span>
+                  {selected?.maxCapacity ?? 0} {" "}{t("cupos")}</span>
               </div>
               <div className={styles.summaryLine}>
-                <span>Reservas activas</span>
+                <span>{t("Reservas activas")}</span>
                 <span className={styles.summaryValue}>
                   {activeReservations}
                 </span>
               </div>
               <p className={styles.muted}>
-                "Cupos por turno" es la misma capacidad de la actividad.
-              </p>
+                {t("\"Cupos por turno\" es la misma capacidad de la actividad.")}</p>
             </article>
 
             <article className={styles.card}>
-              <h2 className={styles.cardTitle}>Reservas</h2>
+              <h2 className={styles.cardTitle}>{t("Reservas")}</h2>
               <p className={styles.muted}>
-                Las reservas de tus actividades se atienden en "Reservas
-                recibidas".
-              </p>
+                {t("Las reservas de tus actividades se atienden en \"Reservas recibidas\".")}</p>
               <Link to="/app/reservas-recibidas">
                 <Button variant="outline" block>
-                  Ir a reservas recibidas
-                </Button>
+                  {t("Ir a reservas recibidas")}</Button>
               </Link>
             </article>
           </div>

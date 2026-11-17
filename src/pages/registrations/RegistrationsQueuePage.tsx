@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { DataTable } from '@/components/DataTable/DataTable'
@@ -31,8 +34,8 @@ interface RoleTab {
 }
 
 const ROLE_TABS: RoleTab[] = [
-  { role: 'GUIDE', label: 'Guías', many: 'guías' },
-  { role: 'SERVICE_PROVIDER', label: 'Prestadoras', many: 'prestadoras' },
+  { role: 'GUIDE', get label() { return t("Guías") }, get many() { return t("guías") } },
+  { role: 'SERVICE_PROVIDER', get label() { return t("Prestadoras") }, get many() { return t("prestadoras") } },
 ]
 
 /**
@@ -43,13 +46,13 @@ const STATUS_OPTIONS: Array<{
   value: QueueableRegistrationStatus
   label: string
 }> = [
-  { value: 'PENDIENTE', label: 'Pendientes' },
-  { value: 'RECHAZADO', label: 'Rechazadas' },
+  { value: 'PENDIENTE', get label() { return t("Pendientes") } },
+  { value: 'RECHAZADO', get label() { return t("Rechazadas") } },
 ]
 
 const STATUS_LABELS: Record<QueueableRegistrationStatus, string> = {
-  PENDIENTE: 'Pendiente',
-  RECHAZADO: 'Rechazada',
+  get PENDIENTE() { return t("Pendiente") },
+  get RECHAZADO() { return t("Rechazada") },
 }
 
 const STATUS_TONES: Record<QueueableRegistrationStatus, 'warning' | 'danger'> =
@@ -59,6 +62,7 @@ const STATUS_TONES: Record<QueueableRegistrationStatus, 'warning' | 'danger'> =
   }
 
 export default function RegistrationsQueuePage() {
+  useLanguage()
   const [role, setRole] = useState<RegistrationRole>('GUIDE')
   const [status, setStatus] = useState<QueueableRegistrationStatus>('PENDIENTE')
   const [page, setPage] = useState(1)
@@ -68,9 +72,9 @@ export default function RegistrationsQueuePage() {
   const [totalPages, setTotalPages] = useState(1)
 
   const [isLoading, setIsLoading] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [loadError, setLoadError] = useMessageState<string | null>(null)
+  const [actionError, setActionError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
 
   const [rejecting, setRejecting] = useState<RegistrationSummary | null>(null)
   const [reason, setReason] = useState('')
@@ -122,7 +126,7 @@ export default function RegistrationsQueuePage() {
           setRows([])
           setTotal(0)
           setTotalPages(1)
-          setLoadError(describeApiError(cause))
+          setLoadError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -136,7 +140,7 @@ export default function RegistrationsQueuePage() {
     return () => {
       cancelled = true
     }
-  }, [role, status, page, reloadToken])
+  }, [role, status, page, reloadToken, setLoadError])
 
   /**
    * El panel se abre debajo de la tabla: hay que llevar el foco y la vista al
@@ -220,13 +224,13 @@ export default function RegistrationsQueuePage() {
       )
       // El backend no confirma la entrega del correo: no se promete.
       // Y solo el guía queda sin poder entrar; la prestadora sigue activa.
-      const aviso = `Puede llegar un aviso a ${row.email}; revisa la bandeja de entrada.`
+      const aviso = () => t("Puede llegar un aviso a {0}; revisa la bandeja de entrada.", [row.email])
       setFeedback(
-        decision === 'APROBADO'
-          ? `Solicitud de ${row.fullName} aprobada. ${aviso}`
+        () => decision === 'APROBADO'
+          ? t("Solicitud de {0} aprobada. {1}", [row.fullName, aviso()])
           : row.role === 'SERVICE_PROVIDER'
-            ? `Solicitud de ${row.fullName} rechazada con motivo. ${aviso} El perfil no se publica en el catálogo y la cuenta sigue activa.`
-            : `Solicitud de ${row.fullName} rechazada con motivo. ${aviso}`,
+            ? t("Solicitud de {0} rechazada con motivo. {1} El perfil no se publica en el catálogo y la cuenta sigue activa.", [row.fullName, aviso()])
+            : t("Solicitud de {0} rechazada con motivo. {1}", [row.fullName, aviso()]),
       )
       setRejecting(null)
       setReason('')
@@ -240,18 +244,18 @@ export default function RegistrationsQueuePage() {
         setReloadToken((token) => token + 1)
       }
     } catch (cause) {
-      setActionError(describeApiError(cause))
+      setActionError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
   }
 
   const tab = ROLE_TABS.find((item) => item.role === role) ?? ROLE_TABS[0]
-  const identificationHeader = role === 'GUIDE' ? 'Licencia' : 'NIT'
+  const identificationHeader = role === 'GUIDE' ? t("Licencia") : 'NIT'
 
   const columns: Column<RegistrationSummary>[] = [
     {
-      header: 'Solicitante',
+      header: t("Solicitante"),
       render: (row) => (
         <div>
           <p className={styles.name}>{row.fullName}</p>
@@ -264,11 +268,11 @@ export default function RegistrationsQueuePage() {
       render: (row) => row.license ?? row.nit ?? '—',
     },
     {
-      header: 'Solicitud',
+      header: t("Solicitud"),
       render: (row) => formatDate(row.signedUpAt),
     },
     {
-      header: 'Estado',
+      header: t("Estado"),
       render: (row) => (
         <StatusBadge
           tone={
@@ -286,7 +290,7 @@ export default function RegistrationsQueuePage() {
       ),
     },
     {
-      header: 'Acciones',
+      header: t("Acciones"),
       align: 'right',
       render: (row) => (
         <div className={styles.rowActions}>
@@ -296,8 +300,7 @@ export default function RegistrationsQueuePage() {
             disabled={isWorking || row.registrationStatus !== 'PENDIENTE'}
             onClick={() => void review(row, 'APROBADO')}
           >
-            Aprobar
-          </Button>
+            {t("Aprobar")}</Button>
           <Button
             id={`rechazar-${row.id}`}
             variant="outline"
@@ -318,8 +321,7 @@ export default function RegistrationsQueuePage() {
               setFeedback(null)
             }}
           >
-            Rechazar
-          </Button>
+            {t("Rechazar")}</Button>
         </div>
       ),
     },
@@ -327,22 +329,22 @@ export default function RegistrationsQueuePage() {
 
   const emptyMessage =
     status === 'PENDIENTE'
-      ? `No hay ${tab.many} pendientes de revisión.`
-      : `No hay ${tab.many} rechazadas.`
+      ? t("No hay {0} pendientes de revisión.", [tab.many])
+      : t("No hay {0} rechazadas.", [tab.many])
 
   const reasonTrimmed = reason.trim()
 
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Solicitudes' }, { label: tab.label }]}
-        title="Solicitudes de alta"
-        description="Revisa las altas de guías y prestadoras: aprueba o rechaza con motivo."
-        meta={`${total} ${total === 1 ? 'solicitud' : 'solicitudes'}`}
+        breadcrumb={[{ label: t("Solicitudes") }, { label: tab.label }]}
+        title={t("Solicitudes de alta")}
+        description={t("Revisa las altas de guías y prestadoras: aprueba o rechaza con motivo.")}
+        meta={`${total} ${total === 1 ? t("solicitud") : t("solicitudes")}`}
       />
 
       <div className={styles.toolbar}>
-        <div className={styles.tabs} role="group" aria-label="Tipo de solicitud">
+        <div className={styles.tabs} role="group" aria-label={t("Tipo de solicitud")}>
           {ROLE_TABS.map((item) => (
             <Chip
               key={item.role}
@@ -355,10 +357,10 @@ export default function RegistrationsQueuePage() {
         </div>
 
         <div className={styles.filter}>
-          <span className={styles.filterLabel}>Estado</span>
+          <span className={styles.filterLabel}>{t("Estado")}</span>
           <SelectField
             id="registrations-status-filter"
-            aria-label="Estado"
+            aria-label={t("Estado")}
             options={STATUS_OPTIONS}
             value={status}
             onChange={(event) =>
@@ -373,7 +375,7 @@ export default function RegistrationsQueuePage() {
           <p className={styles.error} role="alert">
             {actionError}
           </p>
-          <Button onClick={retry}>Vuelve a cargar la lista</Button>
+          <Button onClick={retry}>{t("Vuelve a cargar la lista")}</Button>
         </div>
       )}
       {feedback !== null && (
@@ -384,10 +386,10 @@ export default function RegistrationsQueuePage() {
 
       {loadError !== null ? (
         <StateMessage
-          title="No se pudieron cargar las solicitudes"
+          title={t("No se pudieron cargar las solicitudes")}
           description={loadError}
           tone="error"
-          action={<Button onClick={retry}>Vuelve a cargar la lista</Button>}
+          action={<Button onClick={retry}>{t("Vuelve a cargar la lista")}</Button>}
         />
       ) : (
         <>
@@ -396,7 +398,7 @@ export default function RegistrationsQueuePage() {
             rows={rows}
             rowKey={(row) => row.id}
             isLoading={isLoading}
-            loadingMessage="Cargando solicitudes…"
+            loadingMessage={t("Cargando solicitudes…")}
             emptyMessage={emptyMessage}
           />
 
@@ -408,22 +410,17 @@ export default function RegistrationsQueuePage() {
               aria-labelledby="motivo-titulo"
             >
               <h2 className={styles.panelTitle} id="motivo-titulo">
-                Rechazar la solicitud de {rejecting.fullName}
+                {t("Rechazar la solicitud de")}{" "}{rejecting.fullName}
               </h2>
               <p className={styles.panelText}>
-                El motivo es obligatorio y viaja en el aviso por correo de la
-                decisión.
-              </p>
+                {t("El motivo es obligatorio y viaja en el aviso por correo de la decisión.")}</p>
               {rejecting.role === 'SERVICE_PROVIDER' && (
                 <p className={styles.panelText}>
-                  La prestadora sigue activa y podrá iniciar sesión; su perfil no
-                  se publica en el catálogo.
-                </p>
+                  {t("La prestadora sigue activa y podrá iniciar sesión; su perfil no se publica en el catálogo.")}</p>
               )}
 
               <label className={styles.panelLabel} htmlFor="motivo-rechazo">
-                Motivo del rechazo
-              </label>
+                {t("Motivo del rechazo")}</label>
               <textarea
                 ref={textareaRef}
                 id="motivo-rechazo"
@@ -435,9 +432,7 @@ export default function RegistrationsQueuePage() {
                 onChange={(event) => setReason(event.target.value)}
               />
               <p className={styles.panelHint} id="motivo-ayuda">
-                {reasonTrimmed.length}/{REASON_MAX_LENGTH} caracteres ·
-                obligatorio
-              </p>
+                {reasonTrimmed.length}/{REASON_MAX_LENGTH} {" "}{t("caracteres · obligatorio")}</p>
 
               <div className={styles.panelActions}>
                 <Button
@@ -445,14 +440,12 @@ export default function RegistrationsQueuePage() {
                   disabled={isWorking || reasonTrimmed === ''}
                   onClick={() => void review(rejecting, 'RECHAZADO', reason)}
                 >
-                  Confirmar rechazo
-                </Button>
+                  {t("Confirmar rechazo")}</Button>
                 <Button
                   variant="outline"
                   onClick={() => closeRejection(true)}
                 >
-                  Cancelar
-                </Button>
+                  {t("Cancelar")}</Button>
               </div>
             </article>
           )}

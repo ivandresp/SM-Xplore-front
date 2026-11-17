@@ -1,3 +1,5 @@
+import { getLocale } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { classNames } from '@/utils/format'
 import styles from './SierraProfile.module.css'
 
@@ -18,6 +20,7 @@ export function SierraProfile({
   animate = false,
   className,
 }: SierraProfileProps) {
+  useLanguage()
   return (
     <svg
       className={classNames(styles.profile, animate && styles.animated, className)}
@@ -38,7 +41,7 @@ export function SierraProfile({
         0 m
       </text>
       <text className={styles.label} x="239" y="42" textAnchor="end">
-        5.700 m
+        {new Intl.NumberFormat(getLocale()).format(5700)} m
       </text>
     </svg>
   )

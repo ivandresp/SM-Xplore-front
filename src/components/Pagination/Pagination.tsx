@@ -1,3 +1,5 @@
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { classNames } from '@/utils/format'
 import styles from './Pagination.module.css'
 
@@ -26,18 +28,19 @@ function buildPages(page: number, totalPages: number): Array<number | 'gap'> {
 }
 
 export function Pagination({ page, totalPages, onChange }: PaginationProps) {
+  useLanguage()
   if (totalPages <= 1) {
     return null
   }
 
   return (
-    <nav className={styles.pagination} aria-label="Paginación">
+    <nav className={styles.pagination} aria-label={t("Paginación")}>
       <button
         type="button"
         className={styles.page}
         onClick={() => onChange(page - 1)}
         disabled={page <= 1}
-        aria-label="Página anterior"
+        aria-label={t("Página anterior")}
       >
         ‹
       </button>
@@ -65,7 +68,7 @@ export function Pagination({ page, totalPages, onChange }: PaginationProps) {
         className={styles.page}
         onClick={() => onChange(page + 1)}
         disabled={page >= totalPages}
-        aria-label="Página siguiente"
+        aria-label={t("Página siguiente")}
       >
         ›
       </button>

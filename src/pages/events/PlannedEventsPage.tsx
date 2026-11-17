@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
@@ -24,11 +27,12 @@ interface PlannedEvent {
 }
 
 export default function PlannedEventsPage() {
+  useLanguage()
   const { user } = useAuth()
 
   const [planned, setPlanned] = useState<PlannedEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -73,7 +77,7 @@ export default function PlannedEventsPage() {
         )
         setError(null)
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -84,7 +88,7 @@ export default function PlannedEventsPage() {
     return () => {
       cancelled = true
     }
-  }, [touristId, reloadToken])
+  }, [touristId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -96,38 +100,37 @@ export default function PlannedEventsPage() {
     <div className={styles.page}>
       <PageHeader
         breadcrumb={[
-          { label: 'Inicio', to: '/explorar' },
-          { label: 'Eventos', to: '/eventos' },
-          { label: 'Planificados' },
+          { label: t("Inicio"), to: '/explorar' },
+          { label: t("Eventos"), to: '/eventos' },
+          { label: t("Planificados") },
         ]}
-        title="Mis eventos planificados"
-        description="Eventos que ya reservaste, con el estado de la reserva."
+        title={t("Mis eventos planificados")}
+        description={t("Eventos que ya reservaste, con el estado de la reserva.")}
       />
 
       {error !== null && (
         <StateMessage
           tone="error"
-          title="No pudimos cargar tus eventos"
+          title={t("No pudimos cargar tus eventos")}
           description={error}
           action={
             <Button variant="accent" onClick={retry}>
-              Reintentar
-            </Button>
+              {t("Reintentar")}</Button>
           }
         />
       )}
 
       {isLoading && (
-        <Skeleton variant="table" count={4} label="Cargando eventos…" />
+        <Skeleton variant="table" count={4} label={t("Cargando eventos…")} />
       )}
 
       {!isLoading && planned.length === 0 && error === null && (
         <StateMessage
-          title="Todavía no tienes eventos reservados"
-          description="Cuando reserves un evento aparecerá aquí con el estado de la reserva."
+          title={t("Todavía no tienes eventos reservados")}
+          description={t("Cuando reserves un evento aparecerá aquí con el estado de la reserva.")}
           action={
             <Link to="/eventos">
-              <Button variant="outline">Explorar la agenda de eventos</Button>
+              <Button variant="outline">{t("Explorar la agenda de eventos")}</Button>
             </Link>
           }
         />
@@ -139,12 +142,12 @@ export default function PlannedEventsPage() {
             <article key={reservation.id} className={styles.row}>
               <div className={styles.body}>
                 <h2 className={styles.title}>
-                  {event?.name ?? 'Evento reservado'}
+                  {event?.name ?? t("Evento reservado")}
                 </h2>
                 <p className={styles.meta}>
                   {formatDate(reservation.bookedFor)} ·{' '}
                   {reservation.numberOfPeople}{' '}
-                  {reservation.numberOfPeople === 1 ? 'persona' : 'personas'} ·{' '}
+                  {reservation.numberOfPeople === 1 ? t("persona") : t("personas")} ·{' '}
                   #{reservation.code}
                 </p>
               </div>
@@ -157,13 +160,11 @@ export default function PlannedEventsPage() {
                 </StatusBadge>
                 <Link to={`/eventos/${eventId}`}>
                   <Button variant="outline" size="sm">
-                    Ver evento
-                  </Button>
+                    {t("Ver evento")}</Button>
                 </Link>
                 <Link to={`/mis-reservas/${reservation.id}`}>
                   <Button variant="outline" size="sm">
-                    Ver reserva
-                  </Button>
+                    {t("Ver reserva")}</Button>
                 </Link>
               </div>
             </article>

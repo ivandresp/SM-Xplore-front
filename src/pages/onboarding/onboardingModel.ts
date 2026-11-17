@@ -1,3 +1,4 @@
+import { translate as t } from '@/i18n/language'
 import type { UpdateMyProfileRequest } from '@/types'
 
 /**
@@ -99,17 +100,17 @@ export function finishTargets(progress: OnboardingProgress): FinishTargets {
   if (progress.interestsDone) {
     return {
       primary: ONBOARDING_PATHS.recommendations,
-      primaryLabel: 'Ver mis recomendaciones',
+      primaryLabel: t("Ver mis recomendaciones"),
       secondary: ONBOARDING_PATHS.catalog,
-      secondaryLabel: 'Explorar el catálogo',
+      secondaryLabel: t("Explorar el catálogo"),
     }
   }
 
   return {
     primary: ONBOARDING_PATHS.catalog,
-    primaryLabel: 'Explorar el catálogo',
+    primaryLabel: t("Explorar el catálogo"),
     secondary: ONBOARDING_PATHS.recommendations,
-    secondaryLabel: 'Ver mis recomendaciones',
+    secondaryLabel: t("Ver mis recomendaciones"),
   }
 }
 
@@ -128,12 +129,12 @@ export function describeSavedProfile(patch: UpdateMyProfileRequest): string {
   const hasLanguage = patch.preferredLanguage !== undefined
 
   if (hasNationality && hasLanguage) {
-    return 'Perfil completo: guardamos la nacionalidad y el idioma de este paso.'
+    return t("Perfil completo: guardamos la nacionalidad y el idioma de este paso.")
   }
   if (hasNationality) {
-    return 'Perfil completo: guardamos la nacionalidad de este paso.'
+    return t("Perfil completo: guardamos la nacionalidad de este paso.")
   }
-  return 'Perfil completo: guardamos el idioma de este paso.'
+  return t("Perfil completo: guardamos el idioma de este paso.")
 }
 
 export function buildProfilePatch(draft: ProfileDraft): UpdateMyProfileRequest {
@@ -153,9 +154,9 @@ export function buildProfilePatch(draft: ProfileDraft): UpdateMyProfileRequest {
 
 /** Idiomas del alta (RegisterPage) más los del perfil. */
 export const LANGUAGE_OPTIONS = [
-  { value: 'es', label: 'Español' },
-  { value: 'en', label: 'Inglés' },
-  { value: 'fr', label: 'Francés' },
+  { value: 'es', get label() { return t("Español") } },
+  { value: 'en', get label() { return t("Inglés") } },
+  { value: 'fr', get label() { return t("Francés") } },
 ] as const
 
 interface EmojiRule {

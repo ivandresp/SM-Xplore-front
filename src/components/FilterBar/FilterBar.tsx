@@ -1,5 +1,7 @@
 import { useId, useState } from 'react'
 import type { ReactNode } from 'react'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import styles from './FilterBar.module.css'
 
@@ -30,22 +32,23 @@ export function FilterBar({
   resultSummary,
   children,
 }: FilterBarProps) {
+  useLanguage()
   const [isOpen, setIsOpen] = useState(false)
   const panelId = useId()
   const hasFilters = activeFilters.length > 0
 
   return (
-    <section className={styles.bar} aria-label="Filtros del catálogo">
+    <section className={styles.bar} aria-label={t("Filtros del catálogo")}>
       <div className={styles.head}>
-        <h2 className={styles.title}>Filtros</h2>
+        <h2 className={styles.title}>{t("Filtros")}</h2>
         <p className={styles.count} role="status">
           {resultSummary}
         </p>
         {hasFilters && (
           <p className={styles.summary}>
             {activeFilters.length === 1
-              ? '1 filtro activo'
-              : `${activeFilters.length} filtros activos`}
+              ? t("1 filtro activo")
+              : t("{0} filtros activos", [activeFilters.length])}
           </p>
         )}
         <div className={styles.actions}>
@@ -58,15 +61,14 @@ export function FilterBar({
             onClick={() => setIsOpen((open) => !open)}
           >
             {isOpen
-              ? 'Ocultar filtros'
+              ? t("Ocultar filtros")
               : hasFilters
-                ? `Mostrar filtros (${activeFilters.length})`
-                : 'Mostrar filtros'}
+                ? t("Mostrar filtros ({0})", [activeFilters.length])
+                : t("Mostrar filtros")}
           </Button>
           {hasFilters && (
             <Button variant="outline" size="sm" onClick={onClearFilters}>
-              Limpiar filtros
-            </Button>
+              {t("Limpiar filtros")}</Button>
           )}
         </div>
       </div>
@@ -76,7 +78,7 @@ export function FilterBar({
         className={isOpen ? styles.panel : styles.panelCollapsed}
       >
         <fieldset className={styles.group}>
-          <legend className={styles.legend}>Filtrar resultados</legend>
+          <legend className={styles.legend}>{t("Filtrar resultados")}</legend>
           <div className={styles.controls}>{children}</div>
         </fieldset>
       </div>
@@ -87,14 +89,14 @@ export function FilterBar({
        */}
       <ul
         className={styles.chips}
-        aria-label={hasFilters ? 'Filtros activos' : undefined}
+        aria-label={hasFilters ? t("Filtros activos") : undefined}
       >
         {activeFilters.map((filter) => (
           <li key={filter.key}>
             <button
               type="button"
               className={styles.chip}
-              aria-label={`Quitar filtro ${filter.label}: ${filter.value}`}
+              aria-label={t("Quitar filtro {0}: {1}", [filter.label, filter.value])}
               onClick={() => onRemoveFilter(filter.key)}
             >
               <span className={styles.chipLabel}>{filter.label}</span>

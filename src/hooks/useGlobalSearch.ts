@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { serviceTypeLabel } from '@/config/roles'
 import { activitiesApi } from '@/services/activitiesApi'
 import { eventsApi } from '@/services/eventsApi'
@@ -95,7 +97,9 @@ function toActivityItem(activity: ActivityResponse): GlobalSearchItem {
   return {
     id: activity.id,
     name: activity.name,
-    subtitle: `${activity.category} · ${formatCurrency(activity.price)}`,
+    get subtitle() {
+      return `${activity.category} · ${formatCurrency(activity.price)}`
+    },
     to: `/actividades/${activity.id}`,
   }
 }
@@ -104,9 +108,11 @@ function toEventItem(event: EventResponse): GlobalSearchItem {
   return {
     id: event.id,
     name: event.name,
-    subtitle: [event.siteName, formatCurrency(event.price)]
-      .filter(Boolean)
-      .join(' · '),
+    get subtitle() {
+      return [event.siteName, formatCurrency(event.price)]
+        .filter(Boolean)
+        .join(' · ')
+    },
     to: `/eventos/${event.id}`,
   }
 }
@@ -115,10 +121,11 @@ function toSiteItem(site: Site): GlobalSearchItem {
   return {
     id: site.id,
     name: site.name,
-    subtitle:
-      site.maxCapacity > 0
-        ? `Hasta ${site.maxCapacity} visitantes`
-        : 'Atractivo turístico',
+    get subtitle() {
+      return site.maxCapacity > 0
+        ? t("Hasta {0} visitantes", [site.maxCapacity])
+        : t("Atractivo turístico")
+    },
     to: `/atractivos/${site.id}`,
   }
 }
@@ -127,7 +134,9 @@ function toServiceItem(service: ServiceResponse): GlobalSearchItem {
   return {
     id: service.id,
     name: service.name,
-    subtitle: `${serviceTypeLabel(service.type)} · ${formatCurrency(service.price)}`,
+    get subtitle() {
+      return `${serviceTypeLabel(service.type)} · ${formatCurrency(service.price)}`
+    },
     to: `/servicios/${service.id}`,
   }
 }
@@ -135,7 +144,7 @@ function toServiceItem(service: ServiceResponse): GlobalSearchItem {
 interface SearchOutcome {
   results: GlobalSearchResults
   failed: GlobalSearchGroup[]
-  error: string | null
+  resolveError: (() => string) | null
 }
 
 async function searchEverything(raw: string): Promise<SearchOutcome> {
@@ -183,9 +192,9 @@ async function searchEverything(raw: string): Promise<SearchOutcome> {
   return {
     results,
     failed,
-    error:
+    resolveError:
       failed.length === settled.length && firstFailure !== undefined
-        ? describeApiError(firstFailure.reason)
+        ? () => describeApiError(firstFailure.reason)
         : null,
   }
 }
@@ -208,6 +217,7 @@ export interface UseGlobalSearchResult {
  * respuestas que llegan tarde.
  */
 export function useGlobalSearch(): UseGlobalSearchResult {
+  useLanguage()
   const [term, setTerm] = useState('')
   const [state, setState] = useState<(SearchOutcome & { term: string }) | null>(
     null,
@@ -256,7 +266,7 @@ export function useGlobalSearch(): UseGlobalSearchResult {
     setTerm,
     isLoading,
     results: current?.results ?? EMPTY_RESULTS,
-    error: current?.error ?? null,
+    error: current?.resolveError?.() ?? null,
     failed: current?.failed ?? [],
     retry: () => {
       setState(null)

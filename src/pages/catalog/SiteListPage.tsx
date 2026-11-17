@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { FilterBar } from '@/components/FilterBar'
 import type { ActiveFilter } from '@/components/FilterBar'
@@ -32,6 +35,7 @@ const FILTER_KEYS = ['search', 'zona', 'categoria'] as const
 
 /** Catálogo público de atractivos (sitios). */
 export default function SiteListPage() {
+  useLanguage()
   const [params, setParams] = useSearchParams()
   const [term, setTerm] = useSearchParamTerm()
   const [zoneId, setZoneId] = useFilterParam('zona')
@@ -43,7 +47,7 @@ export default function SiteListPage() {
   const [zones, setZones] = useState<Zone[]>([])
   const [categories, setCategories] = useState<CategoryResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
   const isFirstLoad = result === null
@@ -94,7 +98,7 @@ export default function SiteListPage() {
       .catch((cause: unknown) => {
         if (!cancelled) {
           setResult(null)
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       })
       .finally(() => {
@@ -104,7 +108,7 @@ export default function SiteListPage() {
     return () => {
       cancelled = true
     }
-  }, [queryKey, reloadToken])
+  }, [queryKey, reloadToken, setError])
 
   const zoneOptions = useMemo(
     () => [...zones].sort((a, b) => a.name.localeCompare(b.name, 'es')),
@@ -123,22 +127,22 @@ export default function SiteListPage() {
 
   const activeFilters: ActiveFilter[] = []
   if (term.trim() !== '') {
-    activeFilters.push({ key: 'search', label: 'Buscar', value: term.trim() })
+    activeFilters.push({ key: 'search', label: t("Buscar"), value: term.trim() })
   }
   if (zoneId !== '') {
     activeFilters.push({
       key: 'zona',
-      label: 'Zona',
-      value: zoneNameById.get(zoneId) ?? 'Seleccionada',
+      label: t("Zona"),
+      value: zoneNameById.get(zoneId) ?? t('Seleccionada'),
     })
   }
   if (categoryId !== '') {
     activeFilters.push({
       key: 'categoria',
-      label: 'Categoría',
+      label: t("Categoría"),
       value:
         categories.find((category) => category.id === categoryId)?.name ??
-        'Seleccionada',
+        t('Seleccionada'),
     })
   }
 
@@ -186,14 +190,14 @@ export default function SiteListPage() {
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
   const resultSummary = isBusy
-    ? 'Buscando…'
+    ? t("Buscando…")
     : error !== null
-      ? 'Resultados no disponibles'
+      ? t("Resultados no disponibles")
       : `${total} ${total === 1 ? 'atractivo' : 'atractivos'}`
 
   return (
     <div className={styles.page}>
-      <PageHeader serif title="Atractivos turísticos de Santa Marta" />
+      <PageHeader serif title={t("Atractivos turísticos de Santa Marta")} />
 
       <FilterBar
         activeFilters={activeFilters}
@@ -202,20 +206,20 @@ export default function SiteListPage() {
         resultSummary={resultSummary}
       >
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Buscar</span>
+          <span className={styles.fieldLabel}>{t("Buscar")}</span>
           <SearchInput
             value={term}
             onChange={setTerm}
-            label="Buscar atractivos por nombre"
-            placeholder="Nombre del atractivo…"
+            label={t("Buscar atractivos por nombre")}
+            placeholder={t("Nombre del atractivo…")}
             className={styles.control}
           />
         </label>
 
         <SelectField
-          label="Zona"
+          label={t("Zona")}
           className={styles.control}
-          placeholder="Todas las zonas"
+          placeholder={t("Todas las zonas")}
           value={zoneId}
           disabled={zoneOptions.length === 0}
           onChange={(event) => setZoneId(event.target.value)}
@@ -226,9 +230,9 @@ export default function SiteListPage() {
         />
 
         <SelectField
-          label="Categoría"
+          label={t("Categoría")}
           className={styles.control}
-          placeholder="Todas las categorías"
+          placeholder={t("Todas las categorías")}
           value={categoryId}
           disabled={categories.length === 0}
           onChange={(event) => setCategoryId(event.target.value)}
@@ -253,12 +257,11 @@ export default function SiteListPage() {
         {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
-            title="No pudimos cargar los atractivos"
+            title={t("No pudimos cargar los atractivos")}
             description={error}
             action={
               <Button variant="accent" onClick={retry} disabled={isLoading}>
-                Reintentar
-              </Button>
+                {t("Reintentar")}</Button>
             }
           />
         )}
@@ -267,19 +270,18 @@ export default function SiteListPage() {
           <StateMessage
             title={
               hasActiveFilters
-                ? 'No encontramos atractivos con esos filtros'
-                : 'Todavía no hay atractivos publicados'
+                ? t("No encontramos atractivos con esos filtros")
+                : t("Todavía no hay atractivos publicados")
             }
             description={
               hasActiveFilters
-                ? 'Prueba con otro nombre, zona o categoría.'
-                : 'Cuando las gestoras registren sitios en sus zonas aparecerán aquí.'
+                ? t("Prueba con otro nombre, zona o categoría.")
+                : t("Cuando las gestoras registren sitios en sus zonas aparecerán aquí.")
             }
             action={
               hasActiveFilters ? (
                 <Button variant="outline" onClick={clearFilters}>
-                  Limpiar filtros
-                </Button>
+                  {t("Limpiar filtros")}</Button>
               ) : undefined
             }
           />

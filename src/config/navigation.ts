@@ -1,3 +1,4 @@
+import { translate as t } from '@/i18n/language'
 import type { UserRole } from '@/types'
 
 export interface NavItem {
@@ -22,79 +23,68 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   {
     to: '/explorar',
-    label: 'Explorar',
-    description:
-      'Catálogo público: eventos, actividades y servicios turísticos disponibles, con búsqueda y filtros.',
+    get label() { return t("Explorar") },
+    get description() { return t("Catálogo público: eventos, actividades y servicios turísticos disponibles, con búsqueda y filtros.") },
     roles: ['TOURIST'],
   },
   {
     to: '/recomendaciones',
-    label: 'Para ti',
-    description:
-      'Recomendaciones personalizadas según los intereses del turista y lo que ha visitado.',
+    get label() { return t("Para ti") },
+    get description() { return t("Recomendaciones personalizadas según los intereses del turista y lo que ha visitado.") },
     roles: ['TOURIST'],
   },
   {
     to: '/mis-reservas',
-    label: 'Mis reservas',
-    description:
-      'Reservas del turista con su estado, total, ítems y acciones (cancelar, solicitar cancelación).',
+    get label() { return t("Mis reservas") },
+    get description() { return t("Reservas del turista con su estado, total, ítems y acciones (cancelar, solicitar cancelación).") },
     roles: ['TOURIST'],
   },
   {
     to: '/app/mis-actividades',
-    label: 'Mis actividades',
-    description:
-      'Actividades asignadas al guía: agenda, disponibilidad, cupos y estado.',
+    get label() { return t("Mis actividades") },
+    get description() { return t("Actividades asignadas al guía: agenda, disponibilidad, cupos y estado.") },
     roles: ['GUIDE'],
   },
   {
     to: '/app/disponibilidad',
-    label: 'Disponibilidad',
-    description:
-      'Fechas, cupos por turno, bloqueo de fechas y cierre temporal de la actividad.',
+    get label() { return t("Disponibilidad") },
+    get description() { return t("Fechas, cupos por turno, bloqueo de fechas y cierre temporal de la actividad.") },
     roles: ['GUIDE'],
   },
   {
     to: '/app/mis-servicios',
-    label: 'Mis servicios',
-    description:
-      'Servicios de la prestadora: precio, fotos, atributos extra y disponibilidad.',
+    get label() { return t("Mis servicios") },
+    get description() { return t("Servicios de la prestadora: precio, fotos, atributos extra y disponibilidad.") },
     roles: ['SERVICE_PROVIDER'],
   },
   {
     to: '/app/reservas-recibidas',
-    label: 'Reservas recibidas',
-    description:
-      'Reservas recibidas por la prestadora o el guía: confirmar, rechazar, asistencia y no-show.',
+    get label() { return t("Reservas recibidas") },
+    get description() { return t("Reservas recibidas por la prestadora o el guía: confirmar, rechazar, asistencia y no-show.") },
     roles: ['SERVICE_PROVIDER', 'GUIDE'],
   },
   {
     to: '/app/zonas',
-    label: 'Zonas',
-    description:
-      'Zonas turísticas y los sitios (atractivos) que agrupan, con su ubicación y fotos.',
+    get label() { return t("Zonas") },
+    get description() { return t("Zonas turísticas y los sitios (atractivos) que agrupan, con su ubicación y fotos.") },
     roles: ['DESTINATION_MANAGER'],
   },
   {
     to: '/app/eventos',
-    label: 'Eventos',
-    description:
-      'Crear y publicar eventos, estimar asistencia y gestionar su estado.',
+    get label() { return t("Eventos") },
+    get description() { return t("Crear y publicar eventos, estimar asistencia y gestionar su estado.") },
     roles: ['DESTINATION_MANAGER'],
   },
   {
     to: '/app/usuarios',
-    label: 'Usuarios',
-    description:
-      'Registros pendientes de aprobación, búsqueda de usuarios, bloqueo, reactivación y restablecimiento de contraseña.',
+    get label() { return t("Usuarios") },
+    get description() { return t("Registros pendientes de aprobación, búsqueda de usuarios, bloqueo, reactivación y restablecimiento de contraseña.") },
     roles: ['ADMIN'],
   },
   {
     to: '/app/solicitudes',
-    label: 'Solicitudes',
-    description:
-      'Cola de altas de guías y prestadoras: aprobar o rechazar con motivo antes de que puedan operar.',
+    get label() { return t("Solicitudes") },
+    get description() { return t("Cola de altas de guías y prestadoras: aprobar o rechazar con motivo antes de que puedan operar.") },
     roles: ['DESTINATION_MANAGER', 'ADMIN'],
   },
   {
@@ -104,9 +94,8 @@ export const NAV_ITEMS: NavItem[] = [
       GUIDE: '/reportes',
       SERVICE_PROVIDER: '/reportes',
     },
-    label: 'Reportes de seguridad',
-    description:
-      'Reportar incidentes de seguridad, seguimiento de estado, fotos y comentarios.',
+    get label() { return t("Reportes de seguridad") },
+    get description() { return t("Reportar incidentes de seguridad, seguimiento de estado, fotos y comentarios.") },
     roles: [
       'TOURIST',
       'GUIDE',
@@ -118,9 +107,8 @@ export const NAV_ITEMS: NavItem[] = [
   {
     to: '/app/perfil',
     publicTo: { TOURIST: '/perfil' },
-    label: 'Mi perfil',
-    description:
-      'Datos personales, actualización del perfil, cambio de contraseña y eliminación de la cuenta.',
+    get label() { return t("Mi perfil") },
+    get description() { return t("Datos personales, actualización del perfil, cambio de contraseña y eliminación de la cuenta.") },
     roles: [
       'TOURIST',
       'GUIDE',
@@ -149,8 +137,8 @@ export interface PublicNavItem {
  * "Actividades" apunta a /explorar, que es la entrada del catálogo.
  */
 export const PUBLIC_NAV: PublicNavItem[] = [
-  { to: '/atractivos', label: 'Atractivos' },
-  { to: '/explorar', label: 'Actividades' },
-  { to: '/eventos', label: 'Eventos' },
-  { to: '/servicios', label: 'Servicios' },
+  { to: '/atractivos', get label() { return t("Atractivos") } },
+  { to: '/explorar', get label() { return t("Actividades") } },
+  { to: '/eventos', get label() { return t("Eventos") } },
+  { to: '/servicios', get label() { return t("Servicios") } },
 ]

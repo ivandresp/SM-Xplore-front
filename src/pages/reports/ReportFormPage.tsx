@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { ImageUploader } from '@/components/ImageUploader'
@@ -18,12 +21,9 @@ const MAX_PHOTOS = 10
 
 /** Fallos de lectura cuando ya había una ubicación válida: se conserva. */
 const KEPT_LOCATION_MESSAGES: Record<'denied' | 'error' | 'unsupported', string> = {
-  denied:
-    'No diste permiso de ubicación. Mantendremos la ubicación anterior.',
-  error:
-    'No pudimos actualizar la ubicación. Mantendremos la ubicación anterior.',
-  unsupported:
-    'Este navegador no expone la ubicación. Mantendremos la ubicación anterior.',
+  get denied() { return t("No diste permiso de ubicación. Mantendremos la ubicación anterior.") },
+  get error() { return t("No pudimos actualizar la ubicación. Mantendremos la ubicación anterior.") },
+  get unsupported() { return t("Este navegador no expone la ubicación. Mantendremos la ubicación anterior.") },
 }
 
 /** Lo que se lee mientras no hay coordenadas. `idle` y `ready` tienen su propio texto. */
@@ -31,17 +31,17 @@ const LOCATION_MESSAGES: Record<
   Exclude<LocationStatus, 'idle' | 'ready'>,
   { text: string; tone: 'info' | 'error' }
 > = {
-  locating: { text: 'Consultando ubicación…', tone: 'info' },
+  locating: { get text() { return t("Consultando ubicación…") }, tone: 'info' },
   denied: {
-    text: 'No diste permiso de ubicación. Puedes enviar el reporte sin ella.',
+    get text() { return t("No diste permiso de ubicación. Puedes enviar el reporte sin ella.") },
     tone: 'error',
   },
   unsupported: {
-    text: 'Este navegador no expone la ubicación. Puedes enviar el reporte sin ella.',
+    get text() { return t("Este navegador no expone la ubicación. Puedes enviar el reporte sin ella.") },
     tone: 'error',
   },
   error: {
-    text: 'No pudimos obtener la ubicación. Puedes enviar el reporte sin ella o volver a intentarlo.',
+    get text() { return t("No pudimos obtener la ubicación. Puedes enviar el reporte sin ella o volver a intentarlo.") },
     tone: 'error',
   },
 }
@@ -55,6 +55,7 @@ const LOCATION_MESSAGES: Record<
  * URLs viajan en `photosUrls`.
  */
 export default function ReportFormPage() {
+  useLanguage()
   const navigate = useNavigate()
   const {
     status: locationStatus,
@@ -68,7 +69,7 @@ export default function ReportFormPage() {
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
   const [isUploadingPhotos, setIsUploadingPhotos] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   /** Fuerza el foco aunque el mismo mensaje se repita. */
   const [errorNonce, setErrorNonce] = useState(0)
   const errorRef = useRef<HTMLDivElement | null>(null)
@@ -78,25 +79,26 @@ export default function ReportFormPage() {
   const form = useFormValidation({
     values: { title },
     validate: (values) =>
-      values.title.trim() === '' ? { title: 'Escribe un título.' } : {},
-    labels: { title: 'Título' },
+      values.title.trim() === '' ? { title: t("Escribe un título.") } : {},
+    labels: { get title() { return t("Título") } },
     order: ['title'] as const,
     formRef,
   })
 
   // Un fallo de envío o de validación puede quedar fuera de pantalla: se lleva
   // el scroll y el foco al mensaje para que se anuncie y se vea.
+  const hasError = error !== null
   useEffect(() => {
-    if (error === null) return
+    if (!hasError) return
 
     const node = errorRef.current
     if (node === null) return
 
     node.scrollIntoView?.({ block: 'start', behavior: 'smooth' })
     node.focus()
-  }, [error, errorNonce])
+  }, [hasError, errorNonce])
 
-  function failWith(message: string) {
+  function failWith(message: () => string) {
     setError(message)
     setErrorNonce((nonce) => nonce + 1)
   }
@@ -124,7 +126,7 @@ export default function ReportFormPage() {
       navigate('/reportes')
     } catch (cause) {
       if (!form.applyValidationErrors(cause)) {
-        failWith(describeApiError(cause))
+        failWith(() => describeApiError(cause))
       }
     } finally {
       setIsSaving(false)
@@ -148,12 +150,11 @@ export default function ReportFormPage() {
   return (
     <div className={styles.page}>
       <Link to="/reportes" className={styles.back}>
-        ← Volver a mis reportes
-      </Link>
+        {t("← Volver a mis reportes")}</Link>
 
       <PageHeader
-        title="Nuevo reporte de seguridad"
-        description="Cuéntanos qué pasó y dónde. Las gestoras de destino recibirán el aviso."
+        title={t("Nuevo reporte de seguridad")}
+        description={t("Cuéntanos qué pasó y dónde. Las gestoras de destino recibirán el aviso.")}
       />
 
       {error !== null && (
@@ -166,9 +167,9 @@ export default function ReportFormPage() {
         <div className={styles.grid}>
           <div className={styles.full}>
             <Field
-              label="Título"
+              label={t("Título")}
               name="title"
-              placeholder="Ej: Intento de robo en el muelle"
+              placeholder={t("Ej: Intento de robo en el muelle")}
               maxLength={200}
               required
               value={title}
@@ -179,10 +180,10 @@ export default function ReportFormPage() {
           </div>
 
           <label className={styles.full}>
-            <span className={styles.fieldLabel}>¿Qué pasó?</span>
+            <span className={styles.fieldLabel}>{t("¿Qué pasó?")}</span>
             <textarea
               className={styles.textarea}
-              placeholder="Ej: Dos personas en moto se acercaron a los turistas."
+              placeholder={t("Ej: Dos personas en moto se acercaron a los turistas.")}
               maxLength={2000}
               value={description}
               onChange={(changeEvent) => setDescription(changeEvent.target.value)}
@@ -192,12 +193,9 @@ export default function ReportFormPage() {
           <section className={styles.full} aria-labelledby="report-location-label">
             <div className={styles.locationBox}>
               <span className={styles.fieldLabel} id="report-location-label">
-                Ubicación (opcional)
-              </span>
+                {t("Ubicación (opcional)")}</span>
               <p className={styles.helper}>
-                Se toma del navegador, no se escribe a mano. Puedes enviar el
-                reporte sin ubicación.
-              </p>
+                {t("Se toma del navegador, no se escribe a mano. Puedes enviar el reporte sin ubicación.")}</p>
 
               {location !== null && (
                 <p className={styles.locationCoords}>
@@ -214,21 +212,19 @@ export default function ReportFormPage() {
                     onClick={requestLocation}
                   >
                     {isLocating
-                      ? 'Consultando…'
+                      ? t("Consultando…")
                       : locationStatus === 'denied' || locationStatus === 'error'
-                        ? 'Reintentar'
-                        : 'Usar mi ubicación actual'}
+                        ? t("Reintentar")
+                        : t("Usar mi ubicación actual")}
                   </Button>
                 )}
 
                 {location !== null && (
                   <>
                     <Button variant="outline" onClick={requestLocation}>
-                      Volver a consultar
-                    </Button>
+                      {t("Volver a consultar")}</Button>
                     <Button variant="outline" onClick={clearLocation}>
-                      Quitar ubicación
-                    </Button>
+                      {t("Quitar ubicación")}</Button>
                   </>
                 )}
               </div>
@@ -249,21 +245,20 @@ export default function ReportFormPage() {
 
               {hasLocation && locationStatus === 'ready' && (
                 <p className={styles.locationStatus} role="status">
-                  Ubicación lista: se adjuntará al enviar el reporte.
-                </p>
+                  {t("Ubicación lista: se adjuntará al enviar el reporte.")}</p>
               )}
             </div>
           </section>
 
           <div className={styles.full}>
             <ImageUploader
-              label="Fotos del reporte"
+              label={t("Fotos del reporte")}
               folder="sm-xplore/reports"
               value={photoUrls}
               onChange={setPhotoUrls}
               onUploadingChange={setIsUploadingPhotos}
               maxFiles={MAX_PHOTOS}
-              hint={`Opcional. JPG, PNG o WebP; máximo ${MAX_PHOTOS} fotos. Si una carga falla, lo que ya escribiste se conserva.`}
+              hint={t("Opcional. JPG, PNG o WebP; máximo {0} fotos. Si una carga falla, lo que ya escribiste se conserva.", [MAX_PHOTOS])}
             />
           </div>
         </div>
@@ -276,19 +271,16 @@ export default function ReportFormPage() {
             loading={isSaving}
             disabled={isUploadingPhotos || isLocating}
           >
-            Enviar reporte
-          </Button>
+            {t("Enviar reporte")}</Button>
           <Link to="/reportes">
             <Button variant="outline" size="lg">
-              Cancelar
-            </Button>
+              {t("Cancelar")}</Button>
           </Link>
         </div>
 
         {(isUploadingPhotos || isLocating) && (
           <p className={styles.helper} role="status">
-            El envío se habilita cuando terminen las fotos y la ubicación.
-          </p>
+            {t("El envío se habilita cuando terminen las fotos y la ubicación.")}</p>
         )}
       </form>
     </div>

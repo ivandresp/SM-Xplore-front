@@ -1,3 +1,5 @@
+import { translate as t } from '@/i18n/language'
+import { formatDate, formatDurationLong } from '@/utils/format'
 import { useLocalStorage } from './useLocalStorage'
 import type { ReservationItemType } from '@/types'
 
@@ -6,14 +8,24 @@ export interface ItineraryEntry {
   itemId: string
   type: ReservationItemType
   name: string
-  /** Texto secundario: "Actividad · Guía: Carlos R." */
-  meta: string
+  /** Legacy stored presentation; retained for compatibility, never used for current labels. */
+  meta?: string
+  /** Locale-independent data for rendering the activity duration. */
+  durationMinutes?: number
   startsAt: string
   price: number
   /** Guía o prestadora; define con quién se agrupa la reserva. */
   providerId?: string
   /** Se completa cuando el elemento ya se reservó. */
   reservationId?: string
+}
+
+/** Derive the subtitle at render time, including for itineraries saved in another language. */
+export function itineraryEntryMeta(entry: ItineraryEntry): string {
+  const detail = entry.type === 'ACTIVITY' && entry.durationMinutes !== undefined
+    ? formatDurationLong(entry.durationMinutes)
+    : formatDate(entry.startsAt)
+  return t(entry.type === 'ACTIVITY' ? 'Actividad · {0}' : 'Evento · {0}', [detail])
 }
 
 export interface Itinerary {

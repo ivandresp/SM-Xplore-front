@@ -52,6 +52,8 @@ import {
   RegistrationsQueuePage,
 } from './pages'
 import { RequireAuth, RequireRole } from './guards'
+import { RouterFallback } from './RouterFallback'
+
 
 /** Secciones del menú del panel que ya tienen pantalla propia. */
 const IMPLEMENTED_SECTIONS = new Set([
@@ -195,7 +197,7 @@ export const router = createBrowserRouter([
     element: (
       <RequireAuth>
         <RequireRole roles={['TOURIST']}>
-          <Suspense fallback={<p role="status">Preparando tu bienvenida…</p>}>
+          <Suspense fallback={<RouterFallback />}>
             <OnboardingPage />
           </Suspense>
         </RequireRole>

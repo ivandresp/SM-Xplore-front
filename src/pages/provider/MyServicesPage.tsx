@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
@@ -19,11 +22,12 @@ import type { ServiceResponse } from '@/types'
 import styles from './provider.module.css'
 
 export default function MyServicesPage() {
+  useLanguage()
   const { user } = useAuth()
 
   const [services, setServices] = useState<ServiceResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   const providerId = user?.id
@@ -50,7 +54,7 @@ export default function MyServicesPage() {
       } catch (cause) {
         if (!cancelled) {
           setServices([])
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -62,7 +66,7 @@ export default function MyServicesPage() {
     return () => {
       cancelled = true
     }
-  }, [providerId, reloadToken])
+  }, [providerId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -72,7 +76,7 @@ export default function MyServicesPage() {
 
   const columns: Column<ServiceResponse>[] = [
     {
-      header: 'Servicio',
+      header: t("Servicio"),
       render: (service) => (
         <div>
           <p className={styles.names}>{service.name}</p>
@@ -84,19 +88,19 @@ export default function MyServicesPage() {
       ),
     },
     {
-      header: 'Ubicación',
+      header: t("Ubicación"),
       render: (service) => `${service.latitude}, ${service.longitude}`,
     },
     {
-      header: 'Fotos',
+      header: t("Fotos"),
       render: (service) => service.photosUrls.length,
     },
     {
-      header: 'Capacidad',
+      header: t("Capacidad"),
       render: (service) => service.maxCapacity,
     },
     {
-      header: 'Estado',
+      header: t("Estado"),
       render: (service) => (
         <StatusBadge tone={CONTENT_STATUS_TONES[service.status]}>
           {CONTENT_STATUS_LABELS[service.status]}
@@ -104,13 +108,12 @@ export default function MyServicesPage() {
       ),
     },
     {
-      header: 'Acciones',
+      header: t("Acciones"),
       align: 'right',
       render: (service) => (
         <Link to={`/app/mis-servicios/${service.id}`}>
           <Button variant="outline" size="sm">
-            Gestionar
-          </Button>
+            {t("Gestionar")}</Button>
         </Link>
       ),
     },
@@ -119,22 +122,22 @@ export default function MyServicesPage() {
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Mis servicios' }, { label: 'Listado' }]}
-        title="Mis servicios"
-        description="Alojamiento, transporte y alimentación que ofreces a los turistas."
+        breadcrumb={[{ label: t("Mis servicios") }, { label: t("Listado") }]}
+        title={t("Mis servicios")}
+        description={t("Alojamiento, transporte y alimentación que ofreces a los turistas.")}
         actions={
           <Link to="/app/mis-servicios/nuevo">
-            <Button variant="accent">Nuevo servicio</Button>
+            <Button variant="accent">{t("Nuevo servicio")}</Button>
           </Link>
         }
       />
 
       {error !== null ? (
         <StateMessage
-          title="No se pudieron cargar tus servicios"
+          title={t("No se pudieron cargar tus servicios")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       ) : (
         <DataTable
@@ -142,19 +145,18 @@ export default function MyServicesPage() {
           rows={services}
           rowKey={(service) => service.id}
           isLoading={isLoading}
-          loadingMessage="Cargando tus servicios…"
-          emptyMessage="Todavía no tienes servicios. Crea el primero con “Nuevo servicio”."
+          loadingMessage={t("Cargando tus servicios…")}
+          emptyMessage={t("Todavía no tienes servicios. Crea el primero con “Nuevo servicio”.")}
           emptyAction={
             <Link to="/app/mis-servicios/nuevo">
-              <Button variant="accent">Nuevo servicio</Button>
+              <Button variant="accent">{t("Nuevo servicio")}</Button>
             </Link>
           }
         />
       )}
 
       <p className={styles.notice}>
-        Las fotos se añaden desde el detalle del servicio pegando su URL.
-      </p>
+        {t("Las fotos se añaden desde el detalle del servicio pegando su URL.")}</p>
     </section>
   )
 }

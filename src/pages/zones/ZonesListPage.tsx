@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
@@ -20,10 +23,11 @@ interface ZoneRow {
 
 /** Wireframe: 11-gestionar-destino-frame-115-1326 · Zonas turísticas (listado). */
 export default function ZonesListPage() {
+  useLanguage()
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [term, setTerm] = useState('')
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -46,7 +50,7 @@ export default function ZonesListPage() {
           setError(null)
         }
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -57,7 +61,7 @@ export default function ZonesListPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -95,22 +99,22 @@ export default function ZonesListPage() {
 
   const columns: Column<ZoneRow>[] = [
     {
-      header: 'Zona',
+      header: t("Zona"),
       render: ({ zone, sites: zoneSites }) => (
         <div>
           <p className={tableStyles.userName}>{zone.name}</p>
           <p className={tableStyles.userEmail}>
             {zoneSites.length}{' '}
-            {zoneSites.length === 1 ? 'sitio' : 'sitios'}
+            {zoneSites.length === 1 ? t("sitio") : t("sitios")}
           </p>
         </div>
       ),
     },
     {
-      header: 'Sitios',
+      header: t("Sitios"),
       render: ({ sites: zoneSites }) =>
         zoneSites.length === 0 ? (
-          <span className={styles.muted}>Sin sitios todavía</span>
+          <span className={styles.muted}>{t("Sin sitios todavía")}</span>
         ) : (
           <div className={styles.siteNames}>
             {zoneSites.map((site) => (
@@ -122,13 +126,12 @@ export default function ZonesListPage() {
         ),
     },
     {
-      header: 'Acciones',
+      header: t("Acciones"),
       align: 'right',
       render: ({ zone }) => (
         <Link to={`/app/zonas/${zone.id}`}>
           <Button variant="outline" size="sm">
-            Configurar
-          </Button>
+            {t("Configurar")}</Button>
         </Link>
       ),
     },
@@ -137,14 +140,14 @@ export default function ZonesListPage() {
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Zonas' }, { label: 'Listado' }]}
-        title="Zonas turísticas"
-        description="Una zona agrupa varios sitios o atractivos. Zona ≠ sitio."
+        breadcrumb={[{ label: t("Zonas") }, { label: t("Listado") }]}
+        title={t("Zonas turísticas")}
+        description={t("Una zona agrupa varios sitios o atractivos. Zona ≠ sitio.")}
         actions={
           <div className={tableStyles.search}>
             <SearchInput
-              label="Buscar zona por nombre"
-              placeholder="Buscar zona por nombre…"
+              label={t("Buscar zona por nombre")}
+              placeholder={t("Buscar zona por nombre…")}
               value={term}
               onChange={setTerm}
             />
@@ -154,10 +157,10 @@ export default function ZonesListPage() {
 
       {error !== null ? (
         <StateMessage
-          title="No se pudieron cargar las zonas"
+          title={t("No se pudieron cargar las zonas")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       ) : (
         <DataTable
@@ -165,11 +168,11 @@ export default function ZonesListPage() {
           rows={rows}
           rowKey={(row) => row.zone.id}
           isLoading={isLoading}
-          loadingMessage="Cargando zonas…"
-          emptyMessage="No hay zonas con estos filtros."
+          loadingMessage={t("Cargando zonas…")}
+          emptyMessage={t("No hay zonas con estos filtros.")}
           emptyAction={
             <Link to="/app/zonas/nueva">
-              <Button variant="primary">+ Nueva zona</Button>
+              <Button variant="primary">{t("+ Nueva zona")}</Button>
             </Link>
           }
         />
@@ -178,21 +181,19 @@ export default function ZonesListPage() {
       {!isLoading && error === null && withoutSites > 0 && (
         <p className={styles.helper}>
           {withoutSites === 1
-            ? '1 zona aún no tiene sitios: ábrela para añadirlos.'
-            : `${withoutSites} zonas aún no tienen sitios: ábrelas para añadirlos.`}
+            ? t("1 zona aún no tiene sitios: ábrela para añadirlos.")
+            : t("{0} zonas aún no tienen sitios: ábrelas para añadirlos.", [withoutSites])}
         </p>
       )}
 
       <div className={styles.actions}>
         <Link to="/app/zonas/nueva">
-          <Button variant="primary">+ Nueva zona</Button>
+          <Button variant="primary">{t("+ Nueva zona")}</Button>
         </Link>
       </div>
 
       <p className={styles.notice}>
-        Cada zona agrupa sus atractivos; el atractivo guarda nombre, coordenadas
-        y fotos. La zona solo tiene nombre.
-      </p>
+        {t("Cada zona agrupa sus atractivos; el atractivo guarda nombre, coordenadas y fotos. La zona solo tiene nombre.")}</p>
     </section>
   )
 }

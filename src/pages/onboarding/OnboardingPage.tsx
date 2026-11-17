@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field, SelectField } from '@/components/FormField'
 import { useAuth } from '@/hooks/useAuth'
@@ -34,6 +37,7 @@ import styles from './onboarding.module.css'
  * perfil del turista, así que volver a /bienvenida lo reconstruye tal cual.
  */
 export default function OnboardingPage() {
+  useLanguage()
   const { user, updateSessionUser } = useAuth()
   const navigate = useNavigate()
   const titleRef = useRef<HTMLHeadingElement>(null)
@@ -43,20 +47,20 @@ export default function OnboardingPage() {
   const [entryStep, setEntryStep] = useState<OnboardingStep | null>(null)
 
   const [categories, setCategories] = useState<CategoryResponse[] | null>(null)
-  const [categoryError, setCategoryError] = useState<string | null>(null)
+  const [categoryError, setCategoryError] = useMessageState<string | null>(null)
   const [savedPreferences, setSavedPreferences] = useState<
     PreferenceResponse[] | null
   >(null)
-  const [preferencesError, setPreferencesError] = useState<string | null>(null)
+  const [preferencesError, setPreferencesError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   const [pendingCategoryId, setPendingCategoryId] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [actionError, setActionError] = useMessageState<string | null>(null)
+  const [statusMessage, setStatusMessage] = useMessageState<string | null>(null)
 
   const [nationality, setNationality] = useState('')
   const [preferredLanguage, setPreferredLanguage] = useState('')
-  const [profileError, setProfileError] = useState<string | null>(null)
+  const [profileError, setProfileError] = useMessageState<string | null>(null)
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [savedProfilePatch, setSavedProfilePatch] =
     useState<UpdateMyProfileRequest | null>(null)
@@ -92,20 +96,20 @@ export default function OnboardingPage() {
       if (cats.status === 'fulfilled') {
         setCategories(cats.value)
       } else {
-        setCategoryError(describeApiError(cats.reason))
+        setCategoryError(() => describeApiError(cats.reason))
       }
 
       if (prefs.status === 'fulfilled') {
         setSavedPreferences(prefs.value)
       } else {
-        setPreferencesError(describeApiError(prefs.reason))
+        setPreferencesError(() => describeApiError(prefs.reason))
       }
     })
 
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, setCategoryError, setPreferencesError])
 
   /**
    * El paso de entrada se decide una sola vez, cuando ya hay datos reales: paso
@@ -171,7 +175,7 @@ export default function OnboardingPage() {
             (preference) => preference.categoryId !== categoryId,
           ),
         )
-        setStatusMessage('Quitamos ese interés de tu perfil.')
+        setStatusMessage(() => t("Quitamos ese interés de tu perfil."))
         return
       }
 
@@ -182,9 +186,9 @@ export default function OnboardingPage() {
         ),
         created,
       ])
-      setStatusMessage('Guardamos ese interés en tu perfil.')
+      setStatusMessage(() => t("Guardamos ese interés en tu perfil."))
     } catch (cause) {
-      setActionError(describeApiError(cause))
+      setActionError(() => describeApiError(cause))
     } finally {
       setPendingCategoryId(null)
     }
@@ -195,7 +199,7 @@ export default function OnboardingPage() {
 
     const patch = buildProfilePatch({ nationality, preferredLanguage })
     if (Object.keys(patch).length === 0) {
-      setProfileError('Elige al menos un dato o pulsa Omitir.')
+      setProfileError(() => t("Elige al menos un dato o pulsa Omitir."))
       return
     }
 
@@ -211,7 +215,7 @@ export default function OnboardingPage() {
       setStatusMessage(null)
       setManualStep(3)
     } catch (cause) {
-      setProfileError(describeApiError(cause))
+      setProfileError(() => describeApiError(cause))
     } finally {
       setIsSavingProfile(false)
     }
@@ -224,8 +228,7 @@ export default function OnboardingPage() {
       <main className={styles.page}>
         <div className={styles.shell}>
           <p role="status" className={styles.lead}>
-            Preparando tu bienvenida…
-          </p>
+            {t("Preparando tu bienvenida…")}</p>
         </div>
       </main>
     )
@@ -261,11 +264,11 @@ export default function OnboardingPage() {
           ? progress.profileDone
           : progress.ready
     const current = step === stepNumber
-    const state = done ? 'completado' : current ? 'en curso' : 'pendiente'
+    const state = done ? t("completado") : current ? t("en curso") : t("pendiente")
 
     return (
       <li
-        key={ONBOARDING_STEP_LABELS[index]}
+        key={t(ONBOARDING_STEP_LABELS[index])}
         className={classNames(
           styles.progressItem,
           done && styles.progressDone,
@@ -276,7 +279,7 @@ export default function OnboardingPage() {
       >
         <span className={styles.progressDot} aria-hidden="true" />
         <span className={styles.progressLabel}>
-          {ONBOARDING_STEP_LABELS[index]}: {state}
+          {t(ONBOARDING_STEP_LABELS[index])}: {state}
         </span>
       </li>
     )
@@ -292,20 +295,18 @@ export default function OnboardingPage() {
               className={styles.skip}
               to={ONBOARDING_PATHS.recommendations}
             >
-              Ver recomendaciones
-            </Link>
+              {t("Ver recomendaciones")}</Link>
             <Link className={styles.skip} to={ONBOARDING_PATHS.skip}>
-              Saltar por ahora
-            </Link>
+              {t("Saltar por ahora")}</Link>
           </span>
         </header>
 
-        <nav className={styles.progress} aria-label="Progreso de la bienvenida">
-          <ol className={styles.progressList} aria-label="Pasos de la bienvenida">
+        <nav className={styles.progress} aria-label={t("Progreso de la bienvenida")}>
+          <ol className={styles.progressList} aria-label={t("Pasos de la bienvenida")}>
             {ONBOARDING_STEP_LABELS.map((_, index) => renderProgressDot(index))}
           </ol>
           <p className={styles.progressHint}>
-            Paso {step} de {ONBOARDING_STEP_COUNT}
+            {t("Paso")}{" "}{step} {" "}{t("de")}{" "}{ONBOARDING_STEP_COUNT}
           </p>
         </nav>
 
@@ -322,12 +323,9 @@ export default function OnboardingPage() {
                 tabIndex={-1}
                 className={styles.title}
               >
-                ¿Qué te gusta hacer en Santa Marta?
-              </h1>
+                {t("¿Qué te gusta hacer en Santa Marta?")}</h1>
               <p className={styles.lead}>
-                Elige tus intereses. Con ellos ordenamos las recomendaciones y
-                puedes cambiarlos cuando quieras.
-              </p>
+                {t("Elige tus intereses. Con ellos ordenamos las recomendaciones y puedes cambiarlos cuando quieras.")}</p>
 
               {categoryError !== null && (
                 <div className={styles.inlineError}>
@@ -337,8 +335,7 @@ export default function OnboardingPage() {
                     size="sm"
                     onClick={retryLoad}
                   >
-                    Reintentar
-                  </Button>
+                    {t("Reintentar")}</Button>
                 </div>
               )}
 
@@ -346,21 +343,18 @@ export default function OnboardingPage() {
                 <div className={styles.inlineError}>
                   <p role="alert">{preferencesError}</p>
                   <Button variant="outline" size="sm" onClick={retryLoad}>
-                    Reintentar
-                  </Button>
+                    {t("Reintentar")}</Button>
                 </div>
               )}
 
               {isStep1Loading && (
                 <p className={styles.status} role="status">
-                  Cargando intereses…
-                </p>
+                  {t("Cargando intereses…")}</p>
               )}
 
               {!isStep1Loading && categories !== null && categories.length === 0 && (
                 <p className={styles.status}>
-                  Todavía no hay categorías publicadas. Puedes continuar.
-                </p>
+                  {t("Todavía no hay categorías publicadas. Puedes continuar.")}</p>
               )}
 
               {!isStep1Loading && categories !== null && categories.length > 0 && (
@@ -405,8 +399,7 @@ export default function OnboardingPage() {
 
               {isSavingPreference && (
                 <p className={styles.status} role="status">
-                  Guardando… espera un momento.
-                </p>
+                  {t("Guardando… espera un momento.")}</p>
               )}
               {actionError !== null && (
                 <p className={styles.error} role="alert">
@@ -421,11 +414,9 @@ export default function OnboardingPage() {
 
               <div className={styles.actions}>
                 <Button onClick={() => goToStep(2)} disabled={isStep1Loading}>
-                  Continuar
-                </Button>
+                  {t("Continuar")}</Button>
                 <span className={styles.actionsHint}>
-                  Elige al menos un interés para personalizar tus recomendaciones.
-                </span>
+                  {t("Elige al menos un interés para personalizar tus recomendaciones.")}</span>
               </div>
             </>
           )}
@@ -438,28 +429,25 @@ export default function OnboardingPage() {
                 tabIndex={-1}
                 className={styles.title}
               >
-                Cuéntanos de ti
-              </h1>
+                {t("Cuéntanos de ti")}</h1>
               <p className={styles.lead}>
-                Estos son tus datos de registro; puedes cambiarlos aquí o en tu
-                perfil.
-              </p>
+                {t("Estos son tus datos de registro; puedes cambiarlos aquí o en tu perfil.")}</p>
 
               <form className={styles.form} onSubmit={handleProfileSubmit} noValidate>
                 <Field
-                  label="Nacionalidad"
+                  label={t("Nacionalidad")}
                   name="nationality"
                   autoComplete="country-name"
-                  placeholder="Ejemplo: Colombia…"
+                  placeholder={t("Ejemplo: Colombia…")}
                   value={nationality}
                   onChange={(event) => setNationality(event.target.value)}
                 />
                 <SelectField
-                  label="Idioma preferido"
+                  label={t("Idioma preferido")}
                   name="preferredLanguage"
                   value={preferredLanguage}
                   options={[
-                    { value: '', label: 'Sin especificar' },
+                    { value: '', label: t("Sin especificar") },
                     ...LANGUAGE_OPTIONS.map((option) => ({
                       value: option.value,
                       label: option.label,
@@ -479,26 +467,23 @@ export default function OnboardingPage() {
                     type="submit"
                     disabled={isSavingProfile || !canSubmitProfile}
                   >
-                    {isSavingProfile ? 'Guardando…' : 'Guardar y continuar'}
+                    {isSavingProfile ? t("Guardando…") : t("Guardar y continuar")}
                   </Button>
                   <Button
                     variant="outline"
                     disabled={isSavingProfile}
                     onClick={() => goToStep(3)}
                   >
-                    Omitir
-                  </Button>
+                    {t("Omitir")}</Button>
                   <button
                     type="button"
                     className={styles.linkButton}
                     onClick={() => goToStep(1)}
                   >
-                    Atrás
-                  </button>
+                    {t("Atrás")}</button>
                 </div>
                 <p className={styles.actionsHint}>
-                  Elige al menos un dato o pulsa Omitir.
-                </p>
+                  {t("Elige al menos un dato o pulsa Omitir.")}</p>
               </form>
             </>
           )}
@@ -511,19 +496,19 @@ export default function OnboardingPage() {
                 tabIndex={-1}
                 className={styles.title}
               >
-                Todo listo, {firstName}
+                {t("Todo listo,")}{" "}{firstName}
               </h1>
               <p className={styles.lead}>
                 {progress.ready
-                  ? 'Tus intereses están guardados y tu perfil está completo. Elige por dónde seguir.'
+                  ? t("Tus intereses están guardados y tu perfil está completo. Elige por dónde seguir.")
                   : progress.interestsDone
-                    ? 'Tus intereses están guardados. El perfil quedó pendiente: puedes completarlo cuando quieras en Mi perfil.'
-                    : 'Tu perfil está completo. Los intereses quedaron pendientes: elígelos cuando quieras para personalizar tus recomendaciones.'}
+                    ? t("Tus intereses están guardados. El perfil quedó pendiente: puedes completarlo cuando quieras en Mi perfil.")
+                    : t("Tu perfil está completo. Los intereses quedaron pendientes: elígelos cuando quieras para personalizar tus recomendaciones.")}
               </p>
 
               {selectedCategories.length > 0 && (
                 <div className={styles.summary}>
-                  <h2 className={styles.subtitle}>Tus intereses</h2>
+                  <h2 className={styles.subtitle}>{t("Tus intereses")}</h2>
                   <ul className={styles.chips}>
                     {selectedCategories.map((category, index) => (
                       <li key={category.id} className={styles.chip}>
@@ -541,8 +526,8 @@ export default function OnboardingPage() {
                 {progress.profileDone
                   ? profileSavedNow
                     ? describeSavedProfile(savedProfilePatch ?? {})
-                    : 'Perfil completo: usamos los datos de tu cuenta.'
-                  : 'Perfil pendiente.'}
+                    : t("Perfil completo: usamos los datos de tu cuenta.")
+                  : t("Perfil pendiente.")}
               </p>
 
               {statusMessage !== null && (
@@ -569,15 +554,13 @@ export default function OnboardingPage() {
                   className={styles.linkButton}
                   onClick={() => goToStep(1)}
                 >
-                  Cambiar mis intereses
-                </button>
+                  {t("Cambiar mis intereses")}</button>
                 <button
                   type="button"
                   className={styles.linkButton}
                   onClick={() => goToStep(2)}
                 >
-                  Completar mi perfil
-                </button>
+                  {t("Completar mi perfil")}</button>
               </div>
             </>
           )}

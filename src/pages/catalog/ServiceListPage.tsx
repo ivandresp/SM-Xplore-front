@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { FilterBar } from '@/components/FilterBar'
 import type { ActiveFilter } from '@/components/FilterBar'
@@ -34,6 +37,7 @@ const FILTER_KEYS = ['search', 'tipo', 'zona', 'precioMax'] as const
 
 /** Catálogo público de servicios. */
 export default function ServiceListPage() {
+  useLanguage()
   const [params, setParams] = useSearchParams()
   const [term, setTerm] = useSearchParamTerm()
   const [type, setType] = useFilterParam('tipo')
@@ -47,7 +51,7 @@ export default function ServiceListPage() {
   )
   const [zones, setZones] = useState<Zone[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
   const isFirstLoad = result === null
@@ -97,7 +101,7 @@ export default function ServiceListPage() {
       .catch((cause: unknown) => {
         if (!cancelled) {
           setResult(null)
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       })
       .finally(() => {
@@ -107,7 +111,7 @@ export default function ServiceListPage() {
     return () => {
       cancelled = true
     }
-  }, [queryKey, reloadToken])
+  }, [queryKey, reloadToken, setError])
 
   const zoneOptions = useMemo(
     () => [...zones].sort((a, b) => a.name.localeCompare(b.name, 'es')),
@@ -121,27 +125,27 @@ export default function ServiceListPage() {
 
   const activeFilters: ActiveFilter[] = []
   if (term.trim() !== '') {
-    activeFilters.push({ key: 'search', label: 'Buscar', value: term.trim() })
+    activeFilters.push({ key: 'search', label: t("Buscar"), value: term.trim() })
   }
   if (type !== '') {
     activeFilters.push({
       key: 'tipo',
-      label: 'Tipo',
+      label: t("Tipo"),
       value: serviceTypeLabel(type),
     })
   }
   if (zoneId !== '') {
     activeFilters.push({
       key: 'zona',
-      label: 'Zona',
-      value: zoneNameById.get(zoneId) ?? 'Seleccionada',
+      label: t("Zona"),
+      value: zoneNameById.get(zoneId) ?? t('Seleccionada'),
     })
   }
   if (maxPrice !== '') {
     activeFilters.push({
       key: 'precioMax',
-      label: 'Precio',
-      value: `Hasta ${formatCurrency(Number(maxPrice))}`,
+      label: t("Precio"),
+      value: t('Hasta {0}', [formatCurrency(Number(maxPrice))]),
     })
   }
 
@@ -189,12 +193,12 @@ export default function ServiceListPage() {
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
   const resultSummary = isBusy
-    ? 'Buscando…'
-    : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
+    ? t("Buscando…")
+    : `${total} ${total === 1 ? t("resultado") : t("resultados")}`
 
   return (
     <div className={styles.page}>
-      <PageHeader serif title="Servicios turísticos en Santa Marta" />
+      <PageHeader serif title={t("Servicios turísticos en Santa Marta")} />
 
       <FilterBar
         activeFilters={activeFilters}
@@ -203,20 +207,20 @@ export default function ServiceListPage() {
         resultSummary={resultSummary}
       >
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Buscar</span>
+          <span className={styles.fieldLabel}>{t("Buscar")}</span>
           <SearchInput
             value={term}
             onChange={setTerm}
-            label="Buscar servicios por nombre"
-            placeholder="Nombre del servicio…"
+            label={t("Buscar servicios por nombre")}
+            placeholder={t("Nombre del servicio…")}
             className={styles.control}
           />
         </label>
 
         <SelectField
-          label="Tipo de servicio"
+          label={t("Tipo de servicio")}
           className={styles.control}
-          placeholder="Todos los tipos"
+          placeholder={t("Todos los tipos")}
           value={type}
           onChange={(event) => setType(event.target.value)}
           options={SERVICE_TYPES.map((serviceType) => ({
@@ -226,9 +230,9 @@ export default function ServiceListPage() {
         />
 
         <SelectField
-          label="Zona"
+          label={t("Zona")}
           className={styles.control}
-          placeholder="Todas las zonas"
+          placeholder={t("Todas las zonas")}
           value={zoneId}
           disabled={zoneOptions.length === 0}
           onChange={(event) => setZoneId(event.target.value)}
@@ -239,14 +243,14 @@ export default function ServiceListPage() {
         />
 
         <SelectField
-          label="Precio"
+          label={t("Precio")}
           className={styles.control}
-          placeholder="Cualquier precio"
+          placeholder={t("Cualquier precio")}
           value={maxPrice}
           onChange={(event) => setMaxPrice(event.target.value)}
           options={MAX_PRICE_OPTIONS.map((value) => ({
             value: String(value),
-            label: `Hasta ${formatCurrency(value)}`,
+            label: t("Hasta {0}", [formatCurrency(value)]),
           }))}
         />
       </FilterBar>
@@ -264,12 +268,11 @@ export default function ServiceListPage() {
         {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
-            title="No pudimos cargar los servicios"
+            title={t("No pudimos cargar los servicios")}
             description={error}
             action={
               <Button variant="accent" onClick={retry} disabled={isLoading}>
-                Reintentar
-              </Button>
+                {t("Reintentar")}</Button>
             }
           />
         )}
@@ -278,19 +281,18 @@ export default function ServiceListPage() {
           <StateMessage
             title={
               hasActiveFilters
-                ? 'No encontramos servicios con esos filtros'
-                : 'Todavía no hay servicios publicados'
+                ? t("No encontramos servicios con esos filtros")
+                : t("Todavía no hay servicios publicados")
             }
             description={
               hasActiveFilters
-                ? 'Prueba con otro tipo, zona o un precio mayor.'
-                : 'Cuando las prestadoras publiquen sus servicios aparecerán aquí.'
+                ? t("Prueba con otro tipo, zona o un precio mayor.")
+                : t("Cuando las prestadoras publiquen sus servicios aparecerán aquí.")
             }
             action={
               hasActiveFilters ? (
                 <Button variant="outline" onClick={clearFilters}>
-                  Limpiar filtros
-                </Button>
+                  {t("Limpiar filtros")}</Button>
               ) : undefined
             }
           />

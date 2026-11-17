@@ -1,6 +1,9 @@
 import { useEffect, useId, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
@@ -21,20 +24,19 @@ const ACTION_COPY: Record<
   { label: string; question: string; success: string }
 > = {
   close: {
-    label: 'Marcar como reportado',
-    question:
-      '¿Marcar este reporte como reportado? Dejará de figurar como incidente en curso.',
-    success: 'El reporte quedó marcado como reportado.',
+    get label() { return t("Marcar como reportado") },
+    get question() { return t("¿Marcar este reporte como reportado? Dejará de figurar como incidente en curso.") },
+    get success() { return t("El reporte quedó marcado como reportado.") },
   },
   solve: {
-    label: 'Marcar como resuelto',
-    question:
-      '¿Marcar este reporte como resuelto? El incidente se dará por atendido.',
-    success: 'El reporte quedó marcado como resuelto.',
+    get label() { return t("Marcar como resuelto") },
+    get question() { return t("¿Marcar este reporte como resuelto? El incidente se dará por atendido.") },
+    get success() { return t("El reporte quedó marcado como resuelto.") },
   },
 }
 
 export default function ReportDetailPage() {
+  useLanguage()
   const { reportId } = useParams<{ reportId: string }>()
   const { user } = useAuth()
   const commentFieldId = useId()
@@ -43,8 +45,8 @@ export default function ReportDetailPage() {
     user?.role === 'ADMIN' || user?.role === 'DESTINATION_MANAGER'
   const backTo = canManage ? '/app/reportes' : '/reportes'
   const backLabel = canManage
-    ? 'Volver a gestión de reportes'
-    : 'Volver a mis reportes'
+    ? t("Volver a gestión de reportes")
+    : t("Volver a mis reportes")
 
   const [report, setReport] = useState<SecurityReportResponse | null>(null)
   const [comments, setComments] = useState<CommentResponse[]>([])
@@ -57,10 +59,10 @@ export default function ReportDetailPage() {
   const [isWorking, setIsWorking] = useState(false)
   const [confirming, setConfirming] = useState<ActionKind | null>(null)
   const [failedAction, setFailedAction] = useState<ActionKind | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [commentsError, setCommentsError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [commentsError, setCommentsError] = useMessageState<string | null>(null)
+  const [actionError, setActionError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -81,7 +83,7 @@ export default function ReportDetailPage() {
       if (cancelled) return
 
       if (reportResult.status === 'rejected') {
-        setError(describeApiError(reportResult.reason))
+        setError(() => describeApiError(reportResult.reason))
         setIsLoading(false)
         return
       }
@@ -102,7 +104,7 @@ export default function ReportDetailPage() {
         setHasMoreComments(page.hasNext)
         setCommentsError(null)
       } else {
-        setCommentsError(describeApiError(commentsResult.reason))
+        setCommentsError(() => describeApiError(commentsResult.reason))
       }
 
       setIsLoading(false)
@@ -113,7 +115,7 @@ export default function ReportDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [reportId, reloadToken])
+  }, [reportId, reloadToken, setError, setCommentsError])
 
   function retry() {
     setIsLoading(true)
@@ -124,7 +126,7 @@ export default function ReportDetailPage() {
   if (isLoading) {
     return (
       <div className={styles.page}>
-        <Skeleton variant="text" count={4} label="Cargando reporte…" />
+        <Skeleton variant="text" count={4} label={t("Cargando reporte…")} />
       </div>
     )
   }
@@ -136,10 +138,10 @@ export default function ReportDetailPage() {
           ← {backLabel}
         </Link>
         <StateMessage
-          title="No se pudo cargar el reporte"
-          description={error ?? 'No encontramos el reporte solicitado.'}
+          title={t("No se pudo cargar el reporte")}
+          description={error ?? t("No encontramos el reporte solicitado.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </div>
     )
@@ -164,13 +166,13 @@ export default function ReportDetailPage() {
         ? securityReportsApi.close(current.id)
         : securityReportsApi.solve(current.id))
       setConfirming(null)
-      setFeedback(ACTION_COPY[kind].success)
+      setFeedback(() => ACTION_COPY[kind].success)
       // El estado y las fechas los recalcula el backend: se recarga la ficha.
       setReloadToken((value) => value + 1)
     } catch (cause) {
       setConfirming(null)
       setFailedAction(kind)
-      setActionError(describeApiError(cause))
+      setActionError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -191,7 +193,7 @@ export default function ReportDetailPage() {
       setCommentCursor(page.nextCursor)
       setHasMoreComments(page.hasNext)
     } catch (cause) {
-      setCommentsError(describeApiError(cause))
+      setCommentsError(() => describeApiError(cause))
     } finally {
       setIsLoadingMore(false)
     }
@@ -215,7 +217,7 @@ export default function ReportDetailPage() {
       setHasMoreComments(page.hasNext)
       setCommentDraft('')
     } catch (cause) {
-      setCommentsError(describeApiError(cause))
+      setCommentsError(() => describeApiError(cause))
     } finally {
       setIsSubmittingComment(false)
     }
@@ -223,7 +225,7 @@ export default function ReportDetailPage() {
 
   const location =
     current.location === null
-      ? 'Sin ubicación registrada'
+      ? t("Sin ubicación registrada")
       : `${current.location.latitude.toFixed(5)}, ${current.location.longitude.toFixed(5)}`
 
   return (
@@ -234,9 +236,9 @@ export default function ReportDetailPage() {
 
       <PageHeader
         title={current.title}
-        description={`Reportado por ${current.user.name} el ${formatDate(
+        description={t("Reportado por {0} el {1}{2}", [current.user.name, formatDate(
           current.createdAt,
-        )}${current.location === null ? '' : ` · ${location}`}`}
+        ), current.location === null ? '' : ` · ${location}`])}
         actions={
           <StatusBadge tone={REPORT_STATUS_TONES[current.status]}>
             {REPORT_STATUS_LABELS[current.status]}
@@ -248,8 +250,7 @@ export default function ReportDetailPage() {
         <div className={styles.actionError} role="alert">
           <p className={styles.actionErrorText}>{error}</p>
           <Button variant="outline" size="sm" onClick={retry}>
-            Reintentar
-          </Button>
+            {t("Reintentar")}</Button>
         </div>
       )}
       {feedback !== null && (
@@ -261,11 +262,10 @@ export default function ReportDetailPage() {
       <div className={styles.layout}>
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Descripción</h2>
+            <h2 className={styles.cardTitle}>{t("Descripción")}</h2>
             {current.description.trim() === '' ? (
               <p className={styles.helper}>
-                El reporte no incluye una descripción.
-              </p>
+                {t("El reporte no incluye una descripción.")}</p>
             ) : (
               <p className={styles.text}>{current.description}</p>
             )}
@@ -274,7 +274,7 @@ export default function ReportDetailPage() {
           {current.photosUrls.length > 0 && (
             <article className={styles.card}>
               <h2 className={styles.cardTitle}>
-                Fotos ({current.photosUrls.length})
+                {t("Fotos (")}{current.photosUrls.length})
               </h2>
               <ul className={styles.gallery}>
                 {current.photosUrls.map((url, index) => (
@@ -288,7 +288,7 @@ export default function ReportDetailPage() {
                       <img
                         className={styles.galleryImage}
                         src={url}
-                        alt={`Foto ${index + 1} del reporte`}
+                        alt={t("Foto {0} del reporte", [index + 1])}
                         loading="lazy"
                       />
                     </a>
@@ -300,7 +300,7 @@ export default function ReportDetailPage() {
 
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>
-              Comentarios ({comments.length}
+              {t("Comentarios (")}{comments.length}
               {hasMoreComments ? '+' : ''})
             </h2>
 
@@ -312,8 +312,7 @@ export default function ReportDetailPage() {
 
             {comments.length === 0 && commentsError === null && (
               <p className={styles.helper}>
-                Todavía no hay comentarios en este reporte.
-              </p>
+                {t("Todavía no hay comentarios en este reporte.")}</p>
             )}
 
             {comments.length > 0 && (
@@ -343,21 +342,20 @@ export default function ReportDetailPage() {
                   disabled={isLoadingMore}
                   onClick={() => void loadMoreComments()}
                 >
-                  {isLoadingMore ? 'Cargando…' : 'Ver más comentarios'}
+                  {isLoadingMore ? t("Cargando…") : t("Ver más comentarios")}
                 </Button>
               </div>
             )}
 
             <form className={styles.commentForm} onSubmit={submitComment}>
               <label className={styles.fieldLabel} htmlFor={commentFieldId}>
-                Añadir un comentario
-              </label>
+                {t("Añadir un comentario")}</label>
               <textarea
                 id={commentFieldId}
                 className={styles.textarea}
                 value={commentDraft}
                 maxLength={2000}
-                placeholder="Describe lo que verificaste o el avance del caso…"
+                placeholder={t("Describe lo que verificaste o el avance del caso…")}
                 onChange={(changeEvent) =>
                   setCommentDraft(changeEvent.target.value)
                 }
@@ -368,7 +366,7 @@ export default function ReportDetailPage() {
                   variant="accent"
                   disabled={isSubmittingComment || commentDraft.trim() === ''}
                 >
-                  {isSubmittingComment ? 'Publicando…' : 'Publicar comentario'}
+                  {isSubmittingComment ? t("Publicando…") : t("Publicar comentario")}
                 </Button>
               </div>
             </form>
@@ -377,28 +375,28 @@ export default function ReportDetailPage() {
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Ficha del reporte</h2>
+            <h2 className={styles.cardTitle}>{t("Ficha del reporte")}</h2>
             <dl className={styles.details}>
               <div className={styles.detailRow}>
-                <dt>Autor</dt>
+                <dt>{t("Autor")}</dt>
                 <dd>{current.user.name}</dd>
               </div>
               <div className={styles.detailRow}>
-                <dt>Ubicación</dt>
+                <dt>{t("Ubicación")}</dt>
                 <dd>{location}</dd>
               </div>
               <div className={styles.detailRow}>
-                <dt>Creado</dt>
+                <dt>{t("Creado")}</dt>
                 <dd>{formatDateTime(current.createdAt)}</dd>
               </div>
               {current.updatedAt !== current.createdAt && (
                 <div className={styles.detailRow}>
-                  <dt>Última actualización</dt>
+                  <dt>{t("Última actualización")}</dt>
                   <dd>{formatDateTime(current.updatedAt)}</dd>
                 </div>
               )}
               <div className={styles.detailRow}>
-                <dt>Identificador</dt>
+                <dt>{t("Identificador")}</dt>
                 <dd className={styles.mono}>{current.id.slice(0, 8)}</dd>
               </div>
             </dl>
@@ -406,12 +404,11 @@ export default function ReportDetailPage() {
 
           {canManage && (
             <article className={styles.card}>
-              <h2 className={styles.cardTitle}>Gestión del estado</h2>
+              <h2 className={styles.cardTitle}>{t("Gestión del estado")}</h2>
 
               {nextAction === null ? (
                 <p className={styles.helper}>
-                  Este reporte está resuelto; no quedan acciones de estado.
-                </p>
+                  {t("Este reporte está resuelto; no quedan acciones de estado.")}</p>
               ) : confirming === nextAction ? (
                 <div className={styles.confirm}>
                   <p className={styles.confirmText}>
@@ -423,15 +420,14 @@ export default function ReportDetailPage() {
                       disabled={isWorking}
                       onClick={() => void transition(nextAction)}
                     >
-                      {isWorking ? 'Enviando…' : 'Sí, continuar'}
+                      {isWorking ? t("Enviando…") : t("Sí, continuar")}
                     </Button>
                     <Button
                       variant="outline"
                       disabled={isWorking}
                       onClick={() => setConfirming(null)}
                     >
-                      Cancelar
-                    </Button>
+                      {t("Cancelar")}</Button>
                   </div>
                 </div>
               ) : (
@@ -459,19 +455,18 @@ export default function ReportDetailPage() {
                     disabled={isWorking}
                     onClick={() => void transition(failedAction)}
                   >
-                    Reintentar
-                  </Button>
+                    {t("Reintentar")}</Button>
                 </div>
               )}
             </article>
           )}
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Historial</h2>
+            <h2 className={styles.cardTitle}>{t("Historial")}</h2>
             <ol className={styles.timeline}>
               <li className={styles.timelineItem}>
                 <span className={styles.timelineDot} aria-hidden="true" />
-                <p className={styles.timelineTitle}>Reporte creado</p>
+                <p className={styles.timelineTitle}>{t("Reporte creado")}</p>
                 <p className={styles.timelineDate}>
                   {formatDateTime(current.createdAt)}
                 </p>
@@ -479,7 +474,7 @@ export default function ReportDetailPage() {
               {current.updatedAt !== current.createdAt && (
                 <li className={styles.timelineItem}>
                   <span className={styles.timelineDot} aria-hidden="true" />
-                  <p className={styles.timelineTitle}>Última actualización</p>
+                  <p className={styles.timelineTitle}>{t("Última actualización")}</p>
                   <p className={styles.timelineDate}>
                     {formatDateTime(current.updatedAt)}
                   </p>

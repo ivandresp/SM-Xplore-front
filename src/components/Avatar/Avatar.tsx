@@ -1,3 +1,4 @@
+import { useLanguage } from '@/hooks/useLanguage'
 import { classNames } from '@/utils/format'
 import styles from './Avatar.module.css'
 
@@ -19,6 +20,7 @@ function initialsOf(name: string): string {
 
 /** Círculo (o cuadrado redondeado) con las iniciales del usuario. */
 export function Avatar({ name, size = 'md', shape = 'circle' }: AvatarProps) {
+  useLanguage()
   return (
     <span
       className={classNames(

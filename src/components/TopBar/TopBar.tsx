@@ -1,7 +1,10 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Logo } from '@/components/Logo'
+import { LanguageToggle } from '@/components/LanguageToggle'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { Skeleton } from '@/components/Skeleton'
 import {
@@ -45,14 +48,15 @@ export interface TopBarProps {
 const DESKTOP_QUERY = '(min-width: 900px)'
 
 const SEARCH_GROUPS: Array<{ key: GlobalSearchGroup; label: string }> = [
-  { key: 'activities', label: 'Actividades' },
-  { key: 'events', label: 'Eventos' },
-  { key: 'sites', label: 'Atractivos' },
-  { key: 'services', label: 'Servicios' },
+  { key: 'activities', get label() { return t("Actividades") } },
+  { key: 'events', get label() { return t("Eventos") } },
+  { key: 'sites', get label() { return t("Atractivos") } },
+  { key: 'services', get label() { return t("Servicios") } },
 ]
 
 /** Buscador global: panel con los resultados agrupados por tipo. */
 function GlobalSearch() {
+  useLanguage()
   const { term, setTerm, isLoading, results, error, failed, retry } =
     useGlobalSearch()
   const [open, setOpen] = useState(false)
@@ -161,9 +165,9 @@ function GlobalSearch() {
             setOpen(true)
           }}
           onClick={() => setOpen(true)}
-          placeholder="Buscar actividades, atractivos, eventos…"
+          placeholder={t("Buscar actividades, atractivos, eventos…")}
           role="combobox"
-          aria-label="Buscar en el catálogo"
+          aria-label={t("Buscar en el catálogo")}
           aria-autocomplete="list"
           aria-expanded={showPanel}
           autoComplete="off"
@@ -175,30 +179,29 @@ function GlobalSearch() {
           id={panelId}
           className={styles.panel}
           role="group"
-          aria-label="Resultados de la búsqueda"
+          aria-label={t("Resultados de la búsqueda")}
         >
           {isLoading ? (
             <div className={styles.panelBody}>
-              <Skeleton variant="text" count={3} label="Buscando" />
+              <Skeleton variant="text" count={3} label={t("Buscando")} />
             </div>
           ) : error !== null ? (
             <div className={styles.panelBody} role="alert">
               <p className={styles.panelText}>{error}</p>
               <button type="button" className={styles.retry} onClick={retry}>
-                Reintentar
-              </button>
+                {t("Reintentar")}</button>
             </div>
           ) : (
             <div className={styles.panelBody}>
               {failedLabels.length > 0 && (
                 <p className={styles.panelNote}>
-                  No se pudo buscar en: {failedLabels.join(', ')}.
+                  {t("No se pudo buscar en:")}{" "}{failedLabels.join(', ')}.
                 </p>
               )}
 
               {items.length === 0 ? (
                 <p className={styles.panelText}>
-                  No encontramos nada para «{term.trim()}»
+                  {t("No encontramos nada para «")}{term.trim()}»
                 </p>
               ) : (
                 SEARCH_GROUPS.map((group) => {
@@ -236,8 +239,8 @@ function GlobalSearch() {
                         onClick={() => setOpen(false)}
                       >
                         {total > groupItems.length
-                          ? `Ver los ${total} resultados`
-                          : `Ver todos en ${group.label}`}
+                          ? t("Ver los {0} resultados", [total])
+                          : t("Ver todos en {0}", [group.label])}
                       </Link>
                     </section>
                   )
@@ -275,6 +278,7 @@ export function TopBar({
   right,
   sticky = false,
 }: TopBarProps) {
+  useLanguage()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuId = useId()
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -386,9 +390,29 @@ export function TopBar({
         sticky && styles.sticky,
       )}
     >
+      {hasMenu && (
+        <button
+          ref={buttonRef}
+          type="button"
+          className={styles.menuButton}
+          aria-expanded={menuOpen}
+          /* Cerrado no hay panel: no se apunta a un id inexistente. */
+          aria-controls={menuOpen ? menuId : undefined}
+          aria-label={menuOpen ? t("Cerrar menú") : t("Abrir menú")}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span className={styles.menuIcon} aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span className={styles.menuText}>{t("Menú")}</span>
+        </button>
+      )}
+
       <Link
         to="/"
-        aria-label="SM-Xplore, ir al inicio"
+        aria-label={t("SM-Xplore, ir al inicio")}
         className={styles.logoLink}
       >
         <Logo tone={tone === 'dark' ? 'inverse' : 'default'} />
@@ -397,7 +421,7 @@ export function TopBar({
       {search && <GlobalSearch />}
 
       {links.length > 0 && (
-        <nav className={styles.links} aria-label="Navegación principal">
+        <nav className={styles.links} aria-label={t("Navegación principal")}>
           {links.map((link) => (
             <Link
               key={link.label}
@@ -411,27 +435,10 @@ export function TopBar({
         </nav>
       )}
 
-      {hasMenu && (
-        <button
-          ref={buttonRef}
-          type="button"
-          className={styles.menuButton}
-          aria-expanded={menuOpen}
-          /* Cerrado no hay panel: no se apunta a un id inexistente. */
-          aria-controls={menuOpen ? menuId : undefined}
-          aria-label={menuOpen ? 'Cerrar menú' : 'Abrir menú'}
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          <span className={styles.menuIcon} aria-hidden="true">
-            <span />
-            <span />
-            <span />
-          </span>
-          <span className={styles.menuText}>Menú</span>
-        </button>
-      )}
-
-      <ThemeToggle tone={tone} className={styles.barTheme} />
+      <div className={styles.barPreferences}>
+        <ThemeToggle tone={tone} />
+        <LanguageToggle tone={tone} />
+      </div>
 
       {right !== undefined && <div className={styles.right}>{right}</div>}
 
@@ -442,7 +449,7 @@ export function TopBar({
           className={styles.menuPanel}
           onKeyDown={handleMenuKeyDown}
         >
-          <nav className={styles.menuNav} aria-label="Menú principal">
+          <nav className={styles.menuNav} aria-label={t("Menú principal")}>
             {items.map((link) => (
               <Link
                 key={link.label}
@@ -457,6 +464,7 @@ export function TopBar({
           </nav>
           {/* En pantallas estrechas el toggle vive aquí: la barra no cabe. */}
           <div className={styles.menuTheme}>
+            <LanguageToggle tone={tone} />
             <ThemeToggle tone={tone} />
           </div>
         </div>

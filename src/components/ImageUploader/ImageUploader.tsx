@@ -1,5 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ChangeEvent, CSSProperties } from 'react'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import {
   CLOUDINARY_ACCEPTED_TYPES,
   CLOUDINARY_MAX_IMAGE_BYTES,
@@ -48,6 +51,7 @@ export function ImageUploader({
   className,
   style,
 }: ImageUploaderProps) {
+  useLanguage()
   const inputId = useId()
   const hintId = useId()
   const errorId = useId()
@@ -59,7 +63,7 @@ export function ImageUploader({
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(
     null,
   )
-  const [errors, setErrors] = useState<string[]>([])
+  const [errors, setErrors] = useMessageState<string[]>([])
 
   const configured = isCloudinaryConfigured()
   const maxMegabytes = Math.round(CLOUDINARY_MAX_IMAGE_BYTES / (1024 * 1024))
@@ -94,27 +98,27 @@ export function ImageUploader({
     const available = maxFiles - current.length
 
     if (selected.length > available) {
-      setErrors([
+      setErrors(() => [
         available <= 0
-          ? `Alcanzaste el máximo de ${maxFiles} fotos.`
-          : `Puedes añadir ${available} ${available === 1 ? 'foto más' : 'fotos más'}.`,
+          ? t("Alcanzaste el máximo de {0} fotos.", [maxFiles])
+          : t("Puedes añadir {0} {1}.", [available, available === 1 ? t('foto más') : t('fotos más')]),
       ])
       return
     }
 
-    const messages: string[] = []
+    const messages: Array<() => string> = []
     const validFiles: File[] = []
 
     for (const file of selected) {
       const validationError = validateImageFile(file)
       if (validationError !== null) {
-        messages.push(validationError)
+        messages.push(() => validateImageFile(file) ?? '')
       } else {
         validFiles.push(file)
       }
     }
 
-    setErrors(messages)
+    setErrors(() => messages.map((resolve) => resolve()))
 
     if (validFiles.length === 0) {
       return
@@ -147,12 +151,12 @@ export function ImageUploader({
           if (controller.signal.aborted) {
             break
           }
-          messages.push(describeImageUploadError(cause))
+          messages.push(() => describeImageUploadError(cause))
         }
       }
     } finally {
       if (mountedRef.current) {
-        setErrors(messages)
+        setErrors(() => messages.map((resolve) => resolve()))
         setProgress(null)
         notifyUploading(false)
       }
@@ -200,7 +204,7 @@ export function ImageUploader({
             accept={CLOUDINARY_ACCEPTED_TYPES.join(',')}
             multiple
             disabled={!canAdd}
-            aria-label={`Subir ${label.toLowerCase()}`}
+            aria-label={t("Subir {0}", [label.toLowerCase()])}
             aria-describedby={
               errors.length > 0 ? `${hintId} ${errorId}` : hintId
             }
@@ -208,30 +212,28 @@ export function ImageUploader({
           />
           <span className={styles.dropzoneTitle}>
             {isUploading
-              ? 'Subiendo imágenes…'
-              : 'Haz clic para elegir imágenes'}
+              ? t("Subiendo imágenes…")
+              : t("Haz clic para elegir imágenes")}
           </span>
           <span className={styles.dropzoneHint}>
             {value.length >= maxFiles
-              ? `Alcanzaste el máximo de ${maxFiles} fotos.`
-              : `JPG, PNG o WebP · máx. ${maxMegabytes} MB`}
+              ? t("Alcanzaste el máximo de {0} fotos.", [maxFiles])
+              : t("JPG, PNG o WebP · máx. {0} MB", [maxMegabytes])}
           </span>
         </label>
       ) : (
         <p className={styles.notice} role="status">
-          La carga de imágenes no está disponible: falta configurar Cloudinary
-          (`VITE_CLOUDINARY_CLOUD_NAME` y `VITE_CLOUDINARY_UPLOAD_PRESET`).
-        </p>
+          {t("La carga de imágenes no está disponible: falta configurar Cloudinary (`VITE_CLOUDINARY_CLOUD_NAME` y `VITE_CLOUDINARY_UPLOAD_PRESET`).")}</p>
       )}
 
       <p className={styles.helper} id={hintId}>
         {hint ??
-          `Se suben a Cloudinary. Máximo ${maxMegabytes} MB por imagen.`}
+          t("Se suben a Cloudinary. Máximo {0} MB por imagen.", [maxMegabytes])}
       </p>
 
       {progress !== null && (
         <p className={styles.status} role="status">
-          Subiendo {progress.done + 1} de {progress.total}…
+          {t("Subiendo")}{" "}{progress.done + 1} {" "}{t("de")}{" "}{progress.total}…
         </p>
       )}
 
@@ -244,20 +246,20 @@ export function ImageUploader({
       )}
 
       {value.length > 0 && (
-        <ul className={styles.previews} aria-label="Imágenes cargadas">
+        <ul className={styles.previews} aria-label={t("Imágenes cargadas")}>
           {value.map((url, index) => (
             <li key={`${url}-${index}`} className={styles.preview}>
               <img
                 className={styles.image}
                 src={url}
-                alt={`Foto ${index + 1} de ${value.length}`}
+                alt={t("Foto {0} de {1}", [index + 1, value.length])}
                 loading="lazy"
               />
               <button
                 className={styles.remove}
                 type="button"
-                aria-label={`Quitar foto ${index + 1}`}
-                title="Quitar foto"
+                aria-label={t("Quitar foto {0}", [index + 1])}
+                title={t("Quitar foto")}
                 disabled={disabled || isUploading}
                 onClick={() => removePhoto(url)}
               >

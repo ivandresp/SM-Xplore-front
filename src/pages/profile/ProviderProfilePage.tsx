@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
@@ -15,12 +18,13 @@ import type { PublicProfile, ServiceResponse } from '@/types'
 import styles from './profile.module.css'
 
 export default function ProviderProfilePage() {
+  useLanguage()
   const { providerId } = useParams<{ providerId: string }>()
 
   const [provider, setProvider] = useState<PublicProfile | null>(null)
   const [services, setServices] = useState<ServiceResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -38,7 +42,7 @@ export default function ProviderProfilePage() {
         const found = await usersApi.getPublicProfile(providerId as string)
         if (cancelled) return
         if (found.role !== 'SERVICE_PROVIDER') {
-          setError('Esa cuenta no es una prestadora de servicios.')
+          setError(() => t("Esa cuenta no es una prestadora de servicios."))
           return
         }
         setProvider(found)
@@ -52,7 +56,7 @@ export default function ProviderProfilePage() {
           if (!cancelled) setServices([])
         }
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -63,7 +67,7 @@ export default function ProviderProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [providerId, reloadToken])
+  }, [providerId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -74,7 +78,7 @@ export default function ProviderProfilePage() {
   if (isLoading) {
     return (
       <div className={styles.page}>
-        <Skeleton variant="text" count={6} label="Cargando perfil…" />
+        <Skeleton variant="text" count={6} label={t("Cargando perfil…")} />
       </div>
     )
   }
@@ -83,13 +87,12 @@ export default function ProviderProfilePage() {
     return (
       <section className={styles.page}>
         <Link to="/explorar" className={styles.back}>
-          ← Volver al catálogo
-        </Link>
+          {t("← Volver al catálogo")}</Link>
         <StateMessage
-          title="No se pudo cargar el perfil"
-          description={error ?? 'No se encontró la prestadora.'}
+          title={t("No se pudo cargar el perfil")}
+          description={error ?? t("No se encontró la prestadora.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -99,17 +102,17 @@ export default function ProviderProfilePage() {
     provider.role === 'SERVICE_PROVIDER' ? provider.profile : null
   const details: DefItem[] = [
     { label: 'NIT', value: profile?.nit ?? '—' },
-    { label: 'Tipo de negocio', value: profile?.businessType ?? '—' },
-    { label: 'Sitio web', value: profile?.websiteUrl ?? '—' },
+    { label: t("Tipo de negocio"), value: profile?.businessType ?? '—' },
+    { label: t("Sitio web"), value: profile?.websiteUrl ?? '—' },
     {
-      label: 'Ubicación',
+      label: t("Ubicación"),
       value:
         profile?.latitude != null && profile?.longitude != null
           ? `${profile.latitude}, ${profile.longitude}`
           : '—',
     },
     {
-      label: 'Opera desde',
+      label: t("Opera desde"),
       value:
         profile?.startOperationDate != null
           ? formatMonthYear(profile.startOperationDate)
@@ -121,8 +124,8 @@ export default function ProviderProfilePage() {
     <section className={styles.page}>
       <PageHeader
         breadcrumb={[
-          { label: 'Inicio', to: '/explorar' },
-          { label: 'Prestadoras' },
+          { label: t("Inicio"), to: '/explorar' },
+          { label: t("Prestadoras") },
           { label: provider.fullName },
         ]}
         title={provider.fullName}
@@ -140,7 +143,7 @@ export default function ProviderProfilePage() {
                 )}
                 {profile?.startOperationDate != null && (
                   <p className={styles.meta}>
-                    Opera desde {formatMonthYear(profile.startOperationDate)}
+                    {t("Opera desde")}{" "}{formatMonthYear(profile.startOperationDate)}
                   </p>
                 )}
               </div>
@@ -148,20 +151,17 @@ export default function ProviderProfilePage() {
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Sobre la empresa</h2>
+            <h2 className={styles.cardTitle}>{t("Sobre la empresa")}</h2>
             <p className={styles.notice}>
-              La descripción y las especialidades de la empresa aún no están
-              disponibles.
-            </p>
+              {t("La descripción y las especialidades de la empresa aún no están disponibles.")}</p>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Servicios que ofrece</h2>
+            <h2 className={styles.cardTitle}>{t("Servicios que ofrece")}</h2>
 
             {services.length === 0 ? (
               <p className={styles.empty}>
-                Esta prestadora todavía no tiene servicios publicados.
-              </p>
+                {t("Esta prestadora todavía no tiene servicios publicados.")}</p>
             ) : (
               services.map((service) => (
                 <div key={service.id} className={styles.listRow}>
@@ -173,8 +173,7 @@ export default function ProviderProfilePage() {
                   </span>
                   <Link to={`/servicios/${service.id}`}>
                     <Button variant="outline" size="sm">
-                      Ver detalle
-                    </Button>
+                      {t("Ver detalle")}</Button>
                   </Link>
                 </div>
               ))
@@ -184,18 +183,16 @@ export default function ProviderProfilePage() {
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Ficha de la prestadora</h2>
+            <h2 className={styles.cardTitle}>{t("Ficha de la prestadora")}</h2>
             <DefList items={details} columns={1} />
             <p className={styles.notice}>
-              El contacto se coordina al confirmar una reserva.
-            </p>
+              {t("El contacto se coordina al confirmar una reserva.")}</p>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Reseñas recientes</h2>
+            <h2 className={styles.cardTitle}>{t("Reseñas recientes")}</h2>
             <p className={styles.empty}>
-              Todavía no hay reseñas de esta prestadora.
-            </p>
+              {t("Todavía no hay reseñas de esta prestadora.")}</p>
           </article>
         </div>
       </div>

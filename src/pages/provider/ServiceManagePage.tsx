@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
@@ -39,6 +42,7 @@ function toUpdateBody(service: ServiceResponse): UpdateServiceRequest {
 }
 
 export default function ServiceManagePage() {
+  useLanguage()
   const { serviceId } = useParams<{ serviceId: string }>()
 
   const [service, setService] = useState<ServiceResponse | null>(null)
@@ -47,8 +51,8 @@ export default function ServiceManagePage() {
   const [photosUploading, setPhotosUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -70,7 +74,7 @@ export default function ServiceManagePage() {
           setError(null)
         }
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -81,7 +85,7 @@ export default function ServiceManagePage() {
     return () => {
       cancelled = true
     }
-  }, [serviceId, reloadToken])
+  }, [serviceId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -90,20 +94,19 @@ export default function ServiceManagePage() {
   }
 
   if (isLoading) {
-    return <Skeleton variant="text" count={4} label="Cargando servicio…" />
+    return <Skeleton variant="text" count={4} label={t("Cargando servicio…")} />
   }
 
   if (service === null) {
     return (
       <section>
         <Link to="/app/mis-servicios" className={styles.back}>
-          ← Volver a mis servicios
-        </Link>
+          {t("← Volver a mis servicios")}</Link>
         <StateMessage
-          title="No se pudo cargar el servicio"
-          description={error ?? 'No se encontró el servicio.'}
+          title={t("No se pudo cargar el servicio")}
+          description={error ?? t("No se encontró el servicio.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -112,25 +115,25 @@ export default function ServiceManagePage() {
   const current = service
 
   const infoItems: DefItem[] = [
-    { label: 'Tipo', value: serviceTypeLabel(current.type) },
-    { label: 'Categoría', value: current.categoryName || '—' },
-    { label: 'Atractivo', value: current.siteName || '—' },
-    { label: 'Zona', value: current.zoneName || '—' },
-    { label: 'Precio', value: formatCurrency(current.price) },
+    { label: t("Tipo"), value: serviceTypeLabel(current.type) },
+    { label: t("Categoría"), value: current.categoryName || '—' },
+    { label: t("Atractivo"), value: current.siteName || '—' },
+    { label: t("Zona"), value: current.zoneName || '—' },
+    { label: t("Precio"), value: formatCurrency(current.price) },
     {
-      label: 'Capacidad',
-      value: `${current.maxCapacity} personas`,
+      label: t("Capacidad"),
+      value: t('{0} personas', [current.maxCapacity]),
     },
     {
-      label: 'Ubicación',
+      label: t("Ubicación"),
       value: `${current.latitude}, ${current.longitude}`,
     },
-    { label: 'Creado', value: formatDateTime(current.createdAt) },
+    { label: t("Creado"), value: formatDateTime(current.createdAt) },
   ]
 
   async function runAction(
     action: () => Promise<ServiceResponse>,
-    message: string,
+    message: () => string,
   ) {
     setIsWorking(true)
     setError(null)
@@ -142,7 +145,7 @@ export default function ServiceManagePage() {
       setPrice(String(updated.price))
       setFeedback(message)
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -150,7 +153,7 @@ export default function ServiceManagePage() {
 
   async function addPhotos() {
     if (photosUploading) {
-      setError('Espera a que terminen de subirse las fotos.')
+      setError(() => t("Espera a que terminen de subirse las fotos."))
       return
     }
 
@@ -166,18 +169,17 @@ export default function ServiceManagePage() {
       })
       setNewPhotoUrls([])
       return updated
-    }, 'Fotos añadidas.')
+    }, () => t("Fotos añadidas."))
   }
 
   return (
     <section>
       <Link to="/app/mis-servicios" className={styles.back}>
-        ← Volver a mis servicios
-      </Link>
+        {t("← Volver a mis servicios")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Mis servicios', to: '/app/mis-servicios' },
+          { label: t("Mis servicios"), to: '/app/mis-servicios' },
           { label: current.name },
         ]}
         title={current.name}
@@ -201,7 +203,7 @@ export default function ServiceManagePage() {
       <div className={styles.layout}>
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Información del servicio</h2>
+            <h2 className={styles.cardTitle}>{t("Información del servicio")}</h2>
             <DefList items={infoItems} />
 
             {current.description !== '' && (
@@ -211,10 +213,9 @@ export default function ServiceManagePage() {
             )}
 
             <h2 className={styles.cardTitle} style={{ marginTop: '1.5rem' }}>
-              Fotos
-            </h2>
+              {t("Fotos")}</h2>
             {current.photosUrls.length === 0 ? (
-              <p className={styles.meta}>Todavía no hay fotos.</p>
+              <p className={styles.meta}>{t("Todavía no hay fotos.")}</p>
             ) : (
               <ul className={styles.photoList}>
                 {current.photosUrls.map((url) => (
@@ -226,17 +227,15 @@ export default function ServiceManagePage() {
             )}
 
             <p className={styles.notice}>
-              No existe un endpoint para editar solo un campo: el precio y las
-              fotos se guardan reescribiendo el servicio completo.
-            </p>
+              {t("No existe un endpoint para editar solo un campo: el precio y las fotos se guardan reescribiendo el servicio completo.")}</p>
           </article>
         </div>
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Precio</h2>
+            <h2 className={styles.cardTitle}>{t("Precio")}</h2>
             <Field
-              label="Precio por persona (COP)"
+              label={t("Precio por persona (COP)")}
               type="number"
               min={0}
               value={price}
@@ -253,17 +252,16 @@ export default function ServiceManagePage() {
                         ...toUpdateBody(current),
                         price: Number(price),
                       }),
-                    'Precio actualizado.',
+                    () => t("Precio actualizado."),
                   )
                 }
               >
-                Cambiar precio
-              </Button>
+                {t("Cambiar precio")}</Button>
             </div>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Visibilidad en el catálogo</h2>
+            <h2 className={styles.cardTitle}>{t("Visibilidad en el catálogo")}</h2>
             <div className={styles.actions}>
               <Button
                 variant="primary"
@@ -271,36 +269,34 @@ export default function ServiceManagePage() {
                 onClick={() =>
                   void runAction(
                     () => servicesApi.changeStatus(current.id, 'PUBLISHED'),
-                    'Servicio publicado.',
+                    () => t("Servicio publicado."),
                   )
                 }
               >
-                Publicar
-              </Button>
+                {t("Publicar")}</Button>
               <Button
                 variant="outline"
                 disabled={isWorking || current.status === 'INACTIVE'}
                 onClick={() =>
                   void runAction(
                     () => servicesApi.changeStatus(current.id, 'INACTIVE'),
-                    'Servicio retirado del catálogo.',
+                    () => t("Servicio retirado del catálogo."),
                   )
                 }
               >
-                Despublicar
-              </Button>
+                {t("Despublicar")}</Button>
             </div>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Añadir fotos</h2>
+            <h2 className={styles.cardTitle}>{t("Añadir fotos")}</h2>
             <ImageUploader
-              label="Nuevas fotos"
+              label={t("Nuevas fotos")}
               folder="sm-xplore/services"
               value={newPhotoUrls}
               onChange={setNewPhotoUrls}
               onUploadingChange={setPhotosUploading}
-              hint="Se suben a Cloudinary y se añaden al servicio al guardar."
+              hint={t("Se suben a Cloudinary y se añaden al servicio al guardar.")}
             />
             <div className={styles.actions}>
               <Button
@@ -312,7 +308,7 @@ export default function ServiceManagePage() {
                 }
                 onClick={() => void addPhotos()}
               >
-                {isWorking ? 'Guardando…' : 'Guardar fotos'}
+                {isWorking ? t("Guardando…") : t("Guardar fotos")}
               </Button>
             </div>
           </article>

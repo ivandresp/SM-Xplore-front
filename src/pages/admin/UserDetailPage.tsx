@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
@@ -28,14 +31,6 @@ import type {
 } from '@/types'
 import styles from './admin.module.css'
 
-const STATUS_OPTIONS = (['ACTIVO', 'BLOQUEADO', 'SUSPENDIDO'] as const).map(
-  (status) => ({ value: status, label: ACCOUNT_STATUS_LABELS[status] }),
-)
-
-const ROLE_OPTIONS = (
-  Object.entries(ROLE_LABELS) as Array<[UserRole, string]>
-).map(([value, label]) => ({ value, label }))
-
 function profileItems(user: AdminUserDetail) {
   const items: Array<{ label: string; value: string }> = []
   const add = (label: string, value: string | number | null | undefined) => {
@@ -52,18 +47,18 @@ function profileItems(user: AdminUserDetail) {
   switch (user.role) {
     case 'TOURIST': {
       const profile = user.profile
-      add('Documento', [profile.dniType, profile.dniNumber].filter(Boolean).join(' '))
-      add('Idioma preferido', profile.preferredLanguage)
-      add('Nacimiento', profile.birthDate && formatDate(profile.birthDate))
-      add('Nacionalidad', profile.nationality)
+      add(t("Documento"), [profile.dniType, profile.dniNumber].filter(Boolean).join(' '))
+      add(t("Idioma preferido"), profile.preferredLanguage)
+      add(t("Nacimiento"), profile.birthDate && formatDate(profile.birthDate))
+      add(t("Nacionalidad"), profile.nationality)
       break
     }
     case 'GUIDE': {
       const profile = user.profile
-      add('Documento', [profile.dniType, profile.dniNumber].filter(Boolean).join(' '))
-      add('Licencia', profile.license)
+      add(t("Documento"), [profile.dniType, profile.dniNumber].filter(Boolean).join(' '))
+      add(t("Licencia"), profile.license)
       add(
-        'Opera desde',
+        t("Opera desde"),
         profile.startOperationDate && formatDate(profile.startOperationDate),
       )
       break
@@ -71,24 +66,24 @@ function profileItems(user: AdminUserDetail) {
     case 'SERVICE_PROVIDER': {
       const profile = user.profile
       add('NIT', profile.nit)
-      add('Tipo de negocio', profile.businessType)
+      add(t("Tipo de negocio"), profile.businessType)
       add(
-        'Registro',
+        t("Registro"),
         profile.registrationStatus === null
           ? null
           : (PROVIDER_STATUS_LABELS[
               profile.registrationStatus as ProviderRegistrationStatus
             ] ?? profile.registrationStatus),
       )
-      add('Sitio web', profile.websiteUrl)
+      add(t("Sitio web"), profile.websiteUrl)
       add(
-        'Ubicación',
+        t("Ubicación"),
         profile.latitude !== null && profile.longitude !== null
           ? `${profile.latitude}, ${profile.longitude}`
           : null,
       )
       add(
-        'Opera desde',
+        t("Opera desde"),
         profile.startOperationDate && formatDate(profile.startOperationDate),
       )
       break
@@ -97,15 +92,15 @@ function profileItems(user: AdminUserDetail) {
       const profile = user.profile
       add('NIT', profile.nit)
       add(
-        'Opera desde',
+        t("Opera desde"),
         profile.startOperationDate && formatDate(profile.startOperationDate),
       )
       break
     }
     case 'ADMIN': {
       const profile = user.profile
-      add('Documento', [profile.dniType, profile.dniNumber].filter(Boolean).join(' '))
-      add('Último acceso', profile.lastAccessDate && formatDateTime(profile.lastAccessDate))
+      add(t("Documento"), [profile.dniType, profile.dniNumber].filter(Boolean).join(' '))
+      add(t("Último acceso"), profile.lastAccessDate && formatDateTime(profile.lastAccessDate))
       break
     }
   }
@@ -114,14 +109,21 @@ function profileItems(user: AdminUserDetail) {
 }
 
 export default function UserDetailPage() {
+  useLanguage()
+  const statusOptions = (['ACTIVO', 'BLOQUEADO', 'SUSPENDIDO'] as const).map(
+    (status) => ({ value: status, label: ACCOUNT_STATUS_LABELS[status] }),
+  )
+  const roleOptions = (
+    Object.entries(ROLE_LABELS) as Array<[UserRole, string]>
+  ).map(([value, label]) => ({ value, label }))
   const { userId } = useParams<{ userId: string }>()
   const navigate = useNavigate()
 
   const [user, setUser] = useState<AdminUserDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   const [nextStatus, setNextStatus] = useState<UserStatus>('ACTIVO')
@@ -155,7 +157,7 @@ export default function UserDetailPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -169,7 +171,7 @@ export default function UserDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [userId, reloadToken])
+  }, [userId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -190,7 +192,7 @@ export default function UserDetailPage() {
     }
   }
 
-  async function run(action: () => Promise<unknown>, message: string) {
+  async function run(action: () => Promise<unknown>, message: () => string) {
     setIsWorking(true)
     setError(null)
     setFeedback(null)
@@ -200,27 +202,26 @@ export default function UserDetailPage() {
       setFeedback(message)
       await refresh()
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
   }
 
   if (isLoading) {
-    return <Skeleton variant="text" count={4} label="Cargando usuario…" />
+    return <Skeleton variant="text" count={4} label={t("Cargando usuario…")} />
   }
 
   if (user === null) {
     return (
       <section>
         <Link to="/app/usuarios" className={styles.back}>
-          ← Volver al listado
-        </Link>
+          {t("← Volver al listado")}</Link>
         <StateMessage
-          title="No se pudo cargar el usuario"
-          description={error ?? 'No se encontró el usuario.'}
+          title={t("No se pudo cargar el usuario")}
+          description={error ?? t("No se encontró el usuario.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -244,11 +245,10 @@ export default function UserDetailPage() {
   return (
     <section>
       <Link to="/app/usuarios" className={styles.back}>
-        ← Volver al listado
-      </Link>
+        {t("← Volver al listado")}</Link>
 
       <PageHeader
-        breadcrumb={[{ label: 'Usuarios', to: '/app/usuarios' }, { label: 'Detalle' }]}
+        breadcrumb={[{ label: t("Usuarios"), to: '/app/usuarios' }, { label: t("Detalle") }]}
         title={user.fullName}
         description={user.email}
         actions={
@@ -293,15 +293,15 @@ export default function UserDetailPage() {
           <Avatar name={user.fullName} />
           <div>
             <p className={styles.userName}>{user.fullName}</p>
-            <p className={styles.userEmail}>{user.phone || 'Sin teléfono'}</p>
+            <p className={styles.userEmail}>{user.phone || t("Sin teléfono")}</p>
           </div>
         </div>
 
         <DefList
           items={[
-            { label: 'Identificador', value: user.id },
-            { label: 'Correo', value: user.email },
-            { label: 'Registro', value: formatDateTime(user.signedUpAt) },
+            { label: t("Identificador"), value: user.id },
+            { label: t("Correo"), value: user.email },
+            { label: t("Registro"), value: formatDateTime(user.signedUpAt) },
             ...profileItems(user),
           ]}
         />
@@ -309,51 +309,45 @@ export default function UserDetailPage() {
 
       {isDeleted && (
         <article className={styles.card}>
-          <h2 className={styles.cardTitle}>Cuenta eliminada</h2>
+          <h2 className={styles.cardTitle}>{t("Cuenta eliminada")}</h2>
           <p className={`${styles.feedback} ${styles.warning}`}>
-            La cuenta fue anonimizada y no puede reactivarse: no admite cambios
-            de estado, rol ni contraseña.
-          </p>
+            {t("La cuenta fue anonimizada y no puede reactivarse: no admite cambios de estado, rol ni contraseña.")}</p>
         </article>
       )}
 
       {user.role === 'SERVICE_PROVIDER' && (
         <article className={styles.card}>
-          <h2 className={styles.cardTitle}>Registro de prestadora</h2>
+          <h2 className={styles.cardTitle}>{t("Registro de prestadora")}</h2>
           <p className={styles.description}>
-            La aprobación se gestiona en la ficha de la prestadora, donde queda
-            el motivo de la decisión.
-          </p>
+            {t("La aprobación se gestiona en la ficha de la prestadora, donde queda el motivo de la decisión.")}</p>
           <Link to={`/app/usuarios/prestadoras/${user.id}`}>
-            <Button variant="outline">Revisar prestadora</Button>
+            <Button variant="outline">{t("Revisar prestadora")}</Button>
           </Link>
         </article>
       )}
 
       {!isDeleted && (
         <article className={styles.card}>
-          <h2 className={styles.cardTitle}>Estado de la cuenta</h2>
+          <h2 className={styles.cardTitle}>{t("Estado de la cuenta")}</h2>
           <p className={styles.description}>
-            El cambio de estado no borra la cuenta. Para darla de baja usa la
-            eliminación.
-          </p>
+            {t("El cambio de estado no borra la cuenta. Para darla de baja usa la eliminación.")}</p>
           <div className={styles.form}>
             <SelectField
-              label="Nuevo estado"
-              options={STATUS_OPTIONS}
+              label={t("Nuevo estado")}
+              options={statusOptions}
               value={nextStatus}
               onChange={(event) => setNextStatus(event.target.value as UserStatus)}
             />
             <Field
-              label="Motivo"
+              label={t("Motivo")}
               maxLength={500}
               required={nextStatus === 'BLOQUEADO'}
               value={statusReason}
               onChange={(event) => setStatusReason(event.target.value)}
               hint={
                 nextStatus === 'BLOQUEADO'
-                  ? 'Obligatorio al bloquear: se guarda en la auditoría y se envía al titular por correo.'
-                  : 'Se guarda en la auditoría del cambio.'
+                  ? t("Obligatorio al bloquear: se guarda en la auditoría y se envía al titular por correo.")
+                  : t("Se guarda en la auditoría del cambio.")
               }
             />
             <Button
@@ -370,40 +364,37 @@ export default function UserDetailPage() {
                       status: nextStatus as 'ACTIVO' | 'BLOQUEADO' | 'SUSPENDIDO',
                       reason: statusReason.trim() || undefined,
                     }),
-                  `Estado actualizado a ${ACCOUNT_STATUS_LABELS[nextStatus].toLowerCase()}.`,
+                  () => t("Estado actualizado a {0}.", [ACCOUNT_STATUS_LABELS[nextStatus].toLowerCase()]),
                 )
               }
             >
-              Aplicar estado
-            </Button>
+              {t("Aplicar estado")}</Button>
           </div>
         </article>
       )}
 
       {!isDeleted && (
         <article className={styles.card}>
-          <h2 className={styles.cardTitle}>Cambiar rol</h2>
+          <h2 className={styles.cardTitle}>{t("Cambiar rol")}</h2>
           <p className={styles.description}>
-            Cada rol exige datos propios. Al convertir en prestadora, su registro
-            vuelve a quedar pendiente de aprobación.
-          </p>
+            {t("Cada rol exige datos propios. Al convertir en prestadora, su registro vuelve a quedar pendiente de aprobación.")}</p>
           <div className={styles.form}>
             <SelectField
-              label="Nuevo rol"
-              options={ROLE_OPTIONS}
+              label={t("Nuevo rol")}
+              options={roleOptions}
               value={nextRole}
               onChange={(event) => setNextRole(event.target.value as UserRole)}
             />
             {needsDni && (
               <>
                 <Field
-                  label="Tipo de documento"
+                  label={t("Tipo de documento")}
                   maxLength={20}
                   value={dniType}
                   onChange={(event) => setDniType(event.target.value)}
                 />
                 <Field
-                  label="Número de documento"
+                  label={t("Número de documento")}
                   maxLength={30}
                   value={dniNumber}
                   onChange={(event) => setDniNumber(event.target.value)}
@@ -412,7 +403,7 @@ export default function UserDetailPage() {
             )}
             {needsLicense && (
               <Field
-                label="Licencia"
+                label={t("Licencia")}
                 maxLength={50}
                 value={license}
                 onChange={(event) => setLicense(event.target.value)}
@@ -446,22 +437,19 @@ export default function UserDetailPage() {
                   const updated = await usersApi.changeRole(user.id, payload)
                   setUser(updated)
                   setNextRole(updated.role)
-                }, `Rol actualizado a ${ROLE_LABELS[nextRole]}.`)
+                }, () => t("Rol actualizado a {0}.", [ROLE_LABELS[nextRole]]))
               }}
             >
-              Cambiar rol
-            </Button>
+              {t("Cambiar rol")}</Button>
           </div>
         </article>
       )}
 
       {!isDeleted && (
         <article className={styles.card}>
-          <h2 className={styles.cardTitle}>Restablecer contraseña</h2>
+          <h2 className={styles.cardTitle}>{t("Restablecer contraseña")}</h2>
           <p className={styles.description}>
-            Se envía un enlace de recuperación al correo del usuario. Nunca se
-            escribe una contraseña desde aquí.
-          </p>
+            {t("Se envía un enlace de recuperación al correo del usuario. Nunca se escribe una contraseña desde aquí.")}</p>
           <div className={styles.actions}>
             <Button
               variant="accent"
@@ -469,31 +457,27 @@ export default function UserDetailPage() {
               onClick={() =>
                 void run(
                   () => usersApi.requestPasswordReset(user.id),
-                  'Enlace de recuperación enviado al correo del usuario.',
+                  () => t("Enlace de recuperación enviado al correo del usuario."),
                 )
               }
             >
-              Enviar enlace
-            </Button>
+              {t("Enviar enlace")}</Button>
           </div>
         </article>
       )}
 
       {!isDeleted && (
         <article className={styles.card}>
-          <h2 className={styles.cardTitle}>Eliminar cuenta</h2>
+          <h2 className={styles.cardTitle}>{t("Eliminar cuenta")}</h2>
           <p className={`${styles.feedback} ${styles.warning}`}>
-            La eliminación anonimiza el correo y los datos de la cuenta. No se
-            puede deshacer.
-          </p>
+            {t("La eliminación anonimiza el correo y los datos de la cuenta. No se puede deshacer.")}</p>
           <label className={styles.actionsNote}>
             <input
               type="checkbox"
               checked={confirmDelete}
               onChange={(event) => setConfirmDelete(event.target.checked)}
             />{' '}
-            Entiendo que la cuenta no podrá recuperarse.
-          </label>
+            {t("Entiendo que la cuenta no podrá recuperarse.")}</label>
           <div className={styles.actions}>
             <Button
               variant="outlineAccent"
@@ -502,11 +486,10 @@ export default function UserDetailPage() {
                 void run(async () => {
                   await usersApi.remove(user.id)
                   navigate('/app/usuarios', { replace: true })
-                }, 'Cuenta eliminada.')
+                }, () => t("Cuenta eliminada."))
               }
             >
-              Eliminar cuenta
-            </Button>
+              {t("Eliminar cuenta")}</Button>
           </div>
         </article>
       )}

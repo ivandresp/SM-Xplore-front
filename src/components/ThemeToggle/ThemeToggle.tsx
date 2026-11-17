@@ -1,12 +1,14 @@
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { useTheme } from '@/hooks/useTheme'
 import type { ThemeMode } from '@/context/theme-context'
 import { classNames } from '@/utils/format'
 import styles from './ThemeToggle.module.css'
 
 const MODE_LABELS: Record<ThemeMode, string> = {
-  light: 'claro',
-  dark: 'oscuro',
-  system: 'sistema',
+  get light() { return t('claro') },
+  get dark() { return t('oscuro') },
+  get system() { return t('sistema') },
 }
 
 export interface ThemeToggleProps {
@@ -17,6 +19,7 @@ export interface ThemeToggleProps {
 
 /** Botón de ciclo: sistema -> claro -> oscuro -> sistema. */
 export function ThemeToggle({ tone = 'light', className }: ThemeToggleProps) {
+  useLanguage()
   const { mode, cycle } = useTheme()
   const label = MODE_LABELS[mode]
 
@@ -25,8 +28,8 @@ export function ThemeToggle({ tone = 'light', className }: ThemeToggleProps) {
       type="button"
       className={classNames(styles.toggle, tone === 'dark' && styles.dark, className)}
       onClick={cycle}
-      aria-label={`Tema ${label}. Cambiar tema`}
-      title={`Tema: ${label}`}
+      aria-label={t("Tema {0}. Cambiar tema", [label])}
+      title={t("Tema: {0}", [label])}
     >
       {mode === 'system' && (
         <svg className={styles.icon} viewBox="0 0 24 24" aria-hidden="true">

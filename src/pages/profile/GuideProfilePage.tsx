@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
@@ -16,12 +19,13 @@ import type { ActivityResponse, PublicProfile } from '@/types'
 import styles from './profile.module.css'
 
 export default function GuideProfilePage() {
+  useLanguage()
   const { guideId } = useParams<{ guideId: string }>()
 
   const [guide, setGuide] = useState<PublicProfile | null>(null)
   const [activities, setActivities] = useState<ActivityResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -39,7 +43,7 @@ export default function GuideProfilePage() {
         const found = await usersApi.getPublicProfile(guideId as string)
         if (cancelled) return
         if (found.role !== 'GUIDE') {
-          setError('Esa cuenta no es un guía turístico.')
+          setError(() => t("Esa cuenta no es un guía turístico."))
           return
         }
         setGuide(found)
@@ -54,7 +58,7 @@ export default function GuideProfilePage() {
           if (!cancelled) setActivities([])
         }
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -65,7 +69,7 @@ export default function GuideProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [guideId, reloadToken])
+  }, [guideId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -76,7 +80,7 @@ export default function GuideProfilePage() {
   if (isLoading) {
     return (
       <div className={styles.page}>
-        <Skeleton variant="text" count={6} label="Cargando perfil…" />
+        <Skeleton variant="text" count={6} label={t("Cargando perfil…")} />
       </div>
     )
   }
@@ -85,13 +89,12 @@ export default function GuideProfilePage() {
     return (
       <section className={styles.page}>
         <Link to="/explorar" className={styles.back}>
-          ← Volver al catálogo
-        </Link>
+          {t("← Volver al catálogo")}</Link>
         <StateMessage
-          title="No se pudo cargar el perfil"
-          description={error ?? 'No se encontró el guía.'}
+          title={t("No se pudo cargar el perfil")}
+          description={error ?? t("No se encontró el guía.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -100,11 +103,11 @@ export default function GuideProfilePage() {
   const profile = guide.role === 'GUIDE' ? guide.profile : null
   const details: DefItem[] = [
     {
-      label: 'Licencia',
+      label: t("Licencia"),
       value: profile?.license != null ? `RNT ${profile.license}` : '—',
     },
     {
-      label: 'Guía desde',
+      label: t("Guía desde"),
       value:
         profile?.startOperationDate != null
           ? formatMonthYear(profile.startOperationDate)
@@ -116,8 +119,8 @@ export default function GuideProfilePage() {
     <section className={styles.page}>
       <PageHeader
         breadcrumb={[
-          { label: 'Inicio', to: '/explorar' },
-          { label: 'Guías' },
+          { label: t("Inicio"), to: '/explorar' },
+          { label: t("Guías") },
           { label: guide.fullName },
         ]}
         title={guide.fullName}
@@ -130,10 +133,10 @@ export default function GuideProfilePage() {
               <Avatar name={guide.fullName} size="lg" />
               <div className={styles.identity}>
                 <h2 className={styles.name}>{guide.fullName}</h2>
-                <p className={styles.meta}>Guía turístico</p>
+                <p className={styles.meta}>{t("Guía turístico")}</p>
                 {profile?.startOperationDate != null && (
                   <p className={styles.meta}>
-                    Guía desde {formatMonthYear(profile.startOperationDate)}
+                    {t("Guía desde")}{" "}{formatMonthYear(profile.startOperationDate)}
                   </p>
                 )}
               </div>
@@ -141,35 +144,32 @@ export default function GuideProfilePage() {
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Sobre mí</h2>
+            <h2 className={styles.cardTitle}>{t("Sobre mí")}</h2>
             <p className={styles.notice}>
-              La descripción, los idiomas y las certificaciones del guía aún no
-              están disponibles.
-            </p>
+              {t("La descripción, los idiomas y las certificaciones del guía aún no están disponibles.")}</p>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Certificaciones</h2>
+            <h2 className={styles.cardTitle}>{t("Certificaciones")}</h2>
             {profile?.license != null ? (
               <div className={styles.listRow}>
                 <span>
                   <span className={styles.listName}>RNT {profile.license}</span>
-                  <span className={styles.listMeta}>tarjeta profesional</span>
+                  <span className={styles.listMeta}>{t("tarjeta profesional")}</span>
                 </span>
-                <StatusBadge tone="success">Registrada</StatusBadge>
+                <StatusBadge tone="success">{t("Registrada")}</StatusBadge>
               </div>
             ) : (
-              <p className={styles.empty}>El guía no registró su tarjeta.</p>
+              <p className={styles.empty}>{t("El guía no registró su tarjeta.")}</p>
             )}
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Actividades que ofrece</h2>
+            <h2 className={styles.cardTitle}>{t("Actividades que ofrece")}</h2>
 
             {activities.length === 0 ? (
               <p className={styles.empty}>
-                Este guía todavía no tiene actividades publicadas.
-              </p>
+                {t("Este guía todavía no tiene actividades publicadas.")}</p>
             ) : (
               activities.map((activity) => (
                 <div key={activity.id} className={styles.listRow}>
@@ -182,8 +182,7 @@ export default function GuideProfilePage() {
                   </span>
                   <Link to={`/actividades/${activity.id}`}>
                     <Button variant="outline" size="sm">
-                      Ver detalle
-                    </Button>
+                      {t("Ver detalle")}</Button>
                   </Link>
                 </div>
               ))
@@ -193,18 +192,16 @@ export default function GuideProfilePage() {
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Ficha del guía</h2>
+            <h2 className={styles.cardTitle}>{t("Ficha del guía")}</h2>
             <DefList items={details} columns={1} />
             <p className={styles.notice}>
-              El contacto se coordina al confirmar una reserva.
-            </p>
+              {t("El contacto se coordina al confirmar una reserva.")}</p>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Reseñas recientes</h2>
+            <h2 className={styles.cardTitle}>{t("Reseñas recientes")}</h2>
             <p className={styles.empty}>
-              Todavía no hay reseñas de este guía.
-            </p>
+              {t("Todavía no hay reseñas de este guía.")}</p>
           </article>
         </div>
       </div>

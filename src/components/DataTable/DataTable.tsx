@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { classNames } from '@/utils/format'
 import { Skeleton } from '@/components/Skeleton'
 import styles from './DataTable.module.css'
@@ -73,12 +75,13 @@ export function DataTable<T>({
   columns,
   rows,
   rowKey,
-  emptyMessage = 'Sin resultados.',
+  emptyMessage = t("Sin resultados."),
   emptyAction,
   isLoading = false,
-  loadingMessage = 'Cargando…',
-  label = 'Tabla de datos',
+  loadingMessage = t("Cargando…"),
+  label = t("Tabla de datos"),
 }: DataTableProps<T>) {
+  useLanguage()
   const hintId = useId()
   const { ref, scrollable } = useHorizontalOverflow(rows.length)
 
@@ -99,8 +102,7 @@ export function DataTable<T>({
     <>
       {scrollable && (
         <p id={hintId} className={styles.hint}>
-          Desliza la tabla en horizontal para ver todas las columnas.
-        </p>
+          {t("Desliza la tabla en horizontal para ver todas las columnas.")}</p>
       )}
 
       <div

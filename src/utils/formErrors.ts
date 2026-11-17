@@ -1,3 +1,4 @@
+import { translate as t } from '@/i18n/language'
 import { isApiError } from '@/services/httpClient'
 
 export type FieldErrors<K extends string> = Partial<Record<K, string>>
@@ -39,7 +40,7 @@ export function summaryOf<K extends string>(
   order: readonly K[],
 ): string {
   const named = order.filter((field) => fields[field] !== undefined)
-  return `Revisa los datos: ${named.map((field) => labels[field]).join(', ')}.`
+  return t("Revisa los datos: {0}.", [named.map((field) => labels[field]).join(', ')])
 }
 
 /**
@@ -64,7 +65,7 @@ export function fieldErrorsFrom<K extends string>(
   const fields: FieldErrors<K> = {}
   for (const field of order) {
     if (source[field] !== undefined) {
-      fields[field] = INVALID_FIELD
+      fields[field] = t(INVALID_FIELD)
     }
   }
 

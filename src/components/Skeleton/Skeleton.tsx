@@ -1,3 +1,5 @@
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { SierraProfile } from '@/components/SierraProfile'
 import { classNames } from '@/utils/format'
 import styles from './Skeleton.module.css'
@@ -38,13 +40,14 @@ export interface SkeletonProps {
 export function Skeleton({
   variant = 'text',
   count = 3,
-  label = 'Cargando',
+  label = t("Cargando"),
   className,
   visible = true,
   decorative = false,
   metaLines = 1,
   showPrice = true,
 }: SkeletonProps) {
+  useLanguage()
   const items = Array.from({ length: count }, (_, index) => index)
   const statusProps =
     decorative || !visible
