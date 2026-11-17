@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -45,7 +45,7 @@ function page(content: unknown[], totalPages = 1) {
 }
 
 function renderExplore(entry = '/explorar') {
-  return render(
+  const view = render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/explorar" element={<ExplorePage />} />
@@ -53,6 +53,8 @@ function renderExplore(entry = '/explorar') {
       </Routes>
     </MemoryRouter>,
   )
+  fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
+  return view
 }
 
 const SITE = {

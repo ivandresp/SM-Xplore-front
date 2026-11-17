@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -46,7 +46,7 @@ function page(content: unknown[]) {
 }
 
 function renderServices(entry = '/servicios') {
-  return render(
+  const view = render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/servicios" element={<ServiceListPage />} />
@@ -54,6 +54,8 @@ function renderServices(entry = '/servicios') {
       </Routes>
     </MemoryRouter>,
   )
+  fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
+  return view
 }
 
 function servicesFetch() {

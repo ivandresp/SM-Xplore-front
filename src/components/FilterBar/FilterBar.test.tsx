@@ -1,7 +1,13 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render as renderView, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { FilterBar } from './FilterBar'
+
+function render(...args: Parameters<typeof renderView>) {
+  const view = renderView(...args)
+  fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
+  return view
+}
 
 const FILTERS = [
   { key: 'zona', label: 'Zona', value: 'Centro' },
@@ -68,7 +74,7 @@ describe('FilterBar', () => {
     )
 
     expect(screen.getByText('2 filtros activos')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Mostrar filtros (2)' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Filtros' })).toBeTruthy()
   })
 
   it('usa singular con un solo filtro activo', () => {
@@ -84,7 +90,7 @@ describe('FilterBar', () => {
     )
 
     expect(screen.getByText('1 filtro activo')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Mostrar filtros (1)' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Filtros' })).toBeTruthy()
   })
 
   it('no inventa resumen cuando no hay filtros', () => {
@@ -118,29 +124,34 @@ describe('FilterBar', () => {
     expect(screen.getByRole('list').textContent).toBe('')
   })
 
-  it('colapsa los controles en móvil con aria-expanded', async () => {
+  it('oculta toda la tarjeta y alterna con el mismo botón conservando valores', async () => {
     const user = userEvent.setup()
-
-    render(
-      <FilterBar
-        activeFilters={[]}
-        onRemoveFilter={vi.fn()}
-        onClearFilters={vi.fn()}
-        resultSummary="0 resultados"
-      >
-        <label>Control</label>
+    renderView(
+      <FilterBar activeFilters={FILTERS} onRemoveFilter={vi.fn()} onClearFilters={vi.fn()} resultSummary="12 resultados">
+        <input aria-label="Buscar" defaultValue="playa" />
       </FilterBar>,
     )
-
-    const toggle = screen.getByRole('button', { name: 'Mostrar filtros' })
+    const toggle = screen.getByRole('button', { name: 'Filtros' })
+    const panel = document.getElementById(toggle.getAttribute('aria-controls')!)!
     expect(toggle.getAttribute('aria-expanded')).toBe('false')
-
+    expect(toggle.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true')
+    expect(panel.hidden).toBe(true)
+    expect(screen.queryByRole('textbox', { name: 'Buscar' })).toBeNull()
+    expect(screen.queryByRole('status')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).toBeNull()
     await user.click(toggle)
-
-    expect(
-      screen.getByRole('button', { name: 'Ocultar filtros' }).getAttribute(
-        'aria-expanded',
-      ),
-    ).toBe('true')
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(panel.hidden).toBe(false)
+    const input = screen.getByRole('textbox', { name: 'Buscar' }) as HTMLInputElement
+    await user.clear(input)
+    await user.type(input, 'taganga')
+    await user.click(toggle)
+    expect(panel.hidden).toBe(true)
+    expect(screen.queryByRole('textbox')).toBeNull()
+    expect(document.activeElement).toBe(toggle)
+    await user.keyboard('{Enter}')
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('taganga')
+    expect(screen.getByRole('button', { name: 'Filtros' })).toBe(toggle)
   })
 })

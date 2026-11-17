@@ -33,6 +33,7 @@ describe('mínimo de búsqueda en todos los catálogos', () => {
     })))
     const request = vi.spyOn(api, 'list').mockResolvedValue(emptyPage)
     render(<MemoryRouter initialEntries={[`/?${key}=ab`]}><Page /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
     await act(() => vi.advanceTimersByTimeAsync(1000))
     expect(request).not.toHaveBeenCalled()
     expect(screen.getByText('Escribe al menos 3 caracteres para buscar.')).toBeTruthy()

@@ -44,6 +44,7 @@ describe('categorías en filtros y creación', () => {
   ] as const)('%s filtra por una categoría general corta sin debounce de texto y permite limpiar', async (scope, Page, api) => {
     const request = vi.spyOn(api, 'list').mockResolvedValue(emptyPage)
     render(<MemoryRouter><Page /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
     await choose('Categoría', 'Fe')
     await waitFor(() => expect(request).toHaveBeenLastCalledWith(expect.objectContaining({ category: 'Fe' })))
     expect(categoriesApi.listPage).toHaveBeenCalledWith({ scope, page: 0, size: 100 })
