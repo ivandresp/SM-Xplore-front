@@ -16,16 +16,10 @@ import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { useFormValidation } from '@/hooks/useFormValidation'
 import { usersApi } from '@/services/usersApi'
-import type { PreferenceSource } from '@/types'
 import { describeApiError, logApiError } from '@/utils/errors'
 import { formatMonthYear } from '@/utils/format'
 import { usePreferences } from './usePreferences'
 import styles from './profile.module.css'
-
-const PREFERENCE_SOURCE_LABEL: Record<PreferenceSource, string> = {
-  get EXPLICIT() { return t("Elegida por ti") },
-  get INFERRED() { return t("Deducida de tus visitas") },
-}
 
 interface ProfileDraft {
   fullName: string
@@ -93,7 +87,12 @@ export default function MyProfilePage() {
     { label: t("Nombre completo"), value: currentUser.fullName },
     { label: t("Correo electrónico"), value: currentUser.email },
     { label: t("Teléfono"), value: currentUser.phone },
-    { label: t("Ciudad"), value: '—' },
+    {
+      label: isTourist ? t('País') : t('Ciudad'),
+      value: currentUser.role === 'TOURIST'
+        ? currentUser.profile?.nationality?.trim() || '—'
+        : '—',
+    },
   ]
 
   const accountItems: DefItem[] = [
@@ -299,11 +298,7 @@ export default function MyProfilePage() {
                         categoryNames.get(preference.categoryId) ?? t("Categoría")
 
                       return (
-                        <li key={preference.categoryId} className={styles.prefRow}>
-                          <span className={styles.prefName}>{name}</span>
-                          <span className={styles.prefMeta}>
-                            {PREFERENCE_SOURCE_LABEL[preference.source]}
-                          </span>
+                        <li key={preference.categoryId}>
                           <button
                             type="button"
                             className={styles.prefChip}
@@ -311,7 +306,9 @@ export default function MyProfilePage() {
                             disabled={savingCategory === preference.categoryId}
                             aria-label={t("Quitar {0}", [name])}
                           >
-                            {t("Quitar")}</button>
+                            <span className={styles.prefName}>{name}</span>
+                            <span aria-hidden="true">×</span>
+                          </button>
                         </li>
                       )
                     })}
