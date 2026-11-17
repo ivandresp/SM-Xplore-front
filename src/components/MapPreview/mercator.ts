@@ -91,24 +91,26 @@ export function coordinatePoint(
   return { latitude, longitude }
 }
 
-/** Ventana cuadrada centrada en el punto, en los tiles que la cubren. */
+/** Ventana centrada en el punto, en los tiles que la cubren. */
 export function mercatorFrame(
   latitude: number,
   longitude: number,
   zoom: number,
   size = TILE_SIZE,
+  height = size,
 ): MapFrame {
   const viewportSize = Number.isFinite(size) && size > 0 ? size : TILE_SIZE
+  const viewportHeight = Number.isFinite(height) && height > 0 ? height : viewportSize
   const frameZoom = clampZoom(zoom)
   const world = 2 ** frameZoom
   const point = projectPoint(latitude, longitude, frameZoom)
   const windowLeft = point.x * TILE_SIZE - viewportSize / 2
-  const windowTop = point.y * TILE_SIZE - viewportSize / 2
+  const windowTop = point.y * TILE_SIZE - viewportHeight / 2
 
   const firstColumn = Math.floor(windowLeft / TILE_SIZE)
   const lastColumn = Math.ceil((windowLeft + viewportSize) / TILE_SIZE) - 1
   const firstRow = Math.max(0, Math.floor(windowTop / TILE_SIZE))
-  const lastRow = Math.min(world - 1, Math.ceil((windowTop + viewportSize) / TILE_SIZE) - 1)
+  const lastRow = Math.min(world - 1, Math.ceil((windowTop + viewportHeight) / TILE_SIZE) - 1)
 
   const tiles: TileRef[] = []
   for (let row = firstRow; row <= lastRow; row += 1) {
@@ -126,7 +128,7 @@ export function mercatorFrame(
     zoom: frameZoom,
     tiles,
     markerLeft: viewportSize / 2,
-    markerTop: viewportSize / 2,
+    markerTop: viewportHeight / 2,
   }
 }
 

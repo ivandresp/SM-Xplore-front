@@ -225,3 +225,22 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+.categoryLink {
+  justify-self: start;
+  color: var(--color-link);
+  text-underline-offset: 0.2em;
+}
+
+.categoryLink:hover {
+  color: var(--color-link-hover);
+}
+
+.categoryLink:active {
+  color: var(--color-primary);
+}
+
+.categoryLink:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 3px;
+}

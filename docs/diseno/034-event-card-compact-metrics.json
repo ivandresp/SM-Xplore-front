@@ -1,0 +1,28 @@
+{
+  "stats": {
+    "startTime": "2026-11-17T09:16:13.095Z",
+    "duration": 13326.937,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "viewports": [
+    375,
+    768,
+    1280,
+    1920
+  ],
+  "languages": [
+    "es",
+    "en"
+  ],
+  "tests": 493,
+  "files": 74,
+  "assertions": [
+    "badge top equals category top within2px",
+    "price beside badge beneath category",
+    "badge stays below image and right aligned",
+    "no horizontal overflow"
+  ]
+}

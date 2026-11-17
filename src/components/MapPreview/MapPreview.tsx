@@ -32,6 +32,9 @@ export interface MapPreviewProps {
   zoomControls?: boolean
   /** Tamaño exterior del viewport, incluyendo borde; hasta 512 px. */
   size?: number
+  /** Dimensiones exteriores independientes; hasta 1024 px cada una. */
+  width?: number
+  height?: number
   showMarker?: boolean
   /** Solo desplaza los tiles visibles, sin consultas durante un arrastre. */
   panOffset?: { x: number; y: number }
@@ -42,6 +45,12 @@ function viewportSize(size = 256): number {
   return Number.isFinite(size) ? Math.max(1, Math.min(512, Math.floor(size))) : 256
 }
 
+function viewportDimension(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value)
+    ? Math.max(1, Math.min(1024, Math.floor(value)))
+    : fallback
+}
+
 /**
  * Mapa sin edición de ubicación ni librería: pinta los tiles de OpenStreetMap
  * que cubren las coordenadas y un marcador en el centro.
@@ -50,7 +59,10 @@ function viewportSize(size = 256): number {
  * en producción toca proveedor con cuota o self-host.
  */
 export function MapPreview(props: MapPreviewProps) {
-  const origin = `${props.latitude},${props.longitude}/${clampZoom(props.zoom ?? DEFAULT_ZOOM, DEFAULT_ZOOM)}/${props.zoomControls ?? false}/${viewportSize(props.size)}`
+  const fallbackSize = viewportSize(props.size)
+  const width = viewportDimension(props.width, fallbackSize)
+  const height = viewportDimension(props.height, fallbackSize)
+  const origin = `${props.latitude},${props.longitude}/${clampZoom(props.zoom ?? DEFAULT_ZOOM, DEFAULT_ZOOM)}/${props.zoomControls ?? false}/${width}x${height}`
   return <MapContent key={origin} {...props} />
 }
 
@@ -61,19 +73,23 @@ function MapContent({
   zoom = DEFAULT_ZOOM,
   zoomControls = false,
   size,
+  width,
+  height,
   showMarker = true,
   panOffset,
   onLoadStateChange,
 }: MapPreviewProps) {
   useLanguage()
   const point = coordinatePoint(latitude, longitude)
-  const viewSize = viewportSize(size)
-  const viewportStyle = { width: viewSize, height: viewSize }
+  const fallbackSize = viewportSize(size)
+  const viewWidth = viewportDimension(width, fallbackSize)
+  const viewHeight = viewportDimension(height, fallbackSize)
+  const viewportStyle = { width: viewWidth, height: viewHeight }
   const [zoomLevel, setZoomLevel] = useState(() => clampZoom(zoom, DEFAULT_ZOOM))
   const frame =
     point === null
       ? null
-      : mercatorFrame(point.latitude, point.longitude, zoomLevel, Math.max(1, viewSize - 2))
+      : mercatorFrame(point.latitude, point.longitude, zoomLevel, Math.max(1, viewWidth - 2), Math.max(1, viewHeight - 2))
 
   /** Los avances se recuerdan por juego de tiles: cambiar de ficha los reinicia. */
   const [progress, setProgress] = useState<{
@@ -147,7 +163,7 @@ function MapContent({
 
   return (
     <div className={styles.wrapper}>
-      <div className={styles.mapFrame} style={{ width: viewSize }}>
+      <div className={styles.mapFrame} style={{ width: viewWidth }}>
         {showFallback ? (
           <div className={styles.viewport} style={viewportStyle}>
             <p className={styles.empty}>

@@ -88,6 +88,20 @@ describe('clampZoom', () => {
 })
 
 describe('mercatorFrame', () => {
+  it('centra una ventana rectangular y cubre sus cuatro esquinas sin estirar tiles', () => {
+    const frame = mercatorFrame(11.2404, -74.199, 14, 800, 450)
+    expect(frame.markerLeft).toBe(400)
+    expect(frame.markerTop).toBe(225)
+    for (const [x, y] of [[0, 0], [799, 0], [0, 449], [799, 449]]) {
+      expect(frame.tiles.some((tile) => tile.left <= x && tile.left + TILE_SIZE > x
+        && tile.top <= y && tile.top + TILE_SIZE > y)).toBe(true)
+    }
+    const point = projectPoint(11.2404, -74.199, 14)
+    const centerTile = frame.tiles.find((tile) => tile.x === Math.floor(point.x) && tile.y === Math.floor(point.y))!
+    expect(centerTile.left + (point.x % 1) * TILE_SIZE).toBeCloseTo(400, 6)
+    expect(centerTile.top + (point.y % 1) * TILE_SIZE).toBeCloseTo(225, 6)
+  })
+
   it('reserva una ventana configurable centrada en las coordenadas', () => {
     const frame = mercatorFrame(0, 0, 14, 320)
     expect(frame.markerLeft).toBe(160)

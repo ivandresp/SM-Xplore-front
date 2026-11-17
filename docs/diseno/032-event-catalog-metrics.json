@@ -1,0 +1,30 @@
+{
+  "stats": {
+    "startTime": "2026-11-17T09:08:33.092Z",
+    "duration": 13200.355,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "viewports": [
+    375,
+    768,
+    1280,
+    1920
+  ],
+  "languages": [
+    "es",
+    "en"
+  ],
+  "tests": 493,
+  "files": 74,
+  "horizontalOverflow": 0,
+  "catalog": "six event fixtures including long titles and free event",
+  "navigation": [
+    "Enter",
+    "click media fallback",
+    "click category"
+  ],
+  "api": "fixtures; no live writes"
+}

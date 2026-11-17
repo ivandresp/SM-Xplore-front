@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
-import { Button } from '@/components/Button'
 import { Media } from '@/components/Media'
 import type { Site } from '@/types'
 import styles from './SiteCard.module.css'
@@ -14,23 +13,18 @@ export interface SiteCardProps {
   categoryName?: string | undefined
 }
 
-/** Tarjeta del catálogo de atractivos: foto (si hay), nombre, zona y coordenadas. */
+/** Tarjeta del catálogo de atractivos: foto (si hay), nombre y zona; el enlace abarca toda la tarjeta. */
 export function SiteCard({ site, zoneName, categoryName }: SiteCardProps) {
   useLanguage()
   return (
-    <article className={styles.card}>
+    <Link className={styles.card} to={`/atractivos/${site.id}`} aria-label={site.name}>
       <Media photo={site.photoUrls[0]} chip={categoryName} />
 
       <h3 className={styles.name}>{site.name}</h3>
       <p className={styles.meta}>
-        {zoneName ?? t("Zona sin publicar")} · {site.latitude.toFixed(4)},{' '}
-        {site.longitude.toFixed(4)}
+        {zoneName ?? t("Zona sin publicar")}
       </p>
 
-      <Link to={`/atractivos/${site.id}`}>
-        <Button variant="outline" block>
-          {t("Ver detalle")}</Button>
-      </Link>
-    </article>
+    </Link>
   )
 }

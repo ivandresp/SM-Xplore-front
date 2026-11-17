@@ -521,6 +521,7 @@ export default function ZoneFormPage() {
                 noValidate
               >
                 <h3 className={styles.siteFormTitle}>{t("Añadir sitio")}</h3>
+                <Link className={styles.categoryLink} to="/app/categorias">{t("Registrar categorías")}</Link>
 
                 <Field
                   label={t("Nombre del sitio o atractivo")}

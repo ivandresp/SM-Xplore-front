@@ -1,0 +1,31 @@
+{
+  "stats": {
+    "startTime": "2026-11-17T08:54:05.380Z",
+    "duration": 22340.255,
+    "expected": 20,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "viewports": [
+    375,
+    768,
+    1280
+  ],
+  "languages": [
+    "es",
+    "en"
+  ],
+  "frontendTests": 491,
+  "testFiles": 73,
+  "eventMap": "full column width up to1024; height16:9 clamped220..512",
+  "horizontalOverflow": 0,
+  "resize": "1280 to375 verified",
+  "errors": [
+    "site404",
+    "site500",
+    "OSM tiles offline fallback"
+  ],
+  "regression": "11 existing site catalog/gallery cases pass",
+  "api": "fixtures; no live writes"
+}

@@ -6,7 +6,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { FilterBar } from '@/components/FilterBar'
 import type { ActiveFilter } from '@/components/FilterBar'
-import { Media } from '@/components/Media'
+import { EventCard } from '@/components/EventCard'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Pagination } from '@/components/Pagination/Pagination'
 import { SearchInput } from '@/components/SearchInput/SearchInput'
@@ -73,20 +73,6 @@ function formatDate(value: string): string {
     month: 'short',
     year: 'numeric',
   }).format(new Date(`${value}T00:00:00`))
-}
-
-function dateParts(value: string) {
-  const date = new Date(value)
-  return {
-    day: new Intl.DateTimeFormat(getLocale(), { day: 'numeric' }).format(date),
-    month: new Intl.DateTimeFormat(getLocale(), { month: 'short' })
-      .format(date)
-      .replace('.', ''),
-    time: new Intl.DateTimeFormat(getLocale(), {
-      hour: 'numeric',
-      minute: '2-digit',
-    }).format(date),
-  }
 }
 
 export default function EventListPage() {
@@ -434,43 +420,8 @@ export default function EventListPage() {
         )}
 
         {result !== null && error === null && result.content.length > 0 && !holdSkeleton && (
-          <div className={styles.list}>
-            {result.content.map((event) => {
-              const { day, month, time } = dateParts(event.startsAt)
-              return (
-                <article key={event.id} className={styles.row}>
-                  <div className={styles.dateBadge}>
-                    <span className={styles.dateDay}>{day}</span>
-                    <span className={styles.dateMonth}>{month}</span>
-                  </div>
-
-                  <Media className={styles.thumb} />
-
-                  <div className={styles.body}>
-                    <h2 className={styles.title}>{event.name}</h2>
-                    <p className={styles.meta}>
-                      {event.category} · {time} ·{' '}
-                      {event.siteName ||
-                        siteNameById.get(event.siteId) ||
-                        t("Lugar por confirmar")}{' '}
-                      {t("· aforo")}{" "}{event.maxCapacity}
-                    </p>
-                  </div>
-
-                  <div className={styles.side}>
-                    <span className={styles.price}>
-                      {event.price === 0
-                        ? t("Gratis")
-                        : formatCurrency(event.price)}
-                    </span>
-                    <Link to={`/eventos/${event.id}`}>
-                      <Button variant="outline" size="sm">
-                        {t("Ver detalle")}</Button>
-                    </Link>
-                  </div>
-                </article>
-              )
-            })}
+          <div className={styles.eventCards}>
+            {result.content.map((event) => <EventCard key={event.id} event={event} />)}
           </div>
         )}
 

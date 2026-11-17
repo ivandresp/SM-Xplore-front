@@ -1,0 +1,5 @@
+# Pie compacto de la tarjeta de evento
+
+Agrupar categoría/precio en columna izquierda del footer, fecha en derecha abarcando dos filas y align-self:start. Eliminar margin-top:auto y alinear top de fecha con categoría. Mantener enlace/imagen/datos. Grid minmax(0,1fr) auto para texto sin solapar badge. No pruebas unitarias nuevas para CSS trivial; actualizar geometría navegador a categoríaTop=fechaTop y precio junto al badge, puertas y auditorreadonly. Skills normativas indisponibles; no simular uso.
+
+Resultados: typecheck/lint/test/build exit0;74 archivos/493 pruebas, cinco avisos lint previos. Navegador8 esperados/0inesperados/0omitidos/0inestables,13,33s;375/768/1280/1920 ES/EN. Topfecha=topcategoría con tolerancia2px, precio debajo de categoría/junto a badge, sin solapamiento imagen/overflow. Capturas032 actualizadas; inspección visual1280 confirma pie compacto. Auditor readonly audit_media_grid PASA: tracks separados, nombre/locale/enlace intactos. No probado precios/textos extremos, Safari/iOS físico ni zoom200%/lector pantalla. API simulada. Skills normativas indisponibles, no atribuidas; sin backend/deps ni commit/push/PR.
