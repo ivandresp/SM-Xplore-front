@@ -11,6 +11,24 @@
 
 .logoLink {
   display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-width: 2.75rem;
+  min-height: var(--control-h-md);
+  border-radius: var(--radius-sm);
+}
+
+.logoLink:hover {
+  opacity: 0.9;
+}
+
+.logoLink:active {
+  opacity: 0.8;
+}
+
+.logoLink:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
 }
 
 .searchWrap {

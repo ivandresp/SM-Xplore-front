@@ -415,7 +415,7 @@ export function TopBar({
         aria-label={t("SM-Xplore, ir al inicio")}
         className={styles.logoLink}
       >
-        <Logo tone={tone === 'dark' ? 'inverse' : 'default'} />
+        <Logo />
       </Link>
 
       {search && <GlobalSearch />}
