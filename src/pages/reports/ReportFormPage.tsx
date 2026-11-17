@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
+import { useReportsPath } from '@/hooks/useReportsPath'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { ImageUploader } from '@/components/ImageUploader'
@@ -56,6 +57,7 @@ const LOCATION_MESSAGES: Record<
  */
 export default function ReportFormPage() {
   useLanguage()
+  const reportsPath = useReportsPath()
   const navigate = useNavigate()
   const {
     status: locationStatus,
@@ -123,7 +125,7 @@ export default function ReportFormPage() {
         ...(photoUrls.length === 0 ? {} : { photosUrls: photoUrls }),
       })
 
-      navigate('/reportes')
+      navigate(reportsPath)
     } catch (cause) {
       if (!form.applyValidationErrors(cause)) {
         failWith(() => describeApiError(cause))
@@ -149,7 +151,7 @@ export default function ReportFormPage() {
 
   return (
     <div className={styles.page}>
-      <Link to="/reportes" className={styles.back}>
+      <Link to={reportsPath} className={styles.back}>
         {t("← Volver a mis reportes")}</Link>
 
       <PageHeader
@@ -272,7 +274,7 @@ export default function ReportFormPage() {
             disabled={isUploadingPhotos || isLocating}
           >
             {t("Enviar reporte")}</Button>
-          <Link to="/reportes">
+          <Link to={reportsPath}>
             <Button variant="outline" size="lg">
               {t("Cancelar")}</Button>
           </Link>

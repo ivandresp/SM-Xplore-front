@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
+import { useReportsPath } from '@/hooks/useReportsPath'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
@@ -31,6 +32,7 @@ const FILTERS: Array<{ label: string; status?: SecurityReportStatus }> = [
 /** Reportes del propio usuario. El feed comunitario es solo para gestoras y admins. */
 export default function MyReportsPage() {
   useLanguage()
+  const reportsPath = useReportsPath()
   const { user } = useAuth()
 
   const [reports, setReports] = useState<SecurityReportResponse[]>([])
@@ -113,7 +115,7 @@ export default function MyReportsPage() {
         meta={`${filtered.length} ${filtered.length === 1 ? 'reporte' : 'reportes'}`}
         description={t("Lo que has reportado a las autoridades de destino.")}
         actions={
-          <Link to="/reportes/nuevo">
+          <Link to={`${reportsPath}/nuevo`}>
             <Button variant="accent">{t("Nuevo reporte")}</Button>
           </Link>
         }
@@ -165,7 +167,7 @@ export default function MyReportsPage() {
           title={t("Todavía no has reportado nada")}
           description={t("Cuéntanos qué pasó y dónde; las gestoras de destino recibirán el aviso.")}
           action={
-            <Link to="/reportes/nuevo">
+            <Link to={`${reportsPath}/nuevo`}>
               <Button variant="accent">{t("Crear el primer reporte")}</Button>
             </Link>
           }
@@ -220,7 +222,7 @@ export default function MyReportsPage() {
                 {comments[report.id] ?? 0}{' '}
                 {(comments[report.id] ?? 0) === 1 ? 'respuesta' : 'respuestas'}
               </span>
-              <Link to={`/reportes/${report.id}`} className={styles.linkButton}>
+              <Link to={`${reportsPath}/${report.id}`} className={styles.linkButton}>
                 {t("Ver detalle y responder")}</Link>
             </div>
           </article>

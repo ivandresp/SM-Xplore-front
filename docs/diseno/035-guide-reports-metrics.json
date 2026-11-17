@@ -1,0 +1,40 @@
+{
+  "stats": {
+    "startTime": "2026-11-17T09:42:37.313Z",
+    "duration": 17453.446,
+    "expected": 13,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "desktopViewports": [
+    1280,
+    1920
+  ],
+  "mobileViewport": 375,
+  "languages": [
+    "es",
+    "en"
+  ],
+  "tests": 515,
+  "testFiles": 77,
+  "guideFlow": [
+    "dashboard sidebar",
+    "own reports",
+    "detail",
+    "back",
+    "new",
+    "cancel",
+    "create500 retains draft",
+    "create success stays panel"
+  ],
+  "guideGlobalReportRequests": 0,
+  "regressions": [
+    "admin/manager management remains",
+    "tourist/provider public screens remain",
+    "anonymous redirected to login",
+    "guide legacy query/hash preserved"
+  ],
+  "horizontalOverflow": 0,
+  "api": "fixtures; no live writes"
+}

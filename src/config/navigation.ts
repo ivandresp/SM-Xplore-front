@@ -6,7 +6,7 @@ export interface NavItem {
   to: string
   /**
    * Rutas alternativas en el shell público según el rol: el turista (y, para
-   * reportes, también guía y prestadora) vive fuera del panel.
+   * reportes, también prestadora) vive fuera del panel.
    */
   publicTo?: Partial<Record<UserRole, string>>
   label: string
@@ -97,7 +97,6 @@ export const NAV_ITEMS: NavItem[] = [
     to: '/app/reportes',
     publicTo: {
       TOURIST: '/reportes',
-      GUIDE: '/reportes',
       SERVICE_PROVIDER: '/reportes',
     },
     get label() { return t("Reportes de seguridad") },

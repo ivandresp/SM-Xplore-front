@@ -4,6 +4,7 @@ import { Link, useParams } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
+import { useReportsPath } from '@/hooks/useReportsPath'
 import { Button } from '@/components/Button'
 import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -44,7 +45,7 @@ export default function ReportDetailPage() {
 
   const canManage =
     user?.role === 'ADMIN' || user?.role === 'DESTINATION_MANAGER'
-  const backTo = canManage ? '/app/reportes' : '/reportes'
+  const backTo = useReportsPath()
   const backLabel = canManage
     ? t("Volver a gestión de reportes")
     : t("Volver a mis reportes")
