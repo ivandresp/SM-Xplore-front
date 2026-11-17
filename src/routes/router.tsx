@@ -44,7 +44,6 @@ import {
   OnboardingPage,
   RecommendationsPage,
   ReservationDetailPage,
-  ManageReportsPage,
   MyReportsPage,
   ReportDetailPage,
   ReportFormPage,
@@ -53,6 +52,7 @@ import {
   RegistrationsQueuePage,
 } from './pages'
 import { RequireAuth, RequireRole } from './guards'
+import { GuideReportRedirect, PanelReportsPage } from './ReportRoutes'
 import { RouterFallback } from './RouterFallback'
 
 
@@ -163,7 +163,7 @@ export const router = createBrowserRouter([
         path: 'reportes',
         element: (
           <RequireRole roles={['TOURIST', 'GUIDE', 'SERVICE_PROVIDER']}>
-            <MyReportsPage />
+            <GuideReportRedirect><MyReportsPage /></GuideReportRedirect>
           </RequireRole>
         ),
       },
@@ -171,7 +171,7 @@ export const router = createBrowserRouter([
         path: 'reportes/nuevo',
         element: (
           <RequireRole roles={['TOURIST', 'GUIDE', 'SERVICE_PROVIDER']}>
-            <ReportFormPage />
+            <GuideReportRedirect><ReportFormPage /></GuideReportRedirect>
           </RequireRole>
         ),
       },
@@ -179,7 +179,7 @@ export const router = createBrowserRouter([
         path: 'reportes/:reportId',
         element: (
           <RequireRole roles={['TOURIST', 'GUIDE', 'SERVICE_PROVIDER']}>
-            <ReportDetailPage />
+            <GuideReportRedirect><ReportDetailPage /></GuideReportRedirect>
           </RequireRole>
         ),
       },
@@ -357,19 +357,27 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
       },
-      /* Reportes de seguridad (gestora y admin) — wireframe 13-UC4 */
+      /* Reportes de seguridad (guía en vista propia; gestora/admin en gestión) — wireframe 13-UC4 */
       {
         path: 'reportes',
         element: (
-          <RequireRole roles={['DESTINATION_MANAGER', 'ADMIN']}>
-            <ManageReportsPage />
+          <RequireRole roles={['GUIDE', 'DESTINATION_MANAGER', 'ADMIN']}>
+            <PanelReportsPage />
+          </RequireRole>
+        ),
+      },
+      {
+        path: 'reportes/nuevo',
+        element: (
+          <RequireRole roles={['GUIDE']}>
+            <ReportFormPage />
           </RequireRole>
         ),
       },
       {
         path: 'reportes/:reportId',
         element: (
-          <RequireRole roles={['DESTINATION_MANAGER', 'ADMIN']}>
+          <RequireRole roles={['GUIDE', 'DESTINATION_MANAGER', 'ADMIN']}>
             <ReportDetailPage />
           </RequireRole>
         ),

@@ -1,7 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { usersApi } from '@/services/usersApi'
 import UsersPage from './UsersPage'
 
 const GUIDE = {
@@ -48,8 +49,37 @@ function renderUsers() {
 }
 
 describe('UsersPage', () => {
+  it('no consulta con texto corto y exige también los 350ms; borrar restablece', async () => {
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL) => jsonResponse({
+      content: [GUIDE], page: 0, size: 10, totalElements: 1, totalPages: 1,
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+    const list = vi.spyOn(usersApi, 'list')
+    renderUsers()
+    await screen.findByText('Ana Guía')
+    vi.useFakeTimers()
+    const input = screen.getByRole('searchbox')
+    list.mockClear()
+    fireEvent.change(input, { target: { value: ' a ' } })
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    expect(list).not.toHaveBeenCalled()
+    fireEvent.change(input, { target: { value: 'ana' } })
+    await act(() => vi.advanceTimersByTimeAsync(349))
+    expect(list).not.toHaveBeenCalled()
+    await act(() => vi.advanceTimersByTimeAsync(1))
+    expect(list).toHaveBeenCalledTimes(1)
+    expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ q: 'ana' }))
+    list.mockClear()
+    fireEvent.change(input, { target: { value: '' } })
+    await act(() => vi.advanceTimersByTimeAsync(350))
+    expect(list).toHaveBeenCalledTimes(1)
+    expect(list).toHaveBeenLastCalledWith(expect.objectContaining({ q: undefined }))
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.useRealTimers()
+    vi.restoreAllMocks()
   })
 
   it('pinta la página que devuelve el servidor y su estado de prestadora', async () => {

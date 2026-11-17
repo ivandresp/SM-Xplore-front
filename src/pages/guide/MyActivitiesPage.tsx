@@ -80,29 +80,39 @@ export default function MyActivitiesPage() {
   const columns: Column<ActivityResponse>[] = [
     {
       header: t("Actividad"),
+      className: styles.activityTitleColumn,
       render: (activity) => (
-        <div>
-          <p className={styles.summaryValue}>{activity.name}</p>
-          <p className={styles.muted}>
-            {activity.category} · {formatCurrency(activity.price)}
-          </p>
-        </div>
+        <p className={styles.activityTitle}>{activity.name}</p>
       ),
     },
     {
+      header: t("Categoría"),
+      className: styles.activityDataColumn,
+      render: (activity) => activity.category,
+    },
+    {
+      header: t("Precio"),
+      className: styles.activityDataColumn,
+      render: (activity) => formatCurrency(activity.price),
+    },
+    {
       header: t("Duración"),
+      className: styles.activityDataColumn,
       render: (activity) => formatDuration(activity.durationMinutes),
     },
     {
       header: t("Capacidad"),
+      className: styles.activityDataColumn,
       render: (activity) => t("{0} personas", [activity.maxCapacity]),
     },
     {
       header: t("Primera fecha"),
+      className: styles.activityDataColumn,
       render: (activity) => formatDate(activity.startsAt),
     },
     {
       header: t("Estado"),
+      className: styles.activityDataColumn,
       render: (activity) => (
         <StatusBadge tone={ACTIVITY_STATUS_TONES[activity.status]}>
           {ACTIVITY_STATUS_LABELS[activity.status]}
@@ -111,9 +121,10 @@ export default function MyActivitiesPage() {
     },
     {
       header: t("Acciones"),
+      className: styles.activityDataColumn,
       align: 'right',
       render: (activity) => (
-        <div className={styles.actions}>
+        <div className={styles.activityActions}>
           <Link to={`/app/mis-actividades/${activity.id}`}>
             <Button variant="outline" size="sm">
               {t("Editar")}</Button>

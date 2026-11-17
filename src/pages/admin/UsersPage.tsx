@@ -21,6 +21,7 @@ import {
   PROVIDER_STATUS_TONES,
   ROLE_LABELS,
 } from '@/config/roles'
+import { isSearchReady } from '@/config/search'
 import { usersApi } from '@/services/usersApi'
 import { describeApiError } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
@@ -90,6 +91,7 @@ export default function UsersPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      if (!isSearchReady(term)) return
       setDebouncedTerm(term)
       setPage(1)
     }, 350)

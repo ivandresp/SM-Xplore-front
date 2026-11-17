@@ -13,6 +13,7 @@ import { SelectField } from '@/components/SelectField'
 import { SiteCard } from '@/components/SiteCard/SiteCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import { isSearchReady } from '@/config/search'
 import { CATALOG_SKELETON_COUNT } from '@/config/catalog'
 import { useFilterParam, useSearchParamTerm } from '@/hooks/useFilterParam'
 import { useDelayedLoading } from '@/hooks/useDelayedLoading'
@@ -80,6 +81,12 @@ export default function SiteListPage() {
     let cancelled = false
     const current = new URLSearchParams(queryKey)
 
+    if (!isSearchReady(current.get('search'))) {
+      setIsLoading(false)
+      setError(null)
+      return
+    }
+
     setIsLoading(true)
 
     sitesApi
@@ -125,9 +132,10 @@ export default function SiteListPage() {
     [categories],
   )
 
+  const appliedSearch = params.get('search')?.trim() ?? ''
   const activeFilters: ActiveFilter[] = []
-  if (term.trim() !== '') {
-    activeFilters.push({ key: 'search', label: t("Buscar"), value: term.trim() })
+  if (appliedSearch !== '') {
+    activeFilters.push({ key: 'search', label: t("Buscar"), value: appliedSearch })
   }
   if (zoneId !== '') {
     activeFilters.push({
@@ -189,7 +197,9 @@ export default function SiteListPage() {
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isBusy
+  const resultSummary = !isSearchReady(term)
+    ? t("Escribe al menos 3 caracteres para buscar.")
+    : isBusy
     ? t("Buscando…")
     : error !== null
       ? t("Resultados no disponibles")

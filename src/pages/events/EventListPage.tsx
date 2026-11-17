@@ -4,6 +4,7 @@ import { useMessageState } from '@/hooks/useMessageState'
 import { getLocale, translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
+import { CategorySelect } from '@/components/CategorySelect'
 import { FilterBar } from '@/components/FilterBar'
 import type { ActiveFilter } from '@/components/FilterBar'
 import { EventCard } from '@/components/EventCard'
@@ -13,12 +14,12 @@ import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import { isSearchReady } from '@/config/search'
 import { CATALOG_SKELETON_COUNT, MAX_PRICE_OPTIONS } from '@/config/catalog'
 import { useAuth } from '@/hooks/useAuth'
 import {
   useFilterParam,
   useSearchParamTerm,
-  useSearchParamText,
 } from '@/hooks/useFilterParam'
 import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { eventsApi } from '@/services/eventsApi'
@@ -39,11 +40,11 @@ const PAGE_SIZE = 10
 
 
 const SORT_OPTIONS: Array<{ value: EventSort; label: string }> = [
-  { value: 'dateAsc', get label() { return t("Fecha: próximos primero") } },
-  { value: 'dateDesc', get label() { return t("Fecha: últimos primero") } },
-  { value: 'priceAsc', get label() { return t("Precio: menor a mayor") } },
-  { value: 'priceDesc', get label() { return t("Precio: mayor a menor") } },
-  { value: 'name', get label() { return t("Nombre (A–Z)") } },
+  { value: 'dateAsc', get label() { return t("Fecha ascendente") } },
+  { value: 'dateDesc', get label() { return t("Fecha descendente") } },
+  { value: 'priceAsc', get label() { return t("Precio ascendente") } },
+  { value: 'priceDesc', get label() { return t("Precio descendente") } },
+  { value: 'name', get label() { return t("Nombre ascendente") } },
 ]
 
 const FILTER_KEYS = [
@@ -80,7 +81,7 @@ export default function EventListPage() {
   const { user, isAuthenticated } = useAuth()
   const [params, setParams] = useSearchParams()
   const [term, setTerm] = useSearchParamTerm()
-  const [category, setCategory] = useSearchParamText('categoria')
+  const [category, setCategory] = useFilterParam('categoria')
   const [siteId, setSiteId] = useFilterParam(t("sitio"))
   const [maxPrice, setMaxPrice] = useFilterParam('precioMax')
   const [fromDate, setFromDate] = useFilterParam('desde')
@@ -126,6 +127,12 @@ export default function EventListPage() {
   useEffect(() => {
     let cancelled = false
     const current = new URLSearchParams(queryKey)
+
+    if (!isSearchReady(current.get('search'))) {
+      setIsLoading(false)
+      setError(null)
+      return
+    }
 
     setIsLoading(true)
 
@@ -186,15 +193,17 @@ export default function EventListPage() {
     [sites],
   )
 
+  const appliedSearch = params.get('search')?.trim() ?? ''
+  const appliedCategory = params.get('categoria')?.trim() ?? ''
   const activeFilters: ActiveFilter[] = []
-  if (term.trim() !== '') {
-    activeFilters.push({ key: 'search', label: t("Buscar"), value: term.trim() })
+  if (appliedSearch !== '') {
+    activeFilters.push({ key: 'search', label: t("Buscar"), value: appliedSearch })
   }
-  if (category.trim() !== '') {
+  if (appliedCategory !== '') {
     activeFilters.push({
       key: 'categoria',
       label: t("Categoría"),
-      value: category.trim(),
+      value: appliedCategory,
     })
   }
   if (siteId !== '') {
@@ -265,7 +274,9 @@ export default function EventListPage() {
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isBusy
+  const resultSummary = !isSearchReady(term)
+    ? t("Escribe al menos 3 caracteres para buscar.")
+    : isBusy
     ? t("Buscando…")
     : error !== null
       ? t("Resultados no disponibles")
@@ -276,18 +287,9 @@ export default function EventListPage() {
       <PageHeader
         serif
         title={t("Eventos en Santa Marta")}
+        actionsClassName={styles.plannedDesktop}
         actions={
           <>
-            <SelectField
-              aria-label={t("Ordenar resultados")}
-              className={styles.sort}
-              options={SORT_OPTIONS.map((option) => ({
-                value: option.value,
-                label: t("Ordenar: {0}", [option.label]),
-              }))}
-              value={sort}
-              onChange={(event) => setSortParam(event.target.value)}
-            />
             {isAuthenticated && user?.role === 'TOURIST' ? (
               <Link to="/eventos/planificados">
                 <Button variant="outline">{t("Mis eventos planificados")}</Button>
@@ -302,6 +304,11 @@ export default function EventListPage() {
         onRemoveFilter={removeParam}
         onClearFilters={clearFilters}
         resultSummary={resultSummary}
+        actions={isAuthenticated && user?.role === 'TOURIST' ? (
+          <Link className={styles.plannedMobile} to="/eventos/planificados">
+            {t("Mis eventos planificados")}
+          </Link>
+        ) : undefined}
       >
         <label className={styles.field}>
           <span className={styles.fieldLabel}>{t("Buscar")}</span>
@@ -314,16 +321,12 @@ export default function EventListPage() {
           />
         </label>
 
-        <label className={styles.field}>
-          <span className={styles.fieldLabel}>{t("Categoría")}</span>
-          <input
-            className={styles.control}
-            type="search"
-            value={category}
-            placeholder={t("Música, cultura…")}
-            onChange={(event) => setCategory(event.target.value)}
-          />
-        </label>
+        <CategorySelect
+          scope="EVENT"
+          value={category}
+          onChange={setCategory}
+          className={styles.control}
+        />
 
         <SelectField
           label={t("Atractivo")}
@@ -373,6 +376,17 @@ export default function EventListPage() {
             value: String(value),
             label: t("Hasta {0}", [formatCurrency(value)]),
           }))}
+        />
+
+        <SelectField
+          label={t("Ordenar por")}
+          className={styles.control}
+          options={SORT_OPTIONS.map((option) => ({
+            value: option.value,
+            label: option.label,
+          }))}
+          value={sort}
+          onChange={(event) => setSortParam(event.target.value)}
         />
       </FilterBar>
 

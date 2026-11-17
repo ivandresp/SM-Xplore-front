@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -65,7 +65,7 @@ function page(content: unknown[]) {
 }
 
 function renderEvents() {
-  return render(
+  const view = render(
     <MemoryRouter initialEntries={['/eventos']}>
       <AuthProvider>
         <Routes>
@@ -75,6 +75,8 @@ function renderEvents() {
       </AuthProvider>
     </MemoryRouter>,
   )
+  fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
+  return view
 }
 
 describe('EventListPage', () => {
@@ -129,11 +131,12 @@ describe('EventListPage', () => {
     renderEvents()
     expect(await screen.findByText('Concierto en la playa')).toBeTruthy()
 
+    const order = screen.getByRole('combobox', { name: 'Ordenar por' })
+    expect(order.closest('section')?.getAttribute('aria-label')).toBe('Filtros del catálogo')
+    expect(order.closest('fieldset')?.lastElementChild?.lastElementChild?.contains(order)).toBe(true)
+    await user.click(order)
     await user.click(
-      screen.getByRole('combobox', { name: 'Ordenar resultados' }),
-    )
-    await user.click(
-      screen.getByRole('option', { name: /Precio: menor a mayor/ }),
+      screen.getByRole('option', { name: 'Precio ascendente' }),
     )
     await waitFor(() => {
       expect(release).not.toBeNull()

@@ -1,7 +1,8 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { categoriesApi } from '@/services/categoriesApi'
 import ExplorePage from './ExplorePage'
 
 const ACTIVITY = {
@@ -44,7 +45,7 @@ function page(content: unknown[], totalPages = 1) {
 }
 
 function renderExplore(entry = '/explorar') {
-  return render(
+  const view = render(
     <MemoryRouter initialEntries={[entry]}>
       <Routes>
         <Route path="/explorar" element={<ExplorePage />} />
@@ -52,6 +53,8 @@ function renderExplore(entry = '/explorar') {
       </Routes>
     </MemoryRouter>,
   )
+  fireEvent.click(screen.getByRole('button', { name: 'Filtros' }))
+  return view
 }
 
 const SITE = {
@@ -108,8 +111,16 @@ function activityFetch(
 }
 
 describe('ExplorePage', () => {
+  beforeEach(() => {
+    vi.spyOn(categoriesApi, 'listPage').mockImplementation(async ({ scope }) => ({
+      content: scope === 'ACTIVITY' ? ['Aventura', 'Naturaleza'].map((name) => ({ id: name, name, scope: 'ACTIVITY' as const, parentId: null })) : [],
+      page: 0, size: 100, total: 2, totalPages: 1,
+    }))
+  })
+
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
   })
 
   it('pide solo las publicadas al servidor y muestra el total', async () => {
@@ -150,7 +161,7 @@ describe('ExplorePage', () => {
     expect(screen.getByRole('button', { name: /Quitar filtro Categoría/ })).toBeTruthy()
   })
 
-  it('escribe el texto de categoría en la URL y vuelve a consultar', async () => {
+  it('selecciona la categoría en la URL y vuelve a consultar', async () => {
     const fetchStub = activityFetch((url) =>
       url.includes('category=Aventura')
         ? jsonResponse(page([ACTIVITY]))
@@ -162,7 +173,8 @@ describe('ExplorePage', () => {
     renderExplore()
 
     await screen.findByText('Caminata por Tayrona')
-    await user.type(screen.getByLabelText('Categoría'), 'Aventura')
+    await user.click(screen.getByRole('combobox', { name: 'Categoría' }))
+    await user.click(screen.getByRole('option', { name: 'Aventura' }))
 
     await waitFor(() => {
       expect(screen.getByText('1 resultado')).toBeTruthy()
@@ -273,7 +285,8 @@ describe('ExplorePage', () => {
       renderExplore()
       expect(await screen.findByText('Inicial 1')).toBeTruthy()
 
-      await user.type(screen.getByLabelText('Categoría'), 'Naturaleza')
+      await user.click(screen.getByRole('combobox', { name: 'Categoría' }))
+      await user.click(screen.getByRole('option', { name: 'Naturaleza' }))
       await waitFor(() => {
         expect(release).not.toBeNull()
       })
@@ -593,11 +606,12 @@ describe('ExplorePage', () => {
 
     await screen.findByText('Snorkel en Taganga')
 
+    const order = screen.getByRole('combobox', { name: 'Ordenar por' })
+    expect(order.closest('section')?.getAttribute('aria-label')).toBe('Filtros del catálogo')
+    expect(order.closest('fieldset')?.lastElementChild?.lastElementChild?.contains(order)).toBe(true)
+    await user.click(order)
     await user.click(
-      screen.getByRole('combobox', { name: 'Ordenar resultados' }),
-    )
-    await user.click(
-      screen.getByRole('option', { name: 'Ordenar: Precio: menor a mayor' }),
+      screen.getByRole('option', { name: 'Precio ascendente' }),
     )
 
     await waitFor(() => {

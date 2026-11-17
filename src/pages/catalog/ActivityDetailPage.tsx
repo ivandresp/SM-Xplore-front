@@ -234,7 +234,6 @@ export default function ActivityDetailPage() {
           { label: activity.name },
         ]}
         title={activity.name}
-        description={t("{0} · {1} · hasta {2} personas", [activity.category, formatDurationLong(activity.durationMinutes), activity.maxCapacity])}
         actions={
           <StatusBadge
             tone={activity.status === 'PUBLISHED' ? 'success' : 'neutral'}
@@ -248,7 +247,7 @@ export default function ActivityDetailPage() {
         <div className={styles.column}>
           <div className={styles.hero}>{t("Sin fotos disponibles")}</div>
 
-          <section>
+          <section className={styles.activityDescription}>
             <h2 className={styles.sectionTitle}>{t("Descripción")}</h2>
             {activity.description !== null && activity.description !== '' ? (
               <p className={styles.paragraph}>{activity.description}</p>
@@ -258,7 +257,7 @@ export default function ActivityDetailPage() {
             )}
           </section>
 
-          <div className={styles.tiles}>
+          <div className={`${styles.tiles} ${styles.activityProperties}`}>
             <div className={styles.tile}>
               <span className={styles.tileLabel}>{t("Duración")}</span>
               <span className={styles.tileValue}>

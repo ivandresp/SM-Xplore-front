@@ -168,3 +168,36 @@
 .back:active {
   color: var(--color-link-hover);
 }
+
+/* Estilos exclusivos del listado: no heredar el espaciado de los formularios. */
+.activityTitleColumn.activityTitleColumn {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.activityTitle {
+  width: clamp(12rem, 20vw, 22rem);
+  max-width: 22rem;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  white-space: normal;
+  hyphens: none;
+}
+
+.activityDataColumn {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.activityActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.activityActions > a {
+  display: inline-flex;
+  align-items: center;
+}

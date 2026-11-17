@@ -1,7 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, useLocation } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useFilterParam, useSearchParamTerm } from './useFilterParam'
 
 function Probe() {
@@ -33,6 +33,32 @@ function renderProbe(entry = '/catalogo') {
 }
 
 describe('filtros en la URL', () => {
+  afterEach(() => vi.useRealTimers())
+
+  it('exige tres caracteres y debounce, cancela al acortar y permite borrar', () => {
+    vi.useFakeTimers()
+    renderProbe('/catalogo?search=playa')
+    const input = screen.getByLabelText('buscar')
+    const change = (value: string) => fireEvent.change(input, { target: { value } })
+    const advance = (ms: number) => act(() => vi.advanceTimersByTime(ms))
+    change('ab')
+    advance(1000)
+    expect(screen.getByTestId('url').textContent).toBe('?search=playa')
+    change('abc')
+    advance(299)
+    expect(screen.getByTestId('url').textContent).toBe('?search=playa')
+    advance(1)
+    expect(screen.getByTestId('url').textContent).toBe('?search=abc')
+    change('abcd')
+    advance(200)
+    change(' a ')
+    advance(1000)
+    expect(screen.getByTestId('url').textContent).toBe('?search=abc')
+    change('')
+    advance(300)
+    expect(screen.getByTestId('url').textContent).toBe('')
+  })
+
   it('lee el valor inicial y lo escribe tras el debounce', async () => {
     const user = userEvent.setup()
     renderProbe('/catalogo?search=bahia&pagina=2')
