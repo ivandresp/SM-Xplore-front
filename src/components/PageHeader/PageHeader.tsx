@@ -17,6 +17,7 @@ export interface PageHeaderProps {
   description?: string
   /** Botones u acciones alineados a la derecha. */
   actions?: ReactNode
+  actionsClassName?: string
   /** Títulos en DM Serif Display (páginas de catálogo, como en los mockups). */
   serif?: boolean
 }
@@ -28,6 +29,7 @@ export function PageHeader({
   meta,
   description,
   actions,
+  actionsClassName,
   serif = false,
 }: PageHeaderProps) {
   return (
@@ -62,7 +64,7 @@ export function PageHeader({
         )}
       </div>
 
-      {actions !== undefined && <div className={styles.actions}>{actions}</div>}
+      {actions !== undefined && <div className={classNames(styles.actions, actionsClassName)}>{actions}</div>}
     </div>
   )
 }

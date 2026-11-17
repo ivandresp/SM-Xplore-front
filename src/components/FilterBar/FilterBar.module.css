@@ -52,8 +52,16 @@
 }
 
 .toggle {
-  justify-self: start;
+  flex-shrink: 0;
   min-height: var(--control-h-md);
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .filterIcon {

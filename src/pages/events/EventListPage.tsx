@@ -287,6 +287,7 @@ export default function EventListPage() {
       <PageHeader
         serif
         title={t("Eventos en Santa Marta")}
+        actionsClassName={styles.plannedDesktop}
         actions={
           <>
             {isAuthenticated && user?.role === 'TOURIST' ? (
@@ -303,6 +304,11 @@ export default function EventListPage() {
         onRemoveFilter={removeParam}
         onClearFilters={clearFilters}
         resultSummary={resultSummary}
+        actions={isAuthenticated && user?.role === 'TOURIST' ? (
+          <Link className={styles.plannedMobile} to="/eventos/planificados">
+            {t("Mis eventos planificados")}
+          </Link>
+        ) : undefined}
       >
         <label className={styles.field}>
           <span className={styles.fieldLabel}>{t("Buscar")}</span>

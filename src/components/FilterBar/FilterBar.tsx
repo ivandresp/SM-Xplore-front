@@ -18,6 +18,8 @@ export interface FilterBarProps {
   onClearFilters: () => void
   /** Texto ya formateado: «23 resultados» o «Buscando…». */
   resultSummary: string
+  /** Acciones junto al botón permanente, fuera de la tarjeta desplegable. */
+  actions?: ReactNode
   children: ReactNode
 }
 
@@ -30,6 +32,7 @@ export function FilterBar({
   onRemoveFilter,
   onClearFilters,
   resultSummary,
+  actions,
   children,
 }: FilterBarProps) {
   useLanguage()
@@ -39,6 +42,7 @@ export function FilterBar({
 
   return (
     <section className={styles.root} aria-label={t("Filtros del catálogo")}>
+      <div className={styles.toolbar}>
       <Button
         className={styles.toggle}
         variant="outline"
@@ -51,6 +55,8 @@ export function FilterBar({
         </svg>
         {t("Filtros")}
       </Button>
+      {actions}
+      </div>
       <div id={panelId} className={styles.bar} hidden={!isOpen}>
         <div className={styles.head}>
           <h2 className={styles.title}>{t("Filtros")}</h2>
