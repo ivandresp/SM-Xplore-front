@@ -104,6 +104,14 @@ for (const width of [320, 375, 768, 1280]) {
       const form = submit.locator('..').locator('..')
       const surface = form.getByRole('button', { name: selectName })
       await ready(surface)
+      const mediaLayout = await form.getByRole('group', { name: /^(Ubicación del sitio|Attraction location)$/ }).evaluate((picker) => {
+        const uploader = picker.nextElementSibling!
+        const a = picker.getBoundingClientRect()
+        const b = uploader.getBoundingClientRect()
+        return { sameRow: Math.abs(a.top - b.top) < 1, beside: b.left >= a.right, below: b.top >= a.bottom }
+      })
+      expect(mediaLayout.sameRow).toBe(width >= 768)
+      expect(width >= 768 ? mediaLayout.beside : mediaLayout.below).toBe(true)
       await expect(page.getByLabel(es ? 'Latitud' : 'Latitude', { exact: true })).toHaveCount(0)
       await expect(page.getByLabel(es ? 'Longitud' : 'Longitude', { exact: true })).toHaveCount(0)
       const name = form.getByLabel(es ? 'Nombre del sitio o atractivo' : 'Site or attraction name')

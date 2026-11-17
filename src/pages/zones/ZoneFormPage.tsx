@@ -426,26 +426,27 @@ export default function ZoneFormPage() {
                           />
                         </div>
 
-                        <LocationPicker
-                          key={site.id}
-                          value={editLocation}
-                          onChange={(point) => {
-                            setEditLocation(point)
-                            setEditError(null)
-                          }}
-                          defaultCenter={site}
-                          disabled={isSavingSite}
-                        />
+                        <div className={styles.siteMediaGrid}>
+                          <LocationPicker
+                            key={site.id}
+                            value={editLocation}
+                            onChange={(point) => {
+                              setEditLocation(point)
+                              setEditError(null)
+                            }}
+                            defaultCenter={site}
+                            disabled={isSavingSite}
+                          />
 
-                        <ImageUploader
-                          className={styles.full}
-                          label={t("Fotos del atractivo")}
-                          folder="sm-xplore/sites"
-                          value={editPhotoUrls}
-                          onChange={setEditPhotoUrls}
-                          onUploadingChange={setEditPhotosUploading}
-                          hint={t("Las fotos se suben a Cloudinary. La primera será la portada.")}
-                        />
+                          <ImageUploader
+                            label={t("Fotos del atractivo")}
+                            folder="sm-xplore/sites"
+                            value={editPhotoUrls}
+                            onChange={setEditPhotoUrls}
+                            onUploadingChange={setEditPhotosUploading}
+                            hint={t("Las fotos se suben a Cloudinary. La primera será la portada.")}
+                          />
+                        </div>
 
                         {editError !== null && (
                           <p
@@ -564,25 +565,26 @@ export default function ZoneFormPage() {
                   />
                 </div>
 
-                <LocationPicker
-                  value={newLocation}
-                  onChange={(point) => {
-                    setNewLocation(point)
-                    setAddError(null)
-                  }}
-                  defaultCenter={sites[0]}
-                  disabled={isAddingSite}
-                />
+                <div className={styles.siteMediaGrid}>
+                  <LocationPicker
+                    value={newLocation}
+                    onChange={(point) => {
+                      setNewLocation(point)
+                      setAddError(null)
+                    }}
+                    defaultCenter={sites[0]}
+                    disabled={isAddingSite}
+                  />
 
-                <ImageUploader
-                  className={styles.full}
-                  label={t("Fotos del atractivo")}
-                  folder="sm-xplore/sites"
-                  value={newPhotoUrls}
-                  onChange={setNewPhotoUrls}
-                  onUploadingChange={setNewPhotosUploading}
-                  hint={t("Las fotos se suben a Cloudinary. La primera será la portada.")}
-                />
+                  <ImageUploader
+                    label={t("Fotos del atractivo")}
+                    folder="sm-xplore/sites"
+                    value={newPhotoUrls}
+                    onChange={setNewPhotoUrls}
+                    onUploadingChange={setNewPhotosUploading}
+                    hint={t("Las fotos se suben a Cloudinary. La primera será la portada.")}
+                  />
+                </div>
 
                 {addError !== null && (
                   <p className={`${styles.feedback} ${styles.error}`} role="alert">
