@@ -5,6 +5,7 @@ import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
+import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -223,11 +224,6 @@ export default function ReportDetailPage() {
     }
   }
 
-  const location =
-    current.location === null
-      ? t("Sin ubicación registrada")
-      : `${current.location.latitude.toFixed(5)}, ${current.location.longitude.toFixed(5)}`
-
   return (
     <div className={styles.page}>
       <Link to={backTo} className={styles.back}>
@@ -238,7 +234,7 @@ export default function ReportDetailPage() {
         title={current.title}
         description={t("Reportado por {0} el {1}{2}", [current.user.name, formatDate(
           current.createdAt,
-        ), current.location === null ? '' : ` · ${location}`])}
+        ), ''])}
         actions={
           <StatusBadge tone={REPORT_STATUS_TONES[current.status]}>
             {REPORT_STATUS_LABELS[current.status]}
@@ -379,15 +375,29 @@ export default function ReportDetailPage() {
             <dl className={styles.details}>
               <div className={styles.detailRow}>
                 <dt>{t("Autor")}</dt>
-                <dd>{current.user.name}</dd>
+                <dd className={styles.authorMeta}>
+                  <span>{current.user.name}</span>
+                  <time
+                    className={styles.authorDate}
+                    dateTime={current.createdAt}
+                    aria-label={`${t('Creado')}: ${formatDateTime(current.createdAt)}`}
+                  >
+                    {formatDateTime(current.createdAt)}
+                  </time>
+                </dd>
               </div>
               <div className={styles.detailRow}>
                 <dt>{t("Ubicación")}</dt>
-                <dd>{location}</dd>
-              </div>
-              <div className={styles.detailRow}>
-                <dt>{t("Creado")}</dt>
-                <dd>{formatDateTime(current.createdAt)}</dd>
+                <dd>
+                  {current.location === null ? t('Sin ubicación registrada') : (
+                    <MapPreview
+                      latitude={current.location.latitude}
+                      longitude={current.location.longitude}
+                      label={current.title}
+                      zoomControls
+                    />
+                  )}
+                </dd>
               </div>
               {current.updatedAt !== current.createdAt && (
                 <div className={styles.detailRow}>
@@ -395,10 +405,6 @@ export default function ReportDetailPage() {
                   <dd>{formatDateTime(current.updatedAt)}</dd>
                 </div>
               )}
-              <div className={styles.detailRow}>
-                <dt>{t("Identificador")}</dt>
-                <dd className={styles.mono}>{current.id.slice(0, 8)}</dd>
-              </div>
             </dl>
           </article>
 

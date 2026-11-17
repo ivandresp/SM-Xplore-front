@@ -1,0 +1,62 @@
+[
+  {
+    "viewportWidth": 375,
+    "language": "es",
+    "buttonSize": 44,
+    "keyboardZoom": "14→15→14",
+    "authorAndDate": "same row",
+    "identifier": "absent",
+    "overflow": 0,
+    "failedZoom": "fallback visible"
+  },
+  {
+    "viewportWidth": 375,
+    "language": "en",
+    "buttonSize": 44,
+    "keyboardZoom": "14→15→14",
+    "authorAndDate": "same row",
+    "identifier": "absent",
+    "overflow": 0,
+    "failedZoom": "fallback visible"
+  },
+  {
+    "viewportWidth": 768,
+    "language": "es",
+    "buttonSize": 44,
+    "keyboardZoom": "14→15→14",
+    "authorAndDate": "same row",
+    "identifier": "absent",
+    "overflow": 0,
+    "failedZoom": "fallback visible"
+  },
+  {
+    "viewportWidth": 768,
+    "language": "en",
+    "buttonSize": 44,
+    "keyboardZoom": "14→15→14",
+    "authorAndDate": "same row",
+    "identifier": "absent",
+    "overflow": 0,
+    "failedZoom": "fallback visible"
+  },
+  {
+    "viewportWidth": 1280,
+    "language": "es",
+    "buttonSize": 44,
+    "keyboardZoom": "14→15→14",
+    "authorAndDate": "same row",
+    "identifier": "absent",
+    "overflow": 0,
+    "failedZoom": "fallback visible"
+  },
+  {
+    "viewportWidth": 1280,
+    "language": "en",
+    "buttonSize": 44,
+    "keyboardZoom": "14→15→14",
+    "authorAndDate": "same row",
+    "identifier": "absent",
+    "overflow": 0,
+    "failedZoom": "fallback visible"
+  }
+]
