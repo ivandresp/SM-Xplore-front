@@ -1,4 +1,8 @@
 .card {
+  min-width: 0;
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
@@ -26,5 +30,28 @@
   margin: 0;
   font-family: var(--font-heading);
   font-size: var(--text-base);
-  font-weight: 800;
+  font-weight: 700;
+}
+
+.card:hover {
+  border-color: var(--color-link);
+  box-shadow: var(--shadow-card);
+}
+
+.card:active {
+  background-color: var(--color-surface-alt);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 3px;
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  margin-top: auto;
 }

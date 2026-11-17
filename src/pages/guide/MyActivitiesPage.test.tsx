@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext } from '@/context/auth-context'
@@ -97,6 +97,14 @@ describe('MyActivitiesPage', () => {
     expect(await screen.findByText('Snorkel en Taganga')).toBeTruthy()
     expect(screen.queryByText('Caminata de otro guía')).toBeNull()
     expect(screen.getByText('Publicada')).toBeTruthy()
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Actividad', 'Categoría', 'Precio', 'Duración', 'Capacidad', 'Primera fecha', 'Estado', 'Acciones',
+    ])
+    const row = screen.getByText(ACTIVITY.name).closest('tr')!
+    const cells = within(row).getAllByRole('cell')
+    expect(cells[0].textContent).toBe(ACTIVITY.name)
+    expect(cells[1].textContent).toBe('Aventura')
+    expect(cells[2].textContent).toContain('120.000')
   })
 
   it('muestra el vacío con el CTA de crear actividad', async () => {

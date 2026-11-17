@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { serviceTypeLabel } from '@/config/roles'
+import { MIN_SEARCH_LENGTH } from '@/config/search'
 import { activitiesApi } from '@/services/activitiesApi'
 import { eventsApi } from '@/services/eventsApi'
 import { servicesApi } from '@/services/servicesApi'
@@ -39,7 +40,7 @@ export type GlobalSearchResults = Record<
   GlobalSearchGroupResult
 >
 
-export const MIN_SEARCH_LENGTH = 2
+export { MIN_SEARCH_LENGTH } from '@/config/search'
 export const MAX_GROUP_RESULTS = 5
 
 const DEBOUNCE_MS = 300

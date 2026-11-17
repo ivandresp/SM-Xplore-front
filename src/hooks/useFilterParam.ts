@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { isSearchReady } from '@/config/search'
 
 const SEARCH_DEBOUNCE_MS = 300
 
@@ -63,7 +64,7 @@ export function useSearchParamText(
 
   useEffect(() => {
     const next = debounced.trim()
-    if (next === committed.current) return
+    if (!isSearchReady(next) || next === committed.current) return
 
     committed.current = next
     setParams(

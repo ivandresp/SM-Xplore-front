@@ -13,6 +13,7 @@ import { SelectField } from '@/components/SelectField'
 import { ServiceCard } from '@/components/ServiceCard/ServiceCard'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import { isSearchReady } from '@/config/search'
 import { CATALOG_SKELETON_COUNT, MAX_PRICE_OPTIONS } from '@/config/catalog'
 import { serviceTypeLabel } from '@/config/roles'
 import {
@@ -82,6 +83,12 @@ export default function ServiceListPage() {
     let cancelled = false
     const current = new URLSearchParams(queryKey)
 
+    if (!isSearchReady(current.get('search'))) {
+      setIsLoading(false)
+      setError(null)
+      return
+    }
+
     setIsLoading(true)
 
     servicesApi
@@ -123,9 +130,10 @@ export default function ServiceListPage() {
     [zones],
   )
 
+  const appliedSearch = params.get('search')?.trim() ?? ''
   const activeFilters: ActiveFilter[] = []
-  if (term.trim() !== '') {
-    activeFilters.push({ key: 'search', label: t("Buscar"), value: term.trim() })
+  if (appliedSearch !== '') {
+    activeFilters.push({ key: 'search', label: t("Buscar"), value: appliedSearch })
   }
   if (type !== '') {
     activeFilters.push({
@@ -192,7 +200,9 @@ export default function ServiceListPage() {
 
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
-  const resultSummary = isBusy
+  const resultSummary = !isSearchReady(term)
+    ? t("Escribe al menos 3 caracteres para buscar.")
+    : isBusy
     ? t("Buscando…")
     : `${total} ${total === 1 ? t("resultado") : t("resultados")}`
 

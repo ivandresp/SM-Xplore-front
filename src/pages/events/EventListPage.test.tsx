@@ -129,11 +129,12 @@ describe('EventListPage', () => {
     renderEvents()
     expect(await screen.findByText('Concierto en la playa')).toBeTruthy()
 
+    const order = screen.getByRole('combobox', { name: 'Ordenar por' })
+    expect(order.closest('section')?.getAttribute('aria-label')).toBe('Filtros del catálogo')
+    expect(order.closest('fieldset')?.lastElementChild?.lastElementChild?.contains(order)).toBe(true)
+    await user.click(order)
     await user.click(
-      screen.getByRole('combobox', { name: 'Ordenar resultados' }),
-    )
-    await user.click(
-      screen.getByRole('option', { name: /Precio: menor a mayor/ }),
+      screen.getByRole('option', { name: 'Precio ascendente' }),
     )
     await waitFor(() => {
       expect(release).not.toBeNull()

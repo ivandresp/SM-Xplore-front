@@ -5,6 +5,7 @@ import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
+import { CategorySelect } from '@/components/CategorySelect'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
@@ -123,6 +124,16 @@ export default function EventFormPage() {
       return
     }
 
+    if (category.trim() === '') {
+      setError(() => t("Selecciona una categoría."))
+      return
+    }
+
+    if (category.trim().length > 50) {
+      setError(() => t("La categoría seleccionada supera el máximo de 50 caracteres permitido. Selecciona otra categoría."))
+      return
+    }
+
     setIsSaving(true)
     setError(null)
 
@@ -206,12 +217,12 @@ export default function EventFormPage() {
               value={name}
               onChange={(changeEvent) => setName(changeEvent.target.value)}
             />
-            <Field
-              label={t("Categoría")}
-              placeholder={t("Ej: Cultural")}
+            <CategorySelect
+              scope="EVENT"
               required
               value={category}
-              onChange={(changeEvent) => setCategory(changeEvent.target.value)}
+              onChange={setCategory}
+              disabled={isSaving}
             />
 
             <label className={styles.full}>

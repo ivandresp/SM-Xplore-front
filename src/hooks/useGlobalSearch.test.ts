@@ -31,6 +31,7 @@ describe('groupHref', () => {
 afterEach(() => {
   act(() => setLanguage('es'))
   vi.restoreAllMocks()
+  vi.useRealTimers()
 })
 
 const START = '2026-12-01T12:00:00Z'
@@ -70,6 +71,24 @@ function mockSearch() {
 }
 
 describe('useGlobalSearch: live language', () => {
+  it('no consulta hasta cumplir mínimo y debounce; cancela al acortar', async () => {
+    vi.useFakeTimers()
+    const requests = mockSearch()
+    const { result } = renderHook(() => useGlobalSearch())
+    act(() => result.current.setTerm('ab'))
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    requests.forEach((request) => expect(request).not.toHaveBeenCalled())
+    act(() => result.current.setTerm('abc'))
+    await act(() => vi.advanceTimersByTimeAsync(299))
+    requests.forEach((request) => expect(request).not.toHaveBeenCalled())
+    act(() => result.current.setTerm('a'))
+    await act(() => vi.advanceTimersByTimeAsync(1000))
+    requests.forEach((request) => expect(request).not.toHaveBeenCalled())
+    act(() => result.current.setTerm('abc'))
+    await act(() => vi.advanceTimersByTimeAsync(300))
+    requests.forEach((request) => expect(request).toHaveBeenCalledTimes(1))
+  })
+
   it('reformats loaded results without refetching or translating catalog content', async () => {
     const requests = mockSearch()
     const { result } = renderHook(() => useGlobalSearch())
