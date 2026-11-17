@@ -1,0 +1,5 @@
+# Fecha al pie de la tarjeta de evento
+
+Mover time fuera de Media a footer flex: precio izquierda/fecha derecha, margin-top:auto y flex-wrap para anchos/precios extremos. Sin posición absoluta ni solapamiento con imagen. Retirar wrapper/classmedia muerto. Mantener datos/localización/enlace. Verificar geometría navegador8 casos375/768/1280/1920 ES/EN y puertas existentes; no nueva prueba unitaria que replique CSS. Skills normativas indisponibles, revisión manual independiente.
+
+Resultados: typecheck/lint/test/build exit0;74 archivos/493 pruebas, cinco avisos lint previos. Playwright8 esperados/0inesperados/0omitidos/0inestables:375/768/1280/1920 ES/EN. Fecha por debajo de imagen y offsets derecho/inferior iguales al padding de tarjeta (tolerancia2px), sin overflow; navegación Enter/clic conservada. Capturas032 actualizadas. Auditor readonly audit_media_grid PASA por lectura, sin hallazgos; no probado Safari/iOS físico, precios extremos, zoom200%/lector pantalla. Skills normativas indisponibles; revisión manual independiente. Sin API/backend/deps ni commit/push/PR.

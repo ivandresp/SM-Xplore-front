@@ -76,3 +76,5 @@ export const RegistrationsQueuePage = lazy(
 export const ZoneFormPage = lazy(() => import('@/pages/zones/ZoneFormPage'))
 export const ZonesListPage = lazy(() => import('@/pages/zones/ZonesListPage'))
 
+
+export const CategoriesPage = lazy(() => import('@/pages/categories/CategoriesPage'))

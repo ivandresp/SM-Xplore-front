@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext } from '@/context/auth-context'
@@ -91,6 +91,13 @@ describe('SiteDetailPage', () => {
     expect(
       screen.getByRole('img', { name: /Mapa de Playa Blanca en 11\.26000, -74\.19000/ }),
     ).toBeTruthy()
+    const directions = screen.getByRole('heading', { name: '¿Cómo llegar?' }).closest('article')!
+    expect(within(directions).getByText('Latitud')).toBeTruthy()
+    expect(within(directions).getByText('11.26000')).toBeTruthy()
+    expect(within(directions).getByText('Longitud')).toBeTruthy()
+    expect(within(directions).getByText('-74.19000')).toBeTruthy()
+    expect(screen.getAllByText('Latitud')).toHaveLength(1)
+    expect(screen.getAllByText('Longitud')).toHaveLength(1)
     expect(mapImages().length).toBeGreaterThanOrEqual(1)
     expect(
       screen.getByRole('link', { name: /© OpenStreetMap contributors/ }),

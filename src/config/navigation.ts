@@ -82,6 +82,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['ADMIN'],
   },
   {
+    to: '/app/categorias',
+    get label() { return t("Categorías") },
+    get description() { return t("Registra categorías para sitios turísticos, eventos y actividades.") },
+    roles: ['DESTINATION_MANAGER', 'ADMIN'],
+  },
+  {
     to: '/app/solicitudes',
     get label() { return t("Solicitudes") },
     get description() { return t("Cola de altas de guías y prestadoras: aprobar o rechazar con motivo antes de que puedan operar.") },

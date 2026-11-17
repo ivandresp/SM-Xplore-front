@@ -68,36 +68,9 @@
   background-color: var(--color-bg);
 }
 
-.dateBadge {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 3.6rem;
-  padding: 0.6rem 0.5rem;
-  border-radius: var(--radius-md);
-  background-color: var(--color-surface-alt);
-}
 
-.dateDay {
-  font-family: var(--font-heading);
-  font-size: var(--text-lead);
-  font-weight: 800;
-  line-height: 1;
-}
 
-.dateMonth {
-  margin-top: 0.15rem;
-  font-size: var(--text-meta);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--color-muted);
-}
 
-.thumb {
-  flex: none;
-  width: 7rem;
-}
 
 .body {
   flex: 1 1 16rem;
@@ -117,14 +90,6 @@
   font-size: var(--text-note);
 }
 
-.price {
-  padding: 0.35rem 0.85rem;
-  border-radius: var(--radius-pill);
-  background-color: var(--color-surface-alt);
-  font-family: var(--font-heading);
-  font-size: var(--text-note);
-  font-weight: 700;
-}
 
 .side {
   display: flex;
@@ -336,4 +301,28 @@
 
 .back:active {
   color: var(--color-link-hover);
+}
+
+/* Portada de la ficha pública: mapa sin recorte de su proyección. */
+.eventDetailColumn,
+.eventMap {
+  min-width: 0;
+}
+
+@media (min-width: 1000px) {
+  .publicDetailLayout {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  }
+
+  .eventInformation {
+    width: 100%;
+    max-width: 1024px;
+    box-sizing: border-box;
+  }
+}
+
+.eventCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
+  gap: 1rem;
 }

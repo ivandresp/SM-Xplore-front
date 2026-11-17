@@ -18,6 +18,8 @@ interface TileProgress {
   loaded: boolean
 }
 
+export type MapLoadState = 'loading' | 'ready' | 'error'
+
 export interface MapPreviewProps {
   /** Latitud del punto; `null` cuando la ficha no la tiene. */
   latitude: number | null | undefined
@@ -28,6 +30,25 @@ export interface MapPreviewProps {
   zoom?: number
   /** Permite acercar y alejar; las fichas existentes siguen estáticas por defecto. */
   zoomControls?: boolean
+  /** Tamaño exterior del viewport, incluyendo borde; hasta 512 px. */
+  size?: number
+  /** Dimensiones exteriores independientes; hasta 1024 px cada una. */
+  width?: number
+  height?: number
+  showMarker?: boolean
+  /** Solo desplaza los tiles visibles, sin consultas durante un arrastre. */
+  panOffset?: { x: number; y: number }
+  onLoadStateChange?: (state: MapLoadState) => void
+}
+
+function viewportSize(size = 256): number {
+  return Number.isFinite(size) ? Math.max(1, Math.min(512, Math.floor(size))) : 256
+}
+
+function viewportDimension(value: number | undefined, fallback: number): number {
+  return value !== undefined && Number.isFinite(value)
+    ? Math.max(1, Math.min(1024, Math.floor(value)))
+    : fallback
 }
 
 /**
@@ -38,7 +59,10 @@ export interface MapPreviewProps {
  * en producción toca proveedor con cuota o self-host.
  */
 export function MapPreview(props: MapPreviewProps) {
-  const origin = `${props.latitude},${props.longitude}/${clampZoom(props.zoom ?? DEFAULT_ZOOM, DEFAULT_ZOOM)}/${props.zoomControls ?? false}`
+  const fallbackSize = viewportSize(props.size)
+  const width = viewportDimension(props.width, fallbackSize)
+  const height = viewportDimension(props.height, fallbackSize)
+  const origin = `${props.latitude},${props.longitude}/${clampZoom(props.zoom ?? DEFAULT_ZOOM, DEFAULT_ZOOM)}/${props.zoomControls ?? false}/${width}x${height}`
   return <MapContent key={origin} {...props} />
 }
 
@@ -48,14 +72,24 @@ function MapContent({
   label,
   zoom = DEFAULT_ZOOM,
   zoomControls = false,
+  size,
+  width,
+  height,
+  showMarker = true,
+  panOffset,
+  onLoadStateChange,
 }: MapPreviewProps) {
   useLanguage()
   const point = coordinatePoint(latitude, longitude)
+  const fallbackSize = viewportSize(size)
+  const viewWidth = viewportDimension(width, fallbackSize)
+  const viewHeight = viewportDimension(height, fallbackSize)
+  const viewportStyle = { width: viewWidth, height: viewHeight }
   const [zoomLevel, setZoomLevel] = useState(() => clampZoom(zoom, DEFAULT_ZOOM))
   const frame =
     point === null
       ? null
-      : mercatorFrame(point.latitude, point.longitude, zoomLevel)
+      : mercatorFrame(point.latitude, point.longitude, zoomLevel, Math.max(1, viewWidth - 2), Math.max(1, viewHeight - 2))
 
   /** Los avances se recuerdan por juego de tiles: cambiar de ficha los reinicia. */
   const [progress, setProgress] = useState<{
@@ -79,6 +113,14 @@ function MapContent({
   const timedOut = frameKey !== '' && timedOutKey === frameKey
   const showFallback = allDead || (timedOut && loadedCount === 0)
   const isLoading = !showFallback && !allLoaded && !timedOut
+
+  const loadState: MapLoadState = point === null || showFallback || deadCount > 0 || (timedOut && !allLoaded)
+    ? 'error'
+    : allLoaded ? 'ready' : 'loading'
+
+  useEffect(() => {
+    onLoadStateChange?.(loadState)
+  }, [loadState, onLoadStateChange])
 
   useEffect(() => {
     if (frameKey === '' || allLoaded || showFallback || timedOut) {
@@ -105,7 +147,7 @@ function MapContent({
   if (point === null) {
     return (
       <div className={styles.wrapper}>
-        <div className={styles.viewport}>
+        <div className={styles.viewport} style={viewportStyle}>
           <p className={styles.empty}>
             {t("Esta ficha todavía no tiene coordenadas publicadas.")}</p>
         </div>
@@ -121,9 +163,9 @@ function MapContent({
 
   return (
     <div className={styles.wrapper}>
-      <div className={styles.mapFrame}>
+      <div className={styles.mapFrame} style={{ width: viewWidth }}>
         {showFallback ? (
-          <div className={styles.viewport}>
+          <div className={styles.viewport} style={viewportStyle}>
             <p className={styles.empty}>
               {t("No pudimos cargar el mapa.")}<br />
               <span className={styles.coords}>{coordinates}</span>
@@ -140,6 +182,7 @@ function MapContent({
         ) : (
           <div
             className={styles.viewport}
+            style={viewportStyle}
             role="img"
             aria-label={t("Mapa de {0} en {1}", [label, coordinates])}
             aria-busy={isLoading}
@@ -155,7 +198,7 @@ function MapContent({
                 <img
                   key={`${frameKey}-${index}-${tileProgress?.attempts ?? 0}`}
                   className={styles.tile}
-                  style={{ left: tile.left, top: tile.top }}
+                  style={{ left: tile.left + (panOffset?.x ?? 0), top: tile.top + (panOffset?.y ?? 0) }}
                   src={tileUrl(frame?.zoom ?? zoomLevel, tile.x, tile.y)}
                   alt=""
                   loading="lazy"
@@ -169,7 +212,7 @@ function MapContent({
                 />
               )
             })}
-            <span className={styles.marker} aria-hidden="true" />
+            {showMarker && <span className={styles.marker} aria-hidden="true" />}
             {loadedCount === 0 && <span className={styles.loading}>{t("Cargando el mapa…")}</span>}
           </div>
         )}

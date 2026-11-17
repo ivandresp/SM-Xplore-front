@@ -104,6 +104,10 @@ describe('EventDetailPage', () => {
     expect(
       screen.getByRole('link', { name: /© OpenStreetMap contributors/ }),
     ).toBeTruthy()
+    expect(screen.queryByText('Sin fotos disponibles')).toBeNull()
+    const location = screen.getByRole('region', { name: 'Ubicación' })
+    expect(location.parentElement?.firstElementChild).toBe(location)
+    expect(screen.getAllByRole('heading', { name: 'Ubicación' })).toHaveLength(1)
   })
   it('distingue un lugar que ya no existe de una petición que falló', async () => {
     vi.stubGlobal(

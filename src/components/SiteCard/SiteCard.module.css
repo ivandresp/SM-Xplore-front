@@ -1,4 +1,8 @@
 .card {
+  min-width: 0;
+  color: var(--color-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
@@ -20,4 +24,18 @@
   margin: 0;
   color: var(--color-muted);
   font-size: var(--text-note);
+}
+
+.card:hover {
+  border-color: var(--color-link);
+  box-shadow: var(--shadow-card);
+}
+
+.card:active {
+  background-color: var(--color-surface-alt);
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 3px;
 }

@@ -27,6 +27,29 @@ function renderMap() {
 }
 
 describe('MapPreview', () => {
+  it('admite 800x450 con tiles a escala original y conserva tamaño cuadrado por defecto', () => {
+    const { rerender } = render(<MapPreview label="Evento" latitude={11.2404} longitude={-74.199} width={800} height={450} />)
+    expect(screen.getByRole('img').style.width).toBe('800px')
+    expect(screen.getByRole('img').style.height).toBe('450px')
+    expect(tileImages().length).toBeGreaterThan(4)
+    expect(tileImages().every((image) => TILE_SRC.test(image.src))).toBe(true)
+    loadAll()
+    expect(screen.getByRole('img').getAttribute('aria-busy')).toBe('false')
+    rerender(<MapPreview label="Evento" latitude={11.2404} longitude={-74.199} />)
+    expect(screen.getByRole('img').style.width).toBe('256px')
+    expect(screen.getByRole('img').style.height).toBe('256px')
+    expect(screen.getByRole('img').getAttribute('aria-busy')).toBe('true')
+  })
+
+  it('limita dimensiones explicitas y conserva el limite de size', () => {
+    const { rerender } = render(<MapPreview label="Evento" latitude={0} longitude={0} width={2048} height={-1} />)
+    expect(screen.getByRole('img').style.width).toBe('1024px')
+    expect(screen.getByRole('img').style.height).toBe('1px')
+    rerender(<MapPreview label="Evento" latitude={0} longitude={0} size={800} width={Number.NaN} />)
+    expect(screen.getByRole('img').style.width).toBe('512px')
+    expect(screen.getByRole('img').style.height).toBe('512px')
+  })
+
   afterEach(() => {
     vi.useRealTimers()
   })
@@ -178,6 +201,34 @@ describe('MapPreview', () => {
     expect(tileImages().every((image) => image.src.includes('/14/'))).toBe(true)
     rerender(<MapPreview label="Ficha" latitude={11.3} longitude={-74.1} />)
     expect(screen.queryByRole('button')).toBeNull()
+  })
+
+  it('notifica carga, listo y fallo a un selector sin confundir errores parciales con listo', () => {
+    const reportState = vi.fn()
+    const { rerender } = render(<MapPreview label="Selector" latitude={11.2404} longitude={-74.199} onLoadStateChange={reportState} />)
+    expect(reportState).toHaveBeenLastCalledWith('loading')
+    loadAll()
+    expect(reportState).toHaveBeenLastCalledWith('ready')
+    rerender(<MapPreview label="Selector" latitude={11.3} longitude={-74.1} onLoadStateChange={reportState} />)
+    fireEvent.error(tileImages()[0])
+    fireEvent.error(tileImages()[0])
+    loadAll()
+    expect(reportState).toHaveBeenLastCalledWith('error')
+    expect(screen.queryByText('No pudimos cargar el mapa.')).toBeNull()
+  })
+
+  it('desplaza tiles sin remontarlos ni volver a cargar al arrastrar y adapta la ventana', () => {
+    const { rerender } = render(<MapPreview label="Selector" latitude={11.2404} longitude={-74.199} size={320} showMarker={false} />)
+    loadAll()
+    const image = tileImages()[0]
+    const left = Number.parseFloat(image.style.left)
+    const top = Number.parseFloat(image.style.top)
+    rerender(<MapPreview label="Selector" latitude={11.2404} longitude={-74.199} size={320} showMarker={false} panOffset={{ x: 32, y: -16 }} />)
+    expect(tileImages()[0]).toBe(image)
+    expect(Number.parseFloat(image.style.left)).toBeCloseTo(left + 32, 3)
+    expect(Number.parseFloat(image.style.top)).toBeCloseTo(top - 16, 3)
+    expect(screen.getByRole('img').style.width).toBe('320px')
+    expect(screen.getByRole('img').getAttribute('aria-busy')).toBe('false')
   })
 
   it('no deja que un zoom inválido rompa la URL del tile', () => {

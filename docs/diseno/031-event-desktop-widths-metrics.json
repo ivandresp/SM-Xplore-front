@@ -1,0 +1,30 @@
+{
+  "stats": {
+    "startTime": "2026-11-17T08:57:23.164Z",
+    "duration": 30144.744000000002,
+    "expected": 22,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "eventViewports": [
+    375,
+    768,
+    1280,
+    1920
+  ],
+  "languages": [
+    "es",
+    "en"
+  ],
+  "tests": 491,
+  "files": 73,
+  "desktopColumnsBefore": "1.6fr 1fr",
+  "desktopColumnsAfter": "1.2fr 1fr",
+  "assertions": [
+    "description and information width match map within2px",
+    "booking width greater than40%viewport at1280/1920",
+    "no horizontal overflow"
+  ],
+  "api": "fixtures"
+}

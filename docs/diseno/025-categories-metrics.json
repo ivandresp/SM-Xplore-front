@@ -1,0 +1,45 @@
+{
+  "stats": {
+    "startTime": "2026-11-17T07:47:12.174Z",
+    "duration": 15327.182999999999,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "viewports": [
+    375,
+    768,
+    1280
+  ],
+  "roles": [
+    "ADMIN",
+    "DESTINATION_MANAGER"
+  ],
+  "uiScopes": [
+    "GENERAL",
+    "SITE",
+    "EVENT",
+    "ACTIVITY"
+  ],
+  "languages": [
+    "es",
+    "en"
+  ],
+  "frontend": {
+    "files": 71,
+    "tests": 484,
+    "typecheck": 0,
+    "lint": 0,
+    "build": 0
+  },
+  "backend": {
+    "service": "ms-04",
+    "tests": 211,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "apiBrowser": "fixtures; no live writes",
+  "horizontalOverflow": 0
+}

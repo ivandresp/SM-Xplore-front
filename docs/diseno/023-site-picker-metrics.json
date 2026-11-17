@@ -1,0 +1,32 @@
+{
+  "browser": "Chromium",
+  "stats": {
+    "startTime": "2026-11-17T06:03:47.133Z",
+    "duration": 27075.363999999998,
+    "expected": 9,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "viewports": [
+    320,
+    375,
+    768,
+    1280
+  ],
+  "languages": [
+    "es",
+    "en"
+  ],
+  "horizontalOverflow": 0,
+  "tileRequestsDuringDrag": 0,
+  "api": "mocked POST/PUT; no live backend writes",
+  "unitTests": 469,
+  "testFiles": 69,
+  "checks": [
+    "typecheck",
+    "lint",
+    "test",
+    "build"
+  ]
+}

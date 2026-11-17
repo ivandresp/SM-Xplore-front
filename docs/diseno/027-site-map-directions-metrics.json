@@ -1,0 +1,26 @@
+{
+  "stats": {
+    "startTime": "2026-11-17T08:21:07.450Z",
+    "duration": 9967.670999999998,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "viewports": [
+    375,
+    768,
+    1280
+  ],
+  "languages": [
+    "es",
+    "en"
+  ],
+  "unitTests": 487,
+  "testFiles": 72,
+  "mapWidthBefore": 256,
+  "mapWidthAfter": ">300 px in all tested viewports; capped at512",
+  "resize": "1280 to375 observed width300..350 without overflow",
+  "order": "map -> directions -> events",
+  "horizontalOverflow": 0
+}

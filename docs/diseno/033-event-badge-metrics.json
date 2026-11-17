@@ -1,0 +1,28 @@
+{
+  "stats": {
+    "startTime": "2026-11-17T09:12:15.864Z",
+    "duration": 12964.405999999999,
+    "expected": 8,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "viewports": [
+    375,
+    768,
+    1280,
+    1920
+  ],
+  "languages": [
+    "es",
+    "en"
+  ],
+  "tests": 493,
+  "files": 74,
+  "assertions": [
+    "badge below image",
+    "right and bottom offsets match card padding within2px",
+    "native link and keyboard navigation preserved"
+  ],
+  "horizontalOverflow": 0
+}

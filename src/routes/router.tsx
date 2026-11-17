@@ -6,6 +6,7 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { PublicLayout } from '@/layouts/PublicLayout'
 import {
   DashboardPage,
+  CategoriesPage,
   NotFoundPage,
   CreateUserPage,
   ProviderApprovalPage,
@@ -67,6 +68,7 @@ const IMPLEMENTED_SECTIONS = new Set([
   '/app/reportes',
   '/app/zonas',
   '/app/solicitudes',
+  '/app/categorias',
 ])
 
 /** El resto de secciones existe como ruta provisional hasta implementarlas. */
@@ -214,6 +216,14 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <DashboardPage /> },
       ...sectionRoutes,
+      {
+        path: 'categorias',
+        element: (
+          <RequireRole roles={['DESTINATION_MANAGER', 'ADMIN']}>
+            <CategoriesPage />
+          </RequireRole>
+        ),
+      },
       /* Cola de altas de guías y prestadoras (MS01-B8) — gestora y admin */
       {
         path: 'solicitudes',

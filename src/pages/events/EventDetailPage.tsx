@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
 import { getLocale, translate as t } from '@/i18n/language'
@@ -37,6 +37,35 @@ function formatTime(value: string): string {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
+}
+
+/** Mapa de portada con dimensiones reales, sin estirar los tiles. */
+function EventLocationMap({ site }: { site: Site }) {
+  const container = useRef<HTMLDivElement>(null)
+  const [dimensions, setDimensions] = useState({ width: 256, height: 220 })
+
+  useEffect(() => {
+    const element = container.current
+    if (element === null) return
+    const measure = () => {
+      const available = Math.floor(element.getBoundingClientRect().width)
+      if (available <= 0) return
+      const width = Math.min(1024, available)
+      const height = Math.max(220, Math.min(512, Math.round(width * 9 / 16)))
+      setDimensions((previous) => previous.width === width && previous.height === height ? previous : { width, height })
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={container} className={styles.eventMap}>
+      <MapPreview label={site.name} latitude={site.latitude} longitude={site.longitude} width={dimensions.width} height={dimensions.height} />
+    </div>
+  )
 }
 
 export default function EventDetailPage() {
@@ -246,26 +275,9 @@ export default function EventDetailPage() {
         }
       />
 
-      <div className={styles.detailLayout}>
-        <div className={styles.column}>
-          <div className={styles.thumb} style={{ width: '100%', aspectRatio: '16 / 9' }}>
-            {t("Sin fotos disponibles")}</div>
-
-          <article className={styles.card}>
-            <h2 className={styles.cardTitle}>{t("Descripción")}</h2>
-            {event.description !== null && event.description !== '' ? (
-              <p className={styles.meta}>{event.description}</p>
-            ) : (
-              <p className={styles.meta}>{t("Este evento no tiene descripción.")}</p>
-            )}
-          </article>
-
-          <article className={styles.card}>
-            <h2 className={styles.cardTitle}>{t("Información del evento")}</h2>
-            <DefList items={infoItems} />
-          </article>
-
-          <article className={styles.card}>
+      <div className={`${styles.detailLayout} ${styles.publicDetailLayout}`}>
+        <div className={`${styles.column} ${styles.eventDetailColumn}`}>
+          <section className={styles.eventMap} aria-label={t("Ubicación")}>
             <h2 className={styles.cardTitle}>{t("Ubicación")}</h2>
             {site === null ? (
               <p className={styles.meta}>
@@ -274,16 +286,26 @@ export default function EventDetailPage() {
                   : t("Este evento no tiene un lugar publicado asociado.")}
               </p>
             ) : (
-              <MapPreview
-                label={site.name}
-                latitude={site.latitude}
-                longitude={site.longitude}
-              />
+              <EventLocationMap site={site} />
             )}
+          </section>
+
+          <article className={`${styles.card} ${styles.eventInformation}`}>
+            <h2 className={styles.cardTitle}>{t("Descripción")}</h2>
+            {event.description !== null && event.description !== '' ? (
+              <p className={styles.meta}>{event.description}</p>
+            ) : (
+              <p className={styles.meta}>{t("Este evento no tiene descripción.")}</p>
+            )}
+          </article>
+
+          <article className={`${styles.card} ${styles.eventInformation}`}>
+            <h2 className={styles.cardTitle}>{t("Información del evento")}</h2>
+            <DefList items={infoItems} />
           </article>
         </div>
 
-        <div className={styles.column}>
+        <div className={`${styles.column} ${styles.eventDetailColumn}`}>
           <article className={styles.booking}>
             {confirmation !== null ? (
               <>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
 import { getLocale, translate as t } from '@/i18n/language'
@@ -7,6 +7,7 @@ import { ActivityCard } from '@/components/ActivityCard/ActivityCard'
 import { Button } from '@/components/Button'
 import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
+import { SitePhotoGallery } from '@/components/SitePhotoGallery'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { activitiesApi } from '@/services/activitiesApi'
@@ -18,12 +19,35 @@ import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
 import type { ActivityResponse, EventResponse, Site, Zone } from '@/types'
 import styles from './catalog.module.css'
+import siteStyles from './siteDetail.module.css'
 
 function formatTime(value: string): string {
   return new Intl.DateTimeFormat(getLocale(), {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
+}
+
+/** El mapa conserva su proyección usando el ancho real de su columna. */
+function SiteLocationMap({ site }: { site: Site }) {
+  const container = useRef<HTMLDivElement>(null)
+  const [size, setSize] = useState(256)
+
+  useEffect(() => {
+    const element = container.current
+    if (element === null) return
+    const measure = () => {
+      const width = Math.floor(element.getBoundingClientRect().width)
+      if (width > 0) setSize(Math.min(512, width))
+    }
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  return <div ref={container}><MapPreview label={site.name} latitude={site.latitude} longitude={site.longitude} size={size} /></div>
 }
 
 /** Ficha pública de un atractivo con sus actividades y eventos. Sin mockup: patrón de actividad. */
@@ -132,8 +156,6 @@ export default function SiteDetailPage() {
     )
   }
 
-  const heroPhoto = site.photoUrls[0]
-
   return (
     <div className={styles.page}>
       <PageHeader
@@ -144,23 +166,11 @@ export default function SiteDetailPage() {
           { label: site.name },
         ]}
         title={site.name}
-        description={
-          zone !== null
-            ? t("Zona: {0}", [zone.name])
-            : t("Atractivo turístico de Santa Marta")
-        }
       />
 
-      <div className={styles.detailLayout}>
-        <div className={styles.column}>
-          <div className={styles.hero}>
-            {heroPhoto !== undefined ? (
-              <img className={styles.photo} src={heroPhoto} alt={site.name} />
-            ) : (
-              t("Sin fotos: la gestora no cargó imágenes")
-            )}
-          </div>
-
+      <div className={siteStyles.mediaGrid}>
+        <div className={`${styles.column} ${siteStyles.column}`}>
+          <SitePhotoGallery key={site.id} name={site.name} photos={site.photoUrls} />
           <div className={styles.tiles}>
             <div className={styles.tile}>
               <span className={styles.tileLabel}>{t("Zona")}</span>
@@ -168,28 +178,7 @@ export default function SiteDetailPage() {
                 {zone?.name ?? t("Sin zona publicada")}
               </span>
             </div>
-            <div className={styles.tile}>
-              <span className={styles.tileLabel}>{t("Latitud")}</span>
-              <span className={styles.tileValue}>
-                {site.latitude.toFixed(5)}
-              </span>
-            </div>
-            <div className={styles.tile}>
-              <span className={styles.tileLabel}>{t("Longitud")}</span>
-              <span className={styles.tileValue}>
-                {site.longitude.toFixed(5)}
-              </span>
-            </div>
           </div>
-
-          <section>
-            <h2 className={styles.sectionTitle}>{t("Ubicación")}</h2>
-            <MapPreview
-              label={site.name}
-              latitude={site.latitude}
-              longitude={site.longitude}
-            />
-          </section>
 
           <section>
             <h2 className={styles.sectionTitle}>
@@ -207,7 +196,24 @@ export default function SiteDetailPage() {
           </section>
         </div>
 
-        <div className={styles.column}>
+        <div className={`${styles.column} ${siteStyles.column}`}>
+          <section className={siteStyles.location} aria-label={t("Ubicación")}>
+            <h2 className={styles.sectionTitle}>{t("Ubicación")}</h2>
+            <SiteLocationMap site={site} />
+          </section>
+          <article className={styles.booking}>
+            <h2 className={styles.sectionTitle}>{t("¿Cómo llegar?")}</h2>
+            <dl className={siteStyles.coordinates}>
+              <div className={siteStyles.coordinate}>
+                <dt>{t("Latitud")}</dt><dd>{site.latitude.toFixed(5)}</dd>
+              </div>
+              <div className={siteStyles.coordinate}>
+                <dt>{t("Longitud")}</dt><dd>{site.longitude.toFixed(5)}</dd>
+              </div>
+            </dl>
+            <p className={styles.paragraphMuted}>
+              {t("Abre estas coordenadas en tu aplicación de mapas preferida.")}</p>
+          </article>
           <article className={styles.booking}>
             <h2 className={styles.sectionTitle}>{t("Eventos en este atractivo")}</h2>
 
@@ -239,12 +245,6 @@ export default function SiteDetailPage() {
                   </div>
                 ))
             )}
-          </article>
-
-          <article className={styles.booking}>
-            <h2 className={styles.sectionTitle}>{t("¿Cómo llegar?")}</h2>
-            <p className={styles.paragraphMuted}>
-              {t("Abre estas coordenadas en tu aplicación de mapas preferida.")}</p>
           </article>
         </div>
       </div>
