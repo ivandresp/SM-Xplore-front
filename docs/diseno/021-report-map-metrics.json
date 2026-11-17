@@ -1,0 +1,65 @@
+[
+  {
+    "viewportWidth": 375,
+    "mode": "map",
+    "state": "loaded",
+    "tileRequests": 4,
+    "overflow": 0
+  },
+  {
+    "viewportWidth": 768,
+    "mode": "map",
+    "state": "loaded",
+    "tileRequests": 4,
+    "overflow": 0
+  },
+  {
+    "viewportWidth": 1280,
+    "mode": "map",
+    "state": "loaded",
+    "tileRequests": 4,
+    "overflow": 0
+  },
+  {
+    "viewportWidth": 375,
+    "mode": "missing",
+    "state": "no map",
+    "tileRequests": 0,
+    "overflow": 0
+  },
+  {
+    "viewportWidth": 768,
+    "mode": "missing",
+    "state": "no map",
+    "tileRequests": 0,
+    "overflow": 0
+  },
+  {
+    "viewportWidth": 1280,
+    "mode": "missing",
+    "state": "no map",
+    "tileRequests": 0,
+    "overflow": 0
+  },
+  {
+    "viewportWidth": 375,
+    "mode": "offline",
+    "state": "fallback",
+    "tileRequests": 8,
+    "overflow": 0
+  },
+  {
+    "viewportWidth": 768,
+    "mode": "offline",
+    "state": "fallback",
+    "tileRequests": 8,
+    "overflow": 0
+  },
+  {
+    "viewportWidth": 1280,
+    "mode": "offline",
+    "state": "fallback",
+    "tileRequests": 8,
+    "overflow": 0
+  }
+]

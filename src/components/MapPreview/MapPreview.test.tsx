@@ -141,6 +141,45 @@ describe('MapPreview', () => {
     expect(screen.queryByText('Cargando el mapa…')).toBeNull()
   })
 
+  it('permite acercar y alejar sin incluir botones dentro de la imagen', () => {
+    render(<MapPreview label="Reporte" latitude={11.2404} longitude={-74.199} zoomControls />)
+    const map = screen.getByRole('img')
+    expect(map.querySelector('button')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Acercar mapa' }))
+    expect(tileImages().length).toBeGreaterThan(0)
+    expect(tileImages().every((image) => image.src.includes('/15/'))).toBe(true)
+    expect(map.getAttribute('aria-label')).toBe('Mapa de Reporte en 11.24040, -74.19900')
+    fireEvent.click(screen.getByRole('button', { name: 'Alejar mapa' }))
+    expect(tileImages().every((image) => image.src.includes('/14/'))).toBe(true)
+  })
+
+  it('deshabilita el zoom fuera de sus limites', () => {
+    const { rerender } = render(<MapPreview label="Reporte" latitude={11.2404} longitude={-74.199} zoom={19} zoomControls />)
+    expect((screen.getByRole('button', { name: 'Acercar mapa' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Alejar mapa' }))
+    expect(tileImages().every((image) => image.src.includes('/18/'))).toBe(true)
+    rerender(<MapPreview label="Reporte" latitude={11.2404} longitude={-74.199} zoom={0} zoomControls />)
+    expect((screen.getByRole('button', { name: 'Alejar mapa' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Acercar mapa' }))
+    expect(tileImages().every((image) => image.src.includes('/1/'))).toBe(true)
+  })
+
+  it('reinicia el nivel al cambiar de ubicacion y conserva los mapas estaticos por defecto', () => {
+    const { rerender } = render(<MapPreview label="Reporte" latitude={11.2404} longitude={-74.199} zoomControls />)
+    fireEvent.click(screen.getByRole('button', { name: 'Acercar mapa' }))
+    rerender(<MapPreview label="Otro reporte" latitude={11.3} longitude={-74.1} zoomControls />)
+    expect(tileImages().every((image) => image.src.includes('/14/'))).toBe(true)
+    rerender(<MapPreview label="Reporte" latitude={11.2404} longitude={-74.199} zoomControls />)
+    expect(tileImages().every((image) => image.src.includes('/14/'))).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Acercar mapa' }))
+    rerender(<MapPreview label="Reporte" latitude={11.2404} longitude={-74.199} zoom={13} zoomControls />)
+    expect(tileImages().every((image) => image.src.includes('/13/'))).toBe(true)
+    rerender(<MapPreview label="Reporte" latitude={11.2404} longitude={-74.199} zoomControls />)
+    expect(tileImages().every((image) => image.src.includes('/14/'))).toBe(true)
+    rerender(<MapPreview label="Ficha" latitude={11.3} longitude={-74.1} />)
+    expect(screen.queryByRole('button')).toBeNull()
+  })
+
   it('no deja que un zoom inválido rompa la URL del tile', () => {
     render(<MapPreview label="Playa Blanca" latitude={11.2404} longitude={-74.199} zoom={Number.NaN} />)
 

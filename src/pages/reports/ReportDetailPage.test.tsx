@@ -97,13 +97,21 @@ describe('ReportDetailPage', () => {
     renderDetail(report())
 
     expect(await screen.findByText('Sin ubicación registrada')).toBeTruthy()
+    expect(screen.queryByRole('img', { name: /^Mapa de / })).toBeNull()
   })
 
-  it('muestra la ubicación cuando el navegador sí la aportó', async () => {
+  it('muestra un mapa de la ubicación en la ficha en lugar de coordenadas', async () => {
     renderDetail(
       report({ location: { latitude: 11.2404, longitude: -74.199 } }),
     )
 
-    expect(await screen.findByText('11.24040, -74.19900')).toBeTruthy()
+    const map = await screen.findByRole('img', { name: 'Mapa de Robo en la playa en 11.24040, -74.19900' })
+    expect(map.closest('dd')?.previousElementSibling?.textContent).toBe('Ubicación')
+    expect(screen.getByRole('link', { name: /© OpenStreetMap contributors/ })).toBeTruthy()
+    expect(screen.queryByText('11.24040, -74.19900')).toBeNull()
+    expect(screen.queryByText('Identificador')).toBeNull()
+    const author = screen.getByText('Ana Turista')
+    expect(author.parentElement?.querySelector('time')?.getAttribute('datetime')).toBe('2026-11-12T10:00:00Z')
+    expect(screen.getByRole('button', { name: 'Acercar mapa' })).toBeTruthy()
   })
 })

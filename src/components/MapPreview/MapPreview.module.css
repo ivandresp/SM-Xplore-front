@@ -94,3 +94,52 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+.mapFrame {
+  position: relative;
+  width: 256px;
+  max-width: 100%;
+}
+
+.controls {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.zoomButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h-md);
+  height: var(--control-h-md);
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-size: var(--text-sub);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.zoomButton:hover:not(:disabled) {
+  background-color: var(--color-surface-alt);
+}
+
+.zoomButton:active:not(:disabled) {
+  background-color: var(--color-surface);
+}
+
+.zoomButton:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+.zoomButton:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
