@@ -1244,5 +1244,17 @@
   "Registrar categorías": "Register categories",
   "Fotos de {0}": "Photos of {0}",
   "Ver las {0} fotos": "View all {0} photos",
-  "Ver foto {0} de {1}": "View photo {0} of {1}"
+  "Ver foto {0} de {1}": "View photo {0} of {1}",
+  "Atractivo · {0}": "Attraction · {0}",
+  "Visita": "Visit",
+  "Fecha de visita": "Visit date",
+  "Fecha de visita a {0}": "Visit date for {0}",
+  "No requiere reserva": "No reservation required",
+  "Planificar visita": "Plan a visit",
+  "Ver itinerario": "View itinerary",
+  "Organiza por día los atractivos, actividades y eventos de tu viaje.": "Organize attractions, activities and events by day for your trip.",
+  "Busca atractivos, actividades o eventos en el catálogo y pulsa \"Agregar al itinerario\".": "Find attractions, activities or events in the catalog and click \"Add to itinerary\".",
+  "+ Agregar atractivo, actividad o evento": "+ Add attraction, activity or event",
+  "Revisa las fechas de visita": "Review visit dates",
+  "Hay atractivos con fecha fuera del viaje. Ajusta sus fechas o el rango del viaje antes de guardar.": "Some attractions have visit dates outside the trip. Adjust their dates or the trip dates before saving."
 }

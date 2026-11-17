@@ -8,7 +8,7 @@ import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { useAuth } from '@/hooks/useAuth'
-import { itineraryEntryMeta, useItinerary } from '@/hooks/useItinerary'
+import { isReservableEntry, itineraryEntryMeta, useItinerary } from '@/hooks/useItinerary'
 import type { ItineraryEntry } from '@/hooks/useItinerary'
 import { reservationsApi } from '@/services/reservationsApi'
 import { describeApiError } from '@/utils/errors'
@@ -19,14 +19,14 @@ function formatTime(value: string): string {
   return new Intl.DateTimeFormat(getLocale(), {
     hour: 'numeric',
     minute: '2-digit',
-  }).format(new Date(value))
+  }).format(new Date(value.length === 10 ? `${value}T12:00:00` : value))
 }
 
 function formatDay(value: string): string {
   return new Intl.DateTimeFormat(getLocale(), {
     day: 'numeric',
     month: 'short',
-  }).format(new Date(value))
+  }).format(new Date(value.length === 10 ? `${value}T12:00:00` : value))
 }
 
 export default function ItineraryPage() {
@@ -58,11 +58,16 @@ export default function ItineraryPage() {
     return [...map.entries()]
   }, [itinerary.entries])
 
-  const pending = itinerary.entries.filter(
+  const visitsOutsideTrip = itinerary.entries.some(entry => entry.type === 'SITE' && (
+    (itinerary.from !== '' && entry.startsAt.slice(0, 10) < itinerary.from) ||
+    (itinerary.to !== '' && entry.startsAt.slice(0, 10) > itinerary.to)
+  ))
+  const reservable = itinerary.entries.filter(isReservableEntry)
+  const pending = reservable.filter(
     (entry) => entry.reservationId === undefined,
   )
-  const reserved = itinerary.entries.length - pending.length
-  const estimatedTotal = itinerary.entries.reduce(
+  const reserved = reservable.length - pending.length
+  const estimatedTotal = reservable.reduce(
     (sum, entry) => sum + entry.price,
     0,
   )
@@ -79,6 +84,8 @@ export default function ItineraryPage() {
       : days.length
 
   async function reserveEntries(entries: ItineraryEntry[]) {
+    const reservableEntries = entries.filter(isReservableEntry).filter(entry => entry.reservationId === undefined)
+    if (reservableEntries.length === 0 || isReserving) return
     if (user === null) {
       navigate('/login', { state: { from: { pathname: '/itinerario' } } })
       return
@@ -92,7 +99,7 @@ export default function ItineraryPage() {
 
     try {
       // Una reserva por entrada: el backend guarda un solo ítem por reserva.
-      for (const entry of entries) {
+      for (const entry of reservableEntries) {
         const reservation = await reservationsApi.create({
           touristId: user.id,
           itemType: entry.type,
@@ -111,7 +118,7 @@ export default function ItineraryPage() {
       setError(
         () => created === 0
           ? describeApiError(cause)
-          : t("{0} de {1} reservas creadas. Las demás fallaron: {2}", [created, entries.length, describeApiError(cause)]),
+          : t("{0} de {1} reservas creadas. Las demás fallaron: {2}", [created, reservableEntries.length, describeApiError(cause)]),
       )
     } finally {
       setIsReserving(false)
@@ -127,9 +134,13 @@ export default function ItineraryPage() {
           { label: t("Nuevo itinerario") },
         ]}
         title={t("Crear itinerario de viaje")}
-        description={t("Organiza por día los servicios, actividades y eventos que quieres reservar.")}
+        description={t("Organiza por día los atractivos, actividades y eventos de tu viaje.")}
       />
 
+      {visitsOutsideTrip && (
+        <StateMessage tone="neutral" title={t("Revisa las fechas de visita")}
+          description={t("Hay atractivos con fecha fuera del viaje. Ajusta sus fechas o el rango del viaje antes de guardar.")} />
+      )}
       {error !== null && (
         <StateMessage
           tone="error"
@@ -191,7 +202,7 @@ export default function ItineraryPage() {
             {days.length === 0 && (
               <StateMessage
                 title={t("Todavía no has agregado nada")}
-                description={t("Busca actividades en el catálogo y pulsa \"Agregar al itinerario\".")}
+                description={t("Busca atractivos, actividades o eventos en el catálogo y pulsa \"Agregar al itinerario\".")}
                 action={
                   <Link to="/explorar">
                     <Button variant="outline">{t("Explorar actividades")}</Button>
@@ -201,7 +212,7 @@ export default function ItineraryPage() {
             )}
 
             {days.map(([day, entries], index) => (
-              <div key={day}>
+              <div key={day} className={styles.dayGroup}>
                 <h3 className={styles.dayTitle}>
                   {t("Día")}{" "}{index + 1} · {formatDay(day)}
                 </h3>
@@ -209,16 +220,37 @@ export default function ItineraryPage() {
                 {entries.map((entry) => (
                   <div key={entry.itemId} className={styles.entry}>
                     <span className={styles.entryTime}>
-                      {formatTime(entry.startsAt)}
+                      {entry.type === 'SITE' ? t("Visita") : formatTime(entry.startsAt)}
                     </span>
 
                     <div className={styles.entryBody}>
                       <p className={styles.entryName}>{entry.name}</p>
                       <p className={styles.entryMeta}>{itineraryEntryMeta(entry)}</p>
+                      {entry.type === 'SITE' && (
+                        <label>
+                          <span className={styles.fieldLabel}>{t("Fecha de visita")}</span>
+                          <input className={styles.control} type="date"
+                            aria-label={t("Fecha de visita a {0}", [entry.name])}
+                            required min={itinerary.from || undefined} max={itinerary.to || undefined}
+                            value={entry.startsAt.slice(0, 10)}
+                            onChange={event => {
+                              if (event.target.validity.valid) {
+                                patchEntry(entry.itemId, { startsAt: `${event.target.value}T12:00:00` })
+                              } else {
+                                event.target.value = entry.startsAt.slice(0, 10)
+                              }
+                            }} />
+                        </label>
+                      )}
                     </div>
 
                     <div className={styles.entrySide}>
-                      {entry.reservationId === undefined ? (
+                      {!isReservableEntry(entry) ? (
+                        <>
+                          <StatusBadge tone="neutral">{t("No requiere reserva")}</StatusBadge>
+                          <Button variant="outline" size="sm" onClick={() => removeEntry(entry.itemId)}>{t("Quitar")}</Button>
+                        </>
+                      ) : entry.reservationId === undefined ? (
                         <>
                           <StatusBadge tone="neutral">{t("Sin reservar")}</StatusBadge>
                           <Button
@@ -248,7 +280,7 @@ export default function ItineraryPage() {
 
             {days.length > 0 && (
               <Link to="/explorar" className={styles.addEntry}>
-                {t("+ Agregar servicio, actividad o evento")}</Link>
+                {t("+ Agregar atractivo, actividad o evento")}</Link>
             )}
           </article>
         </div>
@@ -271,7 +303,7 @@ export default function ItineraryPage() {
               <div className={styles.summaryLine}>
                 <span>{t("Reservados")}</span>
                 <span>
-                  {reserved} {" "}{t("de")}{" "}{itinerary.entries.length}
+                  {reserved} {" "}{t("de")}{" "}{reservable.length}
                 </span>
               </div>
               <div className={styles.summaryTotal}>
@@ -283,6 +315,7 @@ export default function ItineraryPage() {
             <div className={styles.actions}>
               <Button
                 variant="primary"
+                disabled={visitsOutsideTrip}
                 onClick={() => {
                   setError(null)
                   setFeedback(() => t("Itinerario guardado en este navegador."))

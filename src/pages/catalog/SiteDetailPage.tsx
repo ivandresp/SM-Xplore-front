@@ -5,6 +5,7 @@ import { getLocale, translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { ActivityCard } from '@/components/ActivityCard/ActivityCard'
 import { Button } from '@/components/Button'
+import { Field } from '@/components/FormField'
 import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SitePhotoGallery } from '@/components/SitePhotoGallery'
@@ -13,6 +14,7 @@ import { StateMessage } from '@/components/StateMessage'
 import { activitiesApi } from '@/services/activitiesApi'
 import { eventsApi } from '@/services/eventsApi'
 import { sitesApi } from '@/services/sitesApi'
+import { useItinerary } from '@/hooks/useItinerary'
 import { useTrackView } from '@/hooks/useTrackView'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
@@ -55,6 +57,9 @@ export default function SiteDetailPage() {
   useLanguage()
   const { siteId } = useParams<{ siteId: string }>()
   useTrackView('SITE', siteId)
+
+  const { itinerary, addEntry, removeEntry } = useItinerary()
+  const [visitDate, setVisitDate] = useState('')
 
   const [site, setSite] = useState<Site | null>(null)
   const [zone, setZone] = useState<Zone | null>(null)
@@ -201,6 +206,25 @@ export default function SiteDetailPage() {
             <h2 className={styles.sectionTitle}>{t("Ubicación")}</h2>
             <SiteLocationMap site={site} />
           </section>
+          <article className={styles.booking}>
+            <h2 className={styles.sectionTitle}>{t("Planificar visita")}</h2>
+            {itinerary.entries.some(entry => entry.type === 'SITE' && entry.itemId === site.id) ? (
+              <>
+                <Link to="/itinerario">{t("Ver itinerario")}</Link>
+                <Button variant="outline" block onClick={() => removeEntry(site.id)}>{t("Quitar del itinerario")}</Button>
+              </>
+            ) : (
+              <form className={siteStyles.visitForm} onSubmit={event => {
+                event.preventDefault()
+                addEntry({ itemId: site.id, type: 'SITE', name: site.name, startsAt: `${visitDate}T12:00:00`, price: 0 })
+              }}>
+                <Field label={t("Fecha de visita")} type="date" required value={visitDate}
+                  min={itinerary.from || undefined} max={itinerary.to || undefined}
+                  onChange={event => setVisitDate(event.target.value)} />
+                <Button type="submit" block>{t("Agregar al itinerario")}</Button>
+              </form>
+            )}
+          </article>
           <article className={styles.booking}>
             <h2 className={styles.sectionTitle}>{t("¿Cómo llegar?")}</h2>
             <dl className={siteStyles.coordinates}>

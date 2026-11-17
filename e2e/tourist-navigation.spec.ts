@@ -180,3 +180,38 @@ test(`tourist preferences are edited only in profile and affect Para ti ${width}
 })
 
 }
+
+for (const width of [375, 768, 1280]) {
+  test(`tourist site itinerary dates ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 950 })
+    await setup(page)
+    await page.addInitScript(() => {
+      if (!localStorage.getItem('sm-xplore:itinerary')) localStorage.setItem('sm-xplore:itinerary', JSON.stringify({
+        name: 'Viaje', from: '2026-12-01', to: '2026-12-05', entries: [
+          { itemId: 's1', type: 'SITE', name: 'Tayrona', startsAt: '2026-12-03T12:00:00', price: 0 },
+          { itemId: 'a1', type: 'ACTIVITY', name: 'Paseo', startsAt: '2026-12-02T12:00:00', price: 100 },
+        ],
+      }))
+    })
+    let reservationRequests = 0
+    await page.route('**/api/v1/reservations', async route => { reservationRequests++; await route.fulfill({ status: 500, json: {} }) })
+    await page.goto('/itinerario')
+    const visit = page.getByLabel('Fecha de visita a Tayrona')
+    await expect(visit).toHaveValue('2026-12-03')
+    await expect(page.getByRole('button', { name: 'Reservar', exact: true })).toHaveCount(1)
+    await visit.fill('2026-12-01')
+    await expect(page.locator('h3').first()).toContainText('1 de dic')
+    await page.reload()
+    await expect(visit).toHaveValue('2026-12-01')
+    await expect(page.getByText('No requiere reserva')).toBeVisible()
+    expect(reservationRequests).toBe(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.screenshot({ path: `/tmp/itinerary-sites-${width}.png`, fullPage: true })
+    await page.getByLabel('Desde', { exact: true }).fill('2026-12-02')
+    await expect(page.getByText('Revisa las fechas de visita')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Guardar itinerario' })).toBeDisabled()
+    await visit.fill('2026-12-04')
+    await expect(page.getByText('Revisa las fechas de visita')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Guardar itinerario' })).toBeEnabled()
+  })
+}
