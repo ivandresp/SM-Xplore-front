@@ -43,6 +43,11 @@
   .twoColumns {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .cancellationPolicy {
+    grid-column: 2;
+    grid-row: 4;
+  }
 }
 
 .full {
@@ -140,4 +145,37 @@
 
 .back:active {
   color: var(--color-link-hover);
+}
+
+.locationGroup {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.locationOption {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+.locationOption:hover {
+  background-color: var(--color-primary-tint);
+}
+
+.locationOption:active {
+  background-color: var(--color-surface-alt);
+}
+
+.locationOption input {
+  accent-color: var(--color-link);
+}
+
+.locationOption input:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
 }

@@ -263,7 +263,7 @@ export function ImageUploader({
                 disabled={disabled || isUploading}
                 onClick={() => removePhoto(url)}
               >
-                ×
+                <span className={styles.removeIcon} aria-hidden="true">×</span>
               </button>
             </li>
           ))}

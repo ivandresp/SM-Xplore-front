@@ -109,8 +109,12 @@
 }
 
 .logout {
-  height: var(--control-h-sm);
-  padding: 0 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-h-md);
+  height: var(--control-h-md);
+  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: var(--radius-control);
   background-color: transparent;
@@ -119,6 +123,11 @@
   font-size: var(--text-small);
   font-weight: 600;
   cursor: pointer;
+}
+
+.logoutIcon {
+  width: 1.15rem;
+  height: 1.15rem;
 }
 
 .logout:hover {
@@ -135,7 +144,19 @@
 }
 
 /* Objetivo táctil de 44 px para las acciones de la barra en móvil. */
+.providerShort {
+  display: none;
+}
+
 @media (max-width: 899px) {
+  .providerFull {
+    display: none;
+  }
+
+  .providerShort {
+    display: inline;
+  }
+
   .role,
   .logout {
     display: inline-flex;
