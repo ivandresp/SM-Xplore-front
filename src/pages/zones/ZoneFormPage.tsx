@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { ImageUploader } from '@/components/ImageUploader'
@@ -32,19 +35,20 @@ function validateCoordinates(
   longitude: number | null,
 ): string | null {
   if (latitude === null || longitude === null) {
-    return 'Escribe la latitud y la longitud del sitio.'
+    return t("Escribe la latitud y la longitud del sitio.")
   }
   if (latitude < -90 || latitude > 90) {
-    return 'La latitud debe estar entre -90 y 90.'
+    return t("La latitud debe estar entre -90 y 90.")
   }
   if (longitude < -180 || longitude > 180) {
-    return 'La longitud debe estar entre -180 y 180.'
+    return t("La longitud debe estar entre -180 y 180.")
   }
   return null
 }
 
 /** Wireframe: 11-gestionar-destino-frame · Configurar zona turística. */
 export default function ZoneFormPage() {
+  useLanguage()
   const { zoneId } = useParams<{ zoneId: string }>()
   const navigate = useNavigate()
 
@@ -52,13 +56,13 @@ export default function ZoneFormPage() {
   const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(zoneId !== undefined)
   const [isSavingZone, setIsSavingZone] = useState(false)
-  const [zoneError, setZoneError] = useState<string | null>(null)
-  const [zoneSuccess, setZoneSuccess] = useState<string | null>(null)
+  const [zoneError, setZoneError] = useMessageState<string | null>(null)
+  const [zoneSuccess, setZoneSuccess] = useMessageState<string | null>(null)
 
   const [sites, setSites] = useState<Site[]>([])
   const [categories, setCategories] = useState<CategoryResponse[]>([])
   const [isAddingSite, setIsAddingSite] = useState(false)
-  const [addError, setAddError] = useState<string | null>(null)
+  const [addError, setAddError] = useMessageState<string | null>(null)
   const [newSiteName, setNewSiteName] = useState('')
   const [newCategoryId, setNewCategoryId] = useState('')
   const [newMaxCapacity, setNewMaxCapacity] = useState('10')
@@ -76,8 +80,8 @@ export default function ZoneFormPage() {
   const [editPhotoUrls, setEditPhotoUrls] = useState<string[]>([])
   const [editPhotosUploading, setEditPhotosUploading] = useState(false)
   const [isSavingSite, setIsSavingSite] = useState(false)
-  const [editError, setEditError] = useState<string | null>(null)
-  const [sitesError, setSitesError] = useState<string | null>(null)
+  const [editError, setEditError] = useMessageState<string | null>(null)
+  const [sitesError, setSitesError] = useMessageState<string | null>(null)
   const [statusSiteId, setStatusSiteId] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -109,7 +113,7 @@ export default function ZoneFormPage() {
           setZoneError(null)
         }
       } catch (cause) {
-        if (!cancelled) setZoneError(describeApiError(cause))
+        if (!cancelled) setZoneError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -120,7 +124,7 @@ export default function ZoneFormPage() {
     return () => {
       cancelled = true
     }
-  }, [zoneId, reloadToken])
+  }, [zoneId, reloadToken, setZoneError])
 
   function retry() {
     setIsLoading(true)
@@ -133,7 +137,7 @@ export default function ZoneFormPage() {
 
     const trimmed = name.trim()
     if (trimmed === '') {
-      setZoneError('Escribe el nombre de la zona.')
+      setZoneError(() => t("Escribe el nombre de la zona."))
       return
     }
 
@@ -152,9 +156,9 @@ export default function ZoneFormPage() {
       const updated = await zonesApi.update(zone.id, { name: trimmed })
       setZone(updated)
       setName(updated.name)
-      setZoneSuccess('Nombre de la zona actualizado.')
+      setZoneSuccess(() => t("Nombre de la zona actualizado."))
     } catch (cause) {
-      setZoneError(describeApiError(cause))
+      setZoneError(() => describeApiError(cause))
     } finally {
       setIsSavingZone(false)
     }
@@ -168,13 +172,13 @@ export default function ZoneFormPage() {
     }
 
     if (newPhotosUploading) {
-      setAddError('Espera a que terminen de subirse las fotos.')
+      setAddError(() => t("Espera a que terminen de subirse las fotos."))
       return
     }
 
     const trimmedName = newSiteName.trim()
     if (trimmedName === '') {
-      setAddError('Escribe el nombre del sitio.')
+      setAddError(() => t("Escribe el nombre del sitio."))
       return
     }
 
@@ -182,18 +186,18 @@ export default function ZoneFormPage() {
     const longitude = parseCoordinate(newLongitude)
     const coordinateError = validateCoordinates(latitude, longitude)
     if (coordinateError !== null) {
-      setAddError(coordinateError)
+      setAddError(() => validateCoordinates(latitude, longitude))
       return
     }
 
     if (newCategoryId === '') {
-      setAddError('Selecciona la categoría del atractivo.')
+      setAddError(() => t("Selecciona la categoría del atractivo."))
       return
     }
 
     const capacity = Number(newMaxCapacity)
     if (!Number.isInteger(capacity) || capacity < 1) {
-      setAddError('La capacidad debe ser un número entero mayor que cero.')
+      setAddError(() => t("La capacidad debe ser un número entero mayor que cero."))
       return
     }
 
@@ -217,7 +221,7 @@ export default function ZoneFormPage() {
       setNewLongitude('')
       setNewPhotoUrls([])
     } catch (cause) {
-      setAddError(describeApiError(cause))
+      setAddError(() => describeApiError(cause))
     } finally {
       setIsAddingSite(false)
     }
@@ -247,7 +251,7 @@ export default function ZoneFormPage() {
         current.map((item) => (item.id === updated.id ? updated : item)),
       )
     } catch (cause) {
-      setSitesError(describeApiError(cause))
+      setSitesError(() => describeApiError(cause))
     } finally {
       setStatusSiteId(null)
     }
@@ -255,13 +259,13 @@ export default function ZoneFormPage() {
 
   async function saveSite(site: Site) {
     if (editPhotosUploading) {
-      setEditError('Espera a que terminen de subirse las fotos.')
+      setEditError(() => t("Espera a que terminen de subirse las fotos."))
       return
     }
 
     const trimmedName = editName.trim()
     if (trimmedName === '') {
-      setEditError('Escribe el nombre del sitio.')
+      setEditError(() => t("Escribe el nombre del sitio."))
       return
     }
 
@@ -269,18 +273,18 @@ export default function ZoneFormPage() {
     const longitude = parseCoordinate(editLongitude)
     const coordinateError = validateCoordinates(latitude, longitude)
     if (coordinateError !== null) {
-      setEditError(coordinateError)
+      setEditError(() => validateCoordinates(latitude, longitude))
       return
     }
 
     if (editCategoryId === '') {
-      setEditError('Selecciona la categoría del atractivo.')
+      setEditError(() => t("Selecciona la categoría del atractivo."))
       return
     }
 
     const capacity = Number(editMaxCapacity)
     if (!Number.isInteger(capacity) || capacity < 1) {
-      setEditError('La capacidad debe ser un número entero mayor que cero.')
+      setEditError(() => t("La capacidad debe ser un número entero mayor que cero."))
       return
     }
 
@@ -303,27 +307,26 @@ export default function ZoneFormPage() {
       )
       setEditingSiteId(null)
     } catch (cause) {
-      setEditError(describeApiError(cause))
+      setEditError(() => describeApiError(cause))
     } finally {
       setIsSavingSite(false)
     }
   }
 
   if (isLoading) {
-    return <Skeleton variant="text" count={4} label="Cargando zona…" />
+    return <Skeleton variant="text" count={4} label={t("Cargando zona…")} />
   }
 
   if (!isNew && zone === null) {
     return (
       <section>
         <Link to="/app/zonas" className={styles.back}>
-          ← Volver a zonas
-        </Link>
+          {t("← Volver a zonas")}</Link>
         <StateMessage
-          title="No se pudo cargar la zona"
-          description={zoneError ?? 'No se encontró la zona.'}
+          title={t("No se pudo cargar la zona")}
+          description={zoneError ?? t("No se encontró la zona.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -332,17 +335,16 @@ export default function ZoneFormPage() {
   return (
     <section>
       <Link to="/app/zonas" className={styles.back}>
-        ← Volver a zonas
-      </Link>
+        {t("← Volver a zonas")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Zonas', to: '/app/zonas' },
+          { label: t("Zonas"), to: '/app/zonas' },
           ...(isNew || zone === null
-            ? [{ label: 'Nueva zona' }]
+            ? [{ label: t("Nueva zona") }]
             : [{ label: zone.name }]),
         ]}
-        title={isNew ? 'Nueva zona turística' : 'Configurar zona turística'}
+        title={isNew ? t("Nueva zona turística") : t("Configurar zona turística")}
       />
 
       {zoneError !== null && (
@@ -360,11 +362,11 @@ export default function ZoneFormPage() {
       <div className={styles.layout}>
         <div className={styles.column}>
           <form className={styles.card} onSubmit={handleSubmit} noValidate>
-            <h2 className={styles.cardTitle}>Información de la zona</h2>
+            <h2 className={styles.cardTitle}>{t("Información de la zona")}</h2>
 
             <Field
-              label="Nombre de la zona"
-              placeholder="Ej: Centro Histórico"
+              label={t("Nombre de la zona")}
+              placeholder={t("Ej: Centro Histórico")}
               required
               value={name}
               onChange={(changeEvent) => setName(changeEvent.target.value)}
@@ -373,26 +375,25 @@ export default function ZoneFormPage() {
             <div className={styles.actions}>
               <Button variant="primary" type="submit" disabled={isSavingZone}>
                 {isSavingZone
-                  ? 'Guardando…'
+                  ? t("Guardando…")
                   : isNew
-                    ? 'Crear zona'
-                    : 'Guardar nombre'}
+                    ? t("Crear zona")
+                    : t("Guardar nombre")}
               </Button>
               <Link to="/app/zonas">
-                <Button variant="outline">Cancelar</Button>
+                <Button variant="outline">{t("Cancelar")}</Button>
               </Link>
             </div>
           </form>
 
           {zone !== null && (
             <article className={styles.card}>
-              <h2 className={styles.cardTitle}>Sitios de la zona</h2>
+              <h2 className={styles.cardTitle}>{t("Sitios de la zona")}</h2>
 
               <ul className={styles.siteList}>
                 {sites.length === 0 && (
                   <li className={styles.helper}>
-                    Esta zona todavía no tiene sitios.
-                  </li>
+                    {t("Esta zona todavía no tiene sitios.")}</li>
                 )}
 
                 {sites.map((site) => (
@@ -400,7 +401,7 @@ export default function ZoneFormPage() {
                     {editingSiteId === site.id ? (
                       <div className={styles.siteForm}>
                         <Field
-                          label="Nombre del sitio"
+                          label={t("Nombre del sitio")}
                           required
                           value={editName}
                           onChange={(changeEvent) =>
@@ -410,11 +411,11 @@ export default function ZoneFormPage() {
 
                         <div className={`${styles.grid} ${styles.twoColumns}`}>
                           <SelectField
-                            label="Categoría"
+                            label={t("Categoría")}
                             required
                             value={editCategoryId}
                             options={[
-                              { value: '', label: 'Selecciona una categoría' },
+                              { value: '', label: t("Selecciona una categoría") },
                               ...categories.map((category) => ({
                                 value: category.id,
                                 label: category.name,
@@ -425,7 +426,7 @@ export default function ZoneFormPage() {
                             }
                           />
                           <Field
-                            label="Capacidad máxima"
+                            label={t("Capacidad máxima")}
                             type="number"
                             min={1}
                             required
@@ -438,7 +439,7 @@ export default function ZoneFormPage() {
 
                         <div className={`${styles.grid} ${styles.twoColumns}`}>
                           <Field
-                            label="Latitud"
+                            label={t("Latitud")}
                             type="number"
                             step="any"
                             min={-90}
@@ -450,7 +451,7 @@ export default function ZoneFormPage() {
                             }
                           />
                           <Field
-                            label="Longitud"
+                            label={t("Longitud")}
                             type="number"
                             step="any"
                             min={-180}
@@ -465,12 +466,12 @@ export default function ZoneFormPage() {
 
                         <ImageUploader
                           className={styles.full}
-                          label="Fotos del atractivo"
+                          label={t("Fotos del atractivo")}
                           folder="sm-xplore/sites"
                           value={editPhotoUrls}
                           onChange={setEditPhotoUrls}
                           onUploadingChange={setEditPhotosUploading}
-                          hint="Las fotos se suben a Cloudinary. La primera será la portada."
+                          hint={t("Las fotos se suben a Cloudinary. La primera será la portada.")}
                         />
 
                         {editError !== null && (
@@ -489,15 +490,14 @@ export default function ZoneFormPage() {
                             disabled={isSavingSite || editPhotosUploading}
                             onClick={() => void saveSite(site)}
                           >
-                            {isSavingSite ? 'Guardando…' : 'Guardar sitio'}
+                            {isSavingSite ? t("Guardando…") : t("Guardar sitio")}
                           </Button>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => setEditingSiteId(null)}
                           >
-                            Cancelar
-                          </Button>
+                            {t("Cancelar")}</Button>
                         </div>
                       </div>
                     ) : (
@@ -505,11 +505,11 @@ export default function ZoneFormPage() {
                         <div className={styles.siteInfo}>
                           <p className={styles.siteTitle}>{site.name}</p>
                           <p className={styles.helper}>
-                            {site.maxCapacity} personas ·{' '}
+                            {site.maxCapacity} {" "}{t("personas ·")}{' '}
                             {site.latitude.toFixed(5)},{' '}
                             {site.longitude.toFixed(5)} ·{' '}
                             {site.photoUrls.length}{' '}
-                            {site.photoUrls.length === 1 ? 'foto' : 'fotos'}
+                            {site.photoUrls.length === 1 ? t("foto") : t("fotos")}
                           </p>
                         </div>
                         <StatusBadge tone={CONTENT_STATUS_TONES[site.status]}>
@@ -521,15 +521,14 @@ export default function ZoneFormPage() {
                           disabled={statusSiteId === site.id}
                           onClick={() => void toggleSiteStatus(site)}
                         >
-                          {site.status === 'PUBLISHED' ? 'Despublicar' : 'Publicar'}
+                          {site.status === 'PUBLISHED' ? t("Despublicar") : t("Publicar")}
                         </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => startEditSite(site)}
                         >
-                          Editar
-                        </Button>
+                          {t("Editar")}</Button>
                       </>
                     )}
                   </li>
@@ -547,11 +546,11 @@ export default function ZoneFormPage() {
                 onSubmit={handleAddSite}
                 noValidate
               >
-                <h3 className={styles.siteFormTitle}>Añadir sitio</h3>
+                <h3 className={styles.siteFormTitle}>{t("Añadir sitio")}</h3>
 
                 <Field
-                  label="Nombre del sitio o atractivo"
-                  placeholder="Ej: Catedral"
+                  label={t("Nombre del sitio o atractivo")}
+                  placeholder={t("Ej: Catedral")}
                   required
                   value={newSiteName}
                   onChange={(changeEvent) =>
@@ -561,16 +560,16 @@ export default function ZoneFormPage() {
 
                 <div className={`${styles.grid} ${styles.twoColumns}`}>
                   <SelectField
-                    label="Categoría"
+                    label={t("Categoría")}
                     required
                     hint={
                       categories.length === 0
-                        ? 'No hay categorías de atractivos: pide a la gestora que cree una.'
+                        ? t("No hay categorías de atractivos: pide a la gestora que cree una.")
                         : undefined
                     }
                     value={newCategoryId}
                     options={[
-                      { value: '', label: 'Selecciona una categoría' },
+                      { value: '', label: t("Selecciona una categoría") },
                       ...categories.map((category) => ({
                         value: category.id,
                         label: category.name,
@@ -581,7 +580,7 @@ export default function ZoneFormPage() {
                     }
                   />
                   <Field
-                    label="Capacidad máxima"
+                    label={t("Capacidad máxima")}
                     type="number"
                     min={1}
                     required
@@ -594,7 +593,7 @@ export default function ZoneFormPage() {
 
                 <div className={`${styles.grid} ${styles.twoColumns}`}>
                   <Field
-                    label="Latitud"
+                    label={t("Latitud")}
                     type="number"
                     step="any"
                     min={-90}
@@ -607,7 +606,7 @@ export default function ZoneFormPage() {
                     }
                   />
                   <Field
-                    label="Longitud"
+                    label={t("Longitud")}
                     type="number"
                     step="any"
                     min={-180}
@@ -623,12 +622,12 @@ export default function ZoneFormPage() {
 
                 <ImageUploader
                   className={styles.full}
-                  label="Fotos del atractivo"
+                  label={t("Fotos del atractivo")}
                   folder="sm-xplore/sites"
                   value={newPhotoUrls}
                   onChange={setNewPhotoUrls}
                   onUploadingChange={setNewPhotosUploading}
-                  hint="Las fotos se suben a Cloudinary. La primera será la portada."
+                  hint={t("Las fotos se suben a Cloudinary. La primera será la portada.")}
                 />
 
                 {addError !== null && (
@@ -643,7 +642,7 @@ export default function ZoneFormPage() {
                     type="submit"
                     disabled={isAddingSite || newPhotosUploading}
                   >
-                    {isAddingSite ? 'Añadiendo…' : '+ Añadir sitio'}
+                    {isAddingSite ? t("Añadiendo…") : t("+ Añadir sitio")}
                   </Button>
                 </div>
               </form>
@@ -654,13 +653,13 @@ export default function ZoneFormPage() {
         <div className={styles.column}>
           {zone !== null && (
             <article className={styles.card}>
-              <h2 className={styles.cardTitle}>Resumen</h2>
+              <h2 className={styles.cardTitle}>{t("Resumen")}</h2>
               <p className={styles.summaryLine}>
-                <span className={styles.summaryLabel}>Zona</span>
+                <span className={styles.summaryLabel}>{t("Zona")}</span>
                 {name.trim() === '' ? zone.name : name}
               </p>
               <p className={styles.summaryLine}>
-                <span className={styles.summaryLabel}>Sitios</span>
+                <span className={styles.summaryLabel}>{t("Sitios")}</span>
                 {sites.length}
               </p>
             </article>

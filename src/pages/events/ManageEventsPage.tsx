@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
@@ -15,11 +18,12 @@ import type { EventResponse } from '@/types'
 import styles from './events.module.css'
 
 export default function ManageEventsPage() {
+  useLanguage()
   const { user } = useAuth()
   const managerId = user?.role === 'DESTINATION_MANAGER' ? user.id : undefined
   const [events, setEvents] = useState<EventResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export default function ManageEventsPage() {
       } catch (cause) {
         if (!cancelled) {
           setEvents([])
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -56,7 +60,7 @@ export default function ManageEventsPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken, managerId])
+  }, [reloadToken, managerId, setError])
 
   function retry() {
     setIsLoading(true)
@@ -66,7 +70,7 @@ export default function ManageEventsPage() {
 
   const columns: Column<EventResponse>[] = [
     {
-      header: 'Evento',
+      header: t("Evento"),
       render: (event) => (
         <div>
           <p className={styles.title}>{event.name}</p>
@@ -77,19 +81,19 @@ export default function ManageEventsPage() {
       ),
     },
     {
-      header: 'Fecha',
+      header: t("Fecha"),
       render: (event) => formatDateTime(event.startsAt),
     },
     {
-      header: 'Aforo',
-      render: (event) => `${event.maxCapacity} personas`,
+      header: t("Aforo"),
+      render: (event) => t("{0} personas", [event.maxCapacity]),
     },
     {
-      header: 'Afluencia',
-      render: (event) => `${event.expectedAttendance} esperadas`,
+      header: t("Afluencia"),
+      render: (event) => t("{0} esperadas", [event.expectedAttendance]),
     },
     {
-      header: 'Estado',
+      header: t("Estado"),
       render: (event) => (
         <StatusBadge tone={EVENT_STATUS_TONES[event.status]}>
           {EVENT_STATUS_LABELS[event.status]}
@@ -97,13 +101,12 @@ export default function ManageEventsPage() {
       ),
     },
     {
-      header: 'Acciones',
+      header: t("Acciones"),
       align: 'right',
       render: (event) => (
         <Link to={`/app/eventos/${event.id}`}>
           <Button variant="outline" size="sm">
-            Gestionar
-          </Button>
+            {t("Gestionar")}</Button>
         </Link>
       ),
     },
@@ -112,22 +115,22 @@ export default function ManageEventsPage() {
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Eventos' }, { label: 'Gestión' }]}
-        title="Gestión de eventos"
-        description="Publica, pospone o cancela eventos y ajusta la afluencia esperada."
+        breadcrumb={[{ label: t("Eventos") }, { label: t("Gestión") }]}
+        title={t("Gestión de eventos")}
+        description={t("Publica, pospone o cancela eventos y ajusta la afluencia esperada.")}
         actions={
           <Link to="/app/eventos/nuevo">
-            <Button variant="accent">Nuevo evento</Button>
+            <Button variant="accent">{t("Nuevo evento")}</Button>
           </Link>
         }
       />
 
       {error !== null ? (
         <StateMessage
-          title="No se pudieron cargar los eventos"
+          title={t("No se pudieron cargar los eventos")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       ) : (
         <DataTable
@@ -135,11 +138,11 @@ export default function ManageEventsPage() {
           rows={events}
           rowKey={(event) => event.id}
           isLoading={isLoading}
-          loadingMessage="Cargando eventos…"
-          emptyMessage="Todavía no hay eventos. Crea el primero con “Nuevo evento”."
+          loadingMessage={t("Cargando eventos…")}
+          emptyMessage={t("Todavía no hay eventos. Crea el primero con “Nuevo evento”.")}
           emptyAction={
             <Link to="/app/eventos/nuevo">
-              <Button variant="accent">Nuevo evento</Button>
+              <Button variant="accent">{t("Nuevo evento")}</Button>
             </Link>
           }
         />

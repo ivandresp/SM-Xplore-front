@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { classNames } from '@/utils/format'
 import styles from './Media.module.css'
 
@@ -18,6 +20,7 @@ export interface MediaProps {
  * falla). Alto fijo (`--media-h`): la grilla no se mueve entre ambos casos.
  */
 export function Media({ photo, chip, alt = '', className }: MediaProps) {
+  useLanguage()
   const [failed, setFailed] = useState(false)
   const showPhoto = photo !== undefined && photo !== '' && !failed
 
@@ -54,7 +57,7 @@ export function Media({ photo, chip, alt = '', className }: MediaProps) {
         <circle cx="8.5" cy="10" r="1.6" />
         <path d="M2.5 16.5l5-4.5 3.5 3.5 3-2.5 7.5 6" />
       </svg>
-      <span className={styles.tag}>Sin foto</span>
+      <span className={styles.tag}>{t("Sin foto")}</span>
     </div>
   )
 }

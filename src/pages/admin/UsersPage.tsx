@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
@@ -32,30 +35,30 @@ import styles from './admin.module.css'
 const PAGE_SIZE = 10
 
 const ROLE_FILTERS: Array<{ label: string; role?: UserRole }> = [
-  { label: 'Todos' },
-  { label: 'Turistas', role: 'TOURIST' },
-  { label: 'Guías', role: 'GUIDE' },
-  { label: 'Prestadoras', role: 'SERVICE_PROVIDER' },
-  { label: 'Gestoras', role: 'DESTINATION_MANAGER' },
+  { get label() { return t("Todos") } },
+  { get label() { return t("Turistas") }, role: 'TOURIST' },
+  { get label() { return t("Guías") }, role: 'GUIDE' },
+  { get label() { return t("Prestadoras") }, role: 'SERVICE_PROVIDER' },
+  { get label() { return t("Gestoras") }, role: 'DESTINATION_MANAGER' },
   { label: 'Admin', role: 'ADMIN' },
 ]
 
 const STATUS_FILTERS: Array<{ value: '' | UserStatus; label: string }> = [
-  { value: '', label: 'Todos los estados' },
-  { value: 'ACTIVO', label: 'Activos' },
-  { value: 'BLOQUEADO', label: 'Bloqueados' },
-  { value: 'SUSPENDIDO', label: 'Suspendidos' },
-  { value: 'ELIMINADO', label: 'Eliminados' },
+  { value: '', get label() { return t("Todos los estados") } },
+  { value: 'ACTIVO', get label() { return t("Activos") } },
+  { value: 'BLOQUEADO', get label() { return t("Bloqueados") } },
+  { value: 'SUSPENDIDO', get label() { return t("Suspendidos") } },
+  { value: 'ELIMINADO', get label() { return t("Eliminados") } },
 ]
 
 const PROVIDER_FILTERS: Array<{
   value: '' | ProviderRegistrationStatus
   label: string
 }> = [
-  { value: '', label: 'Prestadoras: todas' },
-  { value: 'PENDIENTE', label: 'Prestadoras pendientes' },
-  { value: 'APROBADO', label: 'Prestadoras aprobadas' },
-  { value: 'RECHAZADO', label: 'Prestadoras rechazadas' },
+  { value: '', get label() { return t("Prestadoras: todas") } },
+  { value: 'PENDIENTE', get label() { return t("Prestadoras pendientes") } },
+  { value: 'APROBADO', get label() { return t("Prestadoras aprobadas") } },
+  { value: 'RECHAZADO', get label() { return t("Prestadoras rechazadas") } },
 ]
 
 /** Las prestadoras se revisan en su pantalla de solicitud. */
@@ -66,6 +69,7 @@ function detailPathFor(user: AdminUserSummary): string {
 }
 
 export default function UsersPage() {
+  useLanguage()
   const navigate = useNavigate()
 
   const [term, setTerm] = useState('')
@@ -80,7 +84,7 @@ export default function UsersPage() {
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [page, setPage] = useState(1)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -120,7 +124,7 @@ export default function UsersPage() {
         if (!cancelled) {
           setUsers([])
           setTotal(0)
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -134,7 +138,7 @@ export default function UsersPage() {
     return () => {
       cancelled = true
     }
-  }, [role, status, providerStatus, sort, debouncedTerm, page, reloadToken])
+  }, [role, status, providerStatus, sort, debouncedTerm, page, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -144,7 +148,7 @@ export default function UsersPage() {
 
   const columns: Column<AdminUserSummary>[] = [
     {
-      header: 'Usuario',
+      header: t("Usuario"),
       render: (user) => (
         <div className={styles.userCell}>
           <Avatar name={user.fullName} />
@@ -156,11 +160,11 @@ export default function UsersPage() {
       ),
     },
     {
-      header: 'Rol',
+      header: t("Rol"),
       render: (user) => ROLE_LABELS[user.role],
     },
     {
-      header: 'Estado',
+      header: t("Estado"),
       render: (user) => (
         <div>
           <StatusBadge tone={ACCOUNT_STATUS_TONES[user.status]}>
@@ -175,11 +179,11 @@ export default function UsersPage() {
       ),
     },
     {
-      header: 'Registro',
+      header: t("Registro"),
       render: (user) => formatDate(user.signedUpAt),
     },
     {
-      header: 'Acciones',
+      header: t("Acciones"),
       align: 'right',
       render: (user) => (
         <Button
@@ -187,8 +191,7 @@ export default function UsersPage() {
           size="sm"
           onClick={() => navigate(detailPathFor(user))}
         >
-          Ver
-        </Button>
+          {t("Ver")}</Button>
       ),
     },
   ]
@@ -196,21 +199,20 @@ export default function UsersPage() {
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Usuarios' }, { label: 'Listado' }]}
-        title="Usuarios registrados"
-        meta={`${total} ${total === 1 ? 'usuario' : 'usuarios'}`}
+        breadcrumb={[{ label: t("Usuarios") }, { label: t("Listado") }]}
+        title={t("Usuarios registrados")}
+        meta={`${total} ${total === 1 ? t("usuario") : t("usuarios")}`}
         actions={
           <Button onClick={() => navigate('/app/usuarios/nuevo')}>
-            Crear usuario
-          </Button>
+            {t("Crear usuario")}</Button>
         }
       />
 
       <div className={styles.toolbar}>
         <div className={styles.search}>
           <SearchInput
-            label="Buscar por nombre o correo"
-            placeholder="Buscar por nombre o correo…"
+            label={t("Buscar por nombre o correo")}
+            placeholder={t("Buscar por nombre o correo…")}
             value={term}
             onChange={setTerm}
           />
@@ -234,7 +236,7 @@ export default function UsersPage() {
         <div className={styles.sortGroup}>
           <SelectField
             className={styles.sort}
-            aria-label="Filtrar por estado de la cuenta"
+            aria-label={t("Filtrar por estado de la cuenta")}
             options={STATUS_FILTERS}
             value={status}
             onChange={(event) => {
@@ -245,7 +247,7 @@ export default function UsersPage() {
 
           <SelectField
             className={styles.sort}
-            aria-label="Filtrar por estado de la prestadora"
+            aria-label={t("Filtrar por estado de la prestadora")}
             options={PROVIDER_FILTERS}
             value={providerStatus}
             onChange={(event) => {
@@ -258,10 +260,10 @@ export default function UsersPage() {
 
           <SelectField
             className={styles.sort}
-            aria-label="Ordenar"
+            aria-label={t("Ordenar")}
             options={[
-              { value: 'recent', label: 'Ordenar: más recientes' },
-              { value: 'oldest', label: 'Ordenar: más antiguos' },
+              { value: 'recent', label: t("Ordenar: más recientes") },
+              { value: 'oldest', label: t("Ordenar: más antiguos") },
             ]}
             value={sort}
             onChange={(event) => {
@@ -274,10 +276,10 @@ export default function UsersPage() {
 
       {error !== null ? (
         <StateMessage
-          title="No se pudieron cargar los usuarios"
+          title={t("No se pudieron cargar los usuarios")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       ) : (
         <DataTable
@@ -285,12 +287,11 @@ export default function UsersPage() {
           rows={users}
           rowKey={(user) => user.id}
           isLoading={isLoading}
-          loadingMessage="Cargando usuarios…"
-          emptyMessage="No hay usuarios que coincidan con los filtros."
+          loadingMessage={t("Cargando usuarios…")}
+          emptyMessage={t("No hay usuarios que coincidan con los filtros.")}
           emptyAction={
             <Button onClick={() => navigate('/app/usuarios/nuevo')}>
-              Crear usuario
-            </Button>
+              {t("Crear usuario")}</Button>
           }
         />
       )}

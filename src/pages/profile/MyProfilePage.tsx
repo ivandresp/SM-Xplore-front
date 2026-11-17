@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
@@ -20,8 +23,8 @@ import { usePreferences } from './usePreferences'
 import styles from './profile.module.css'
 
 const PREFERENCE_SOURCE_LABEL: Record<PreferenceSource, string> = {
-  EXPLICIT: 'Elegida por ti',
-  INFERRED: 'Deducida de tus visitas',
+  get EXPLICIT() { return t("Elegida por ti") },
+  get INFERRED() { return t("Deducida de tus visitas") },
 }
 
 interface ProfileDraft {
@@ -30,12 +33,13 @@ interface ProfileDraft {
 }
 
 export default function MyProfilePage() {
+  useLanguage()
   const { user, updateSessionUser } = useAuth()
 
   const [draft, setDraft] = useState<ProfileDraft | null>(null)
   const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState('')
   const formRef = useRef<HTMLFormElement>(null)
 
@@ -44,17 +48,17 @@ export default function MyProfilePage() {
     values: draft ?? { fullName: '', phone: '' },
     validate: (values) => ({
       ...(values.fullName.trim() === ''
-        ? { fullName: 'Escribe tu nombre.' }
+        ? { fullName: t("Escribe tu nombre.") }
         : values.fullName.trim().length > 150
-          ? { fullName: 'Usa 150 caracteres o menos.' }
+          ? { fullName: t("Usa 150 caracteres o menos.") }
           : {}),
       ...(values.phone.trim() === ''
-        ? { phone: 'Escribe tu teléfono.' }
+        ? { phone: t("Escribe tu teléfono.") }
         : /^[0-9+()\-\s]{7,20}$/.test(values.phone.trim())
           ? {}
-          : { phone: 'Usa entre 7 y 20 dígitos; puedes incluir +, () o guiones.' }),
+          : { phone: t("Usa entre 7 y 20 dígitos; puedes incluir +, () o guiones.") }),
     }),
-    labels: { fullName: 'Nombre completo', phone: 'Teléfono' },
+    labels: { get fullName() { return t("Nombre completo") }, get phone() { return t("Teléfono") } },
     order: ['fullName', 'phone'] as const,
     formRef,
   })
@@ -86,16 +90,16 @@ export default function MyProfilePage() {
   )
 
   const personalItems: DefItem[] = [
-    { label: 'Nombre completo', value: currentUser.fullName },
-    { label: 'Correo electrónico', value: currentUser.email },
-    { label: 'Teléfono', value: currentUser.phone },
-    { label: 'Ciudad', value: '—' },
+    { label: t("Nombre completo"), value: currentUser.fullName },
+    { label: t("Correo electrónico"), value: currentUser.email },
+    { label: t("Teléfono"), value: currentUser.phone },
+    { label: t("Ciudad"), value: '—' },
   ]
 
   const accountItems: DefItem[] = [
-    { label: 'Tipo de cuenta', value: ROLE_LABELS[currentUser.role] },
-    { label: 'Última sesión', value: '—' },
-    { label: 'Estado', value: ACCOUNT_STATUS_LABELS[currentUser.status] },
+    { label: t("Tipo de cuenta"), value: ROLE_LABELS[currentUser.role] },
+    { label: t("Última sesión"), value: '—' },
+    { label: t("Estado"), value: ACCOUNT_STATUS_LABELS[currentUser.status] },
   ]
 
   function startEdit() {
@@ -147,11 +151,11 @@ export default function MyProfilePage() {
       })
       updateSessionUser(updated)
       setDraft(null)
-      setFeedback('Perfil actualizado.')
+      setFeedback(() => t("Perfil actualizado."))
     } catch (cause) {
-      logApiError(cause, 'perfil: guardar')
+      logApiError(cause, t("perfil: guardar"))
       if (!form.applyValidationErrors(cause)) {
-        setError(describeApiError(cause))
+        setError(() => describeApiError(cause))
       }
     } finally {
       setIsSaving(false)
@@ -161,9 +165,9 @@ export default function MyProfilePage() {
   return (
     <section className={styles.page}>
       <PageHeader
-        breadcrumb={[{ label: 'Inicio', to: '/explorar' }, { label: 'Mi perfil' }]}
-        title="Mi perfil"
-        description="Tu información y preferencias en SM-Xplore."
+        breadcrumb={[{ label: t("Inicio"), to: '/explorar' }, { label: t("Mi perfil") }]}
+        title={t("Mi perfil")}
+        description={t("Tu información y preferencias en SM-Xplore.")}
       />
 
       {error !== null && <StateMessage title={error} tone="error" />}
@@ -185,14 +189,14 @@ export default function MyProfilePage() {
                   </StatusBadge>
                 </div>
                 <p className={styles.meta}>
-                  Miembro desde {formatMonthYear(currentUser.signedUpAt)}
+                  {t("Miembro desde")}{" "}{formatMonthYear(currentUser.signedUpAt)}
                 </p>
               </div>
             </div>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Cuenta</h2>
+            <h2 className={styles.cardTitle}>{t("Cuenta")}</h2>
             <DefList items={accountItems} columns={1} />
           </article>
         </div>
@@ -200,18 +204,17 @@ export default function MyProfilePage() {
         <div className={styles.column}>
           <article className={styles.card}>
             <div className={styles.cardHeader}>
-              <h2 className={styles.cardTitle}>Información personal</h2>
+              <h2 className={styles.cardTitle}>{t("Información personal")}</h2>
               {!isEditing && (
                 <Button variant="outline" size="sm" onClick={startEdit}>
-                  Editar
-                </Button>
+                  {t("Editar")}</Button>
               )}
             </div>
 
             {draft !== null ? (
               <form className={styles.form} onSubmit={handleSubmit} noValidate ref={formRef}>
                 <Field
-                  label="Nombre completo"
+                  label={t("Nombre completo")}
                   name="fullName"
                   required
                   value={draft.fullName}
@@ -222,15 +225,15 @@ export default function MyProfilePage() {
                   onBlur={() => form.markTouched('fullName')}
                 />
                 <Field
-                  label="Correo electrónico"
+                  label={t("Correo electrónico")}
                   type="email"
                   name="email"
                   value={currentUser.email}
                   disabled
-                  hint="El correo no se puede cambiar desde el perfil."
+                  hint={t("El correo no se puede cambiar desde el perfil.")}
                 />
                 <Field
-                  label="Teléfono"
+                  label={t("Teléfono")}
                   name="phone"
                   required
                   value={draft.phone}
@@ -251,15 +254,13 @@ export default function MyProfilePage() {
                     type="submit"
                     loading={isSaving}
                   >
-                    Guardar cambios
-                  </Button>
+                    {t("Guardar cambios")}</Button>
                   <Button
                     variant="outline"
                     onClick={cancelEdit}
                     disabled={isSaving}
                   >
-                    Cancelar
-                  </Button>
+                    {t("Cancelar")}</Button>
                 </div>
               </form>
             ) : (
@@ -268,39 +269,34 @@ export default function MyProfilePage() {
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Preferencias</h2>
+            <h2 className={styles.cardTitle}>{t("Preferencias")}</h2>
 
             {!isTourist && (
               <p className={styles.note}>
-                Las preferencias de categoría se guardan en cuentas de turista; tu
-                cuenta no las usa para armar recomendaciones.
-              </p>
+                {t("Las preferencias de categoría se guardan en cuentas de turista; tu cuenta no las usa para armar recomendaciones.")}</p>
             )}
 
             {isTourist && (
               <>
                 <p className={styles.note}>
-                  Marca las categorías que te gustan: pesan en el orden de tus
-                  recomendaciones.
-                </p>
+                  {t("Marca las categorías que te gustan: pesan en el orden de tus recomendaciones.")}</p>
 
                 {isPreferencesLoading && (
-                  <p className={styles.empty}>Cargando preferencias…</p>
+                  <p className={styles.empty}>{t("Cargando preferencias…")}</p>
                 )}
 
                 {!isPreferencesLoading &&
                   preferencesError === null &&
                   preferences.length === 0 && (
                     <p className={styles.empty}>
-                      Aún no has marcado ninguna categoría.
-                    </p>
+                      {t("Aún no has marcado ninguna categoría.")}</p>
                   )}
 
                 {preferences.length > 0 && (
                   <ul className={styles.prefsList}>
                     {preferences.map((preference) => {
                       const name =
-                        categoryNames.get(preference.categoryId) ?? 'Categoría'
+                        categoryNames.get(preference.categoryId) ?? t("Categoría")
 
                       return (
                         <li key={preference.categoryId} className={styles.prefRow}>
@@ -313,10 +309,9 @@ export default function MyProfilePage() {
                             className={styles.prefChip}
                             onClick={() => void removePreference(preference.categoryId)}
                             disabled={savingCategory === preference.categoryId}
-                            aria-label={`Quitar ${name}`}
+                            aria-label={t("Quitar {0}", [name])}
                           >
-                            Quitar
-                          </button>
+                            {t("Quitar")}</button>
                         </li>
                       )
                     })}
@@ -325,17 +320,15 @@ export default function MyProfilePage() {
 
                 {preferences.some((preference) => preference.source === 'INFERRED') && (
                   <p className={styles.note}>
-                    Las deducidas salen de tus visitas y vuelven a aparecer si sigues
-                    abriendo esa categoría.
-                  </p>
+                    {t("Las deducidas salen de tus visitas y vuelven a aparecer si sigues abriendo esa categoría.")}</p>
                 )}
 
                 {availableCategories.length > 0 && (
                   <div className={styles.prefsForm}>
                     <SelectField
                       id="profile-pref-category"
-                      label="Añadir categoría"
-                      placeholder="Selecciona una categoría…"
+                      label={t("Añadir categoría")}
+                      placeholder={t("Selecciona una categoría…")}
                       options={availableCategories.map((category) => ({
                         value: category.id,
                         label: category.name,
@@ -352,8 +345,7 @@ export default function MyProfilePage() {
                       }
                       onClick={() => void handleAddPreference()}
                     >
-                      Añadir
-                    </Button>
+                      {t("Añadir")}</Button>
                   </div>
                 )}
 

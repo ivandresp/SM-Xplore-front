@@ -393,7 +393,7 @@ describe('RegisterPage', () => {
     renderRegister()
 
     await fillTouristForm(user)
-    await user.type(screen.getByLabelText('Nacionalidad'), 'a'.repeat(81))
+    await user.type(screen.getByLabelText('Pais de Origen'), 'a'.repeat(81))
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     const registerCalls = fetchMock.mock.calls.filter(([input]) =>
@@ -401,7 +401,7 @@ describe('RegisterPage', () => {
     )
     expect(registerCalls).toHaveLength(0)
 
-    const nationality = screen.getByLabelText('Nacionalidad') as HTMLInputElement
+    const nationality = screen.getByLabelText('Pais de Origen') as HTMLInputElement
     expect(document.activeElement).toBe(nationality)
     expect(nationality.getAttribute('aria-invalid')).toBe('true')
 

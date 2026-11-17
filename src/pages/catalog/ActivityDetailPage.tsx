@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { getLocale, translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -33,17 +36,17 @@ import styles from './catalog.module.css'
 
 /** Hora local legible de una fecha ISO (p. ej. "8:00 a. m."). */
 function formatTime(value: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(getLocale(), {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
 }
 
-const PAYMENT_OPTIONS = Object.entries(PAYMENT_METHOD_LABELS).map(
-  ([value, label]) => ({ value, label }),
-)
-
 export default function ActivityDetailPage() {
+  useLanguage()
+  const paymentOptions = Object.entries(PAYMENT_METHOD_LABELS).map(
+    ([value, label]) => ({ value, label }),
+  )
   const { activityId } = useParams<{ activityId: string }>()
   useTrackView('ACTIVITY', activityId)
   const { user, isAuthenticated } = useAuth()
@@ -59,14 +62,14 @@ export default function ActivityDetailPage() {
     'missing' | 'unavailable' | null
   >(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
 
   const [people, setPeople] = useState(2)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CARD')
   const [isBooking, setIsBooking] = useState(false)
-  const [bookingError, setBookingError] = useState<string | null>(null)
+  const [bookingError, setBookingError] = useMessageState<string | null>(null)
   const [confirmation, setConfirmation] = useState<ReservationResponse | null>(
     null,
   )
@@ -117,7 +120,7 @@ export default function ActivityDetailPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -131,7 +134,7 @@ export default function ActivityDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [activityId, reloadToken])
+  }, [activityId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -142,7 +145,7 @@ export default function ActivityDetailPage() {
   if (isLoading) {
     return (
       <div className={styles.page}>
-        <Skeleton variant="text" count={6} label="Cargando actividad…" />
+        <Skeleton variant="text" count={6} label={t("Cargando actividad…")} />
       </div>
     )
   }
@@ -151,16 +154,14 @@ export default function ActivityDetailPage() {
     return (
       <div className={styles.page}>
         <Link to="/explorar" className={styles.state}>
-          ← Volver al catálogo
-        </Link>
+          {t("← Volver al catálogo")}</Link>
         <StateMessage
           tone="error"
-          title="No pudimos cargar la actividad"
-          description={error ?? 'No se encontró la actividad.'}
+          title={t("No pudimos cargar la actividad")}
+          description={error ?? t("No se encontró la actividad.")}
           action={
             <Button variant="accent" onClick={retry}>
-              Reintentar
-            </Button>
+              {t("Reintentar")}</Button>
           }
         />
       </div>
@@ -187,7 +188,7 @@ export default function ActivityDetailPage() {
       itemId: activity.id,
       type: 'ACTIVITY',
       name: activity.name,
-      meta: `Actividad · ${formatDurationLong(activity.durationMinutes)}`,
+      durationMinutes: activity.durationMinutes,
       startsAt: activity.startsAt,
       price: activity.price,
       providerId: activity.guideId ?? undefined,
@@ -217,7 +218,7 @@ export default function ActivityDetailPage() {
 
       setConfirmation(reservation)
     } catch (cause) {
-      setBookingError(describeApiError(cause))
+      setBookingError(() => describeApiError(cause))
     } finally {
       setIsBooking(false)
     }
@@ -228,12 +229,12 @@ export default function ActivityDetailPage() {
       <PageHeader
         serif
         breadcrumb={[
-          { label: 'Inicio', to: '/explorar' },
-          { label: 'Actividades', to: '/actividades' },
+          { label: t("Inicio"), to: '/explorar' },
+          { label: t("Actividades"), to: '/actividades' },
           { label: activity.name },
         ]}
         title={activity.name}
-        description={`${activity.category} · ${formatDurationLong(activity.durationMinutes)} · hasta ${activity.maxCapacity} personas`}
+        description={t("{0} · {1} · hasta {2} personas", [activity.category, formatDurationLong(activity.durationMinutes), activity.maxCapacity])}
         actions={
           <StatusBadge
             tone={activity.status === 'PUBLISHED' ? 'success' : 'neutral'}
@@ -245,38 +246,36 @@ export default function ActivityDetailPage() {
 
       <div className={styles.detailLayout}>
         <div className={styles.column}>
-          <div className={styles.hero}>Sin fotos disponibles</div>
+          <div className={styles.hero}>{t("Sin fotos disponibles")}</div>
 
           <section>
-            <h2 className={styles.sectionTitle}>Descripción</h2>
+            <h2 className={styles.sectionTitle}>{t("Descripción")}</h2>
             {activity.description !== null && activity.description !== '' ? (
               <p className={styles.paragraph}>{activity.description}</p>
             ) : (
               <p className={styles.paragraphMuted}>
-                Esta actividad no tiene descripción registrada.
-              </p>
+                {t("Esta actividad no tiene descripción registrada.")}</p>
             )}
           </section>
 
           <div className={styles.tiles}>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Duración</span>
+              <span className={styles.tileLabel}>{t("Duración")}</span>
               <span className={styles.tileValue}>
                 {formatDurationLong(activity.durationMinutes)}
               </span>
             </div>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Capacidad</span>
+              <span className={styles.tileLabel}>{t("Capacidad")}</span>
               <span className={styles.tileValue}>
-                {activity.maxCapacity} personas
-              </span>
+                {activity.maxCapacity} {" "}{t("personas")}</span>
             </div>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Categoría</span>
+              <span className={styles.tileLabel}>{t("Categoría")}</span>
               <span className={styles.tileValue}>{activity.category}</span>
             </div>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Fecha</span>
+              <span className={styles.tileLabel}>{t("Fecha")}</span>
               <span className={styles.tileValue}>
                 {formatDate(activity.startsAt)}
               </span>
@@ -285,8 +284,7 @@ export default function ActivityDetailPage() {
 
           <section>
             <h2 className={styles.sectionTitle}>
-              Ubicación y punto de encuentro
-            </h2>
+              {t("Ubicación y punto de encuentro")}</h2>
             {site !== null ? (
               <>
                 <p className={styles.paragraph}>
@@ -302,8 +300,8 @@ export default function ActivityDetailPage() {
             ) : (
               <p className={styles.paragraphMuted}>
                 {siteProblem === 'unavailable'
-                  ? 'No pudimos cargar la ubicación del atractivo. Vuelve a intentarlo en un momento.'
-                  : 'Esta actividad no tiene un atractivo publicado asociado.'}
+                  ? t("No pudimos cargar la ubicación del atractivo. Vuelve a intentarlo en un momento.")
+                  : t("Esta actividad no tiene un atractivo publicado asociado.")}
               </p>
             )}
           </section>
@@ -314,14 +312,14 @@ export default function ActivityDetailPage() {
             {confirmation !== null ? (
               <>
                 <p className={styles.feedback + ' ' + styles.success}>
-                  ¡Reserva creada! Estado: {confirmation.status}.
+                  {t("¡Reserva creada! Estado:")}{" "}{confirmation.status}.
                 </p>
                 <div className={styles.line}>
-                  <span>Reserva</span>
+                  <span>{t("Reserva")}</span>
                   <span>{confirmation.code}</span>
                 </div>
                 <div className={styles.line}>
-                  <span>Personas</span>
+                  <span>{t("Personas")}</span>
                   <span>{confirmation.numberOfPeople}</span>
                 </div>
                 <div className={styles.totalRow}>
@@ -330,24 +328,23 @@ export default function ActivityDetailPage() {
                 </div>
                 <Link to="/mis-reservas">
                   <Button variant="outline" block>
-                    Ir a mis reservas
-                  </Button>
+                    {t("Ir a mis reservas")}</Button>
                 </Link>
               </>
             ) : (
               <>
                 <div>
-                  <p className={styles.bookingLabel}>Desde</p>
+                  <p className={styles.bookingLabel}>{t("Desde")}</p>
                   <div className={styles.priceRow}>
                     <span className={styles.priceBig}>
                       {formatCurrency(activity.price)}
                     </span>
-                    <span className={styles.priceUnit}>COP / persona</span>
+                    <span className={styles.priceUnit}>{t("COP / persona")}</span>
                   </div>
                 </div>
 
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Fecha</span>
+                  <span className={styles.fieldLabel}>{t("Fecha")}</span>
                   <input
                     className={styles.control}
                     type="date"
@@ -357,7 +354,7 @@ export default function ActivityDetailPage() {
                 </label>
 
                 <label className={styles.field}>
-                  <span className={styles.fieldLabel}>Hora</span>
+                  <span className={styles.fieldLabel}>{t("Hora")}</span>
                   <input
                     className={styles.control}
                     type="text"
@@ -367,14 +364,14 @@ export default function ActivityDetailPage() {
                 </label>
 
                 <div className={styles.field}>
-                  <span className={styles.fieldLabel}>Personas</span>
+                  <span className={styles.fieldLabel}>{t("Personas")}</span>
                   <div className={styles.stepper}>
                     <button
                       type="button"
                       className={styles.stepperButton}
                       onClick={() => setPeople((current) => current - 1)}
                       disabled={people <= 1}
-                      aria-label="Quitar persona"
+                      aria-label={t("Quitar persona")}
                     >
                       −
                     </button>
@@ -384,7 +381,7 @@ export default function ActivityDetailPage() {
                       className={styles.stepperButton}
                       onClick={() => setPeople((current) => current + 1)}
                       disabled={people >= activity.maxCapacity}
-                      aria-label="Agregar persona"
+                      aria-label={t("Agregar persona")}
                     >
                       +
                     </button>
@@ -392,9 +389,9 @@ export default function ActivityDetailPage() {
                 </div>
 
                 <SelectField
-                  label="Método de pago"
+                  label={t("Método de pago")}
                   className={styles.control}
-                  options={PAYMENT_OPTIONS}
+                  options={paymentOptions}
                   value={paymentMethod}
                   onChange={(event) =>
                     setPaymentMethod(event.target.value as PaymentMethod)
@@ -428,26 +425,25 @@ export default function ActivityDetailPage() {
                   onClick={() => void handleBook()}
                 >
                   {isBooking
-                    ? 'Reservando…'
+                    ? t("Reservando…")
                     : isAuthenticated
-                      ? 'Reservar'
-                      : 'Inicia sesión para reservar'}
+                      ? t("Reservar")
+                      : t("Inicia sesión para reservar")}
                 </Button>
 
                 <Button variant="outline" block onClick={toggleItinerary}>
                   {inItinerary
-                    ? 'Quitar del itinerario'
-                    : 'Agregar al itinerario'}
+                    ? t("Quitar del itinerario")
+                    : t("Agregar al itinerario")}
                 </Button>
               </>
             )}
           </article>
 
           <article className={styles.booking}>
-            <h2 className={styles.sectionTitle}>Reseñas</h2>
+            <h2 className={styles.sectionTitle}>{t("Reseñas")}</h2>
             <p className={styles.paragraphMuted}>
-              Todavía no hay reseñas de esta actividad.
-            </p>
+              {t("Todavía no hay reseñas de esta actividad.")}</p>
           </article>
         </div>
       </div>

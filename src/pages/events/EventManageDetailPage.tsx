@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
@@ -16,14 +19,15 @@ import type { EventResponse, EventStatus } from '@/types'
 import styles from './events.module.css'
 
 export default function EventManageDetailPage() {
+  useLanguage()
   const { eventId } = useParams<{ eventId: string }>()
 
   const [event, setEvent] = useState<EventResponse | null>(null)
   const [expected, setExpected] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -45,7 +49,7 @@ export default function EventManageDetailPage() {
           setError(null)
         }
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -56,7 +60,7 @@ export default function EventManageDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [eventId, reloadToken])
+  }, [eventId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -65,20 +69,19 @@ export default function EventManageDetailPage() {
   }
 
   if (isLoading) {
-    return <Skeleton variant="text" count={4} label="Cargando evento…" />
+    return <Skeleton variant="text" count={4} label={t("Cargando evento…")} />
   }
 
   if (event === null) {
     return (
       <section>
         <Link to="/app/eventos" className={styles.back}>
-          ← Volver a gestión de eventos
-        </Link>
+          {t("← Volver a gestión de eventos")}</Link>
         <StateMessage
-          title="No se pudo cargar el evento"
-          description={error ?? 'No se encontró el evento.'}
+          title={t("No se pudo cargar el evento")}
+          description={error ?? t("No se encontró el evento.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -87,24 +90,24 @@ export default function EventManageDetailPage() {
   const current = event
 
   const infoItems: DefItem[] = [
-    { label: 'Inicio', value: formatDateTime(current.startsAt) },
-    { label: 'Fin', value: formatDateTime(current.endsAt) },
-    { label: 'Categoría', value: current.category },
-    { label: 'Aforo', value: `${current.maxCapacity} personas` },
+    { label: t("Inicio"), value: formatDateTime(current.startsAt) },
+    { label: t("Fin"), value: formatDateTime(current.endsAt) },
+    { label: t("Categoría"), value: current.category },
+    { label: t("Aforo"), value: t('{0} personas', [current.maxCapacity]) },
     {
-      label: 'Afluencia esperada',
+      label: t("Afluencia esperada"),
       value: `${current.expectedAttendance} personas`,
     },
     {
-      label: 'Precio',
+      label: t("Precio"),
       value:
-        current.price === 0 ? 'Gratis' : formatCurrency(current.price),
+        current.price === 0 ? t('Gratis') : formatCurrency(current.price),
     },
   ]
 
   async function runAction(
     action: () => Promise<EventResponse>,
-    message: string,
+    message: () => string,
   ) {
     setIsWorking(true)
     setError(null)
@@ -116,7 +119,7 @@ export default function EventManageDetailPage() {
       setExpected(String(updated.expectedAttendance))
       setFeedback(message)
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -124,24 +127,23 @@ export default function EventManageDetailPage() {
 
   const statusActions: Array<{ status: EventStatus; label: string }> = []
   if (current.status === 'DRAFT' || current.status === 'POSTPONED') {
-    statusActions.push({ status: 'PUBLISHED', label: 'Publicar' })
+    statusActions.push({ status: 'PUBLISHED', label: t("Publicar") })
   }
   if (current.status === 'PUBLISHED') {
-    statusActions.push({ status: 'POSTPONED', label: 'Posponer' })
+    statusActions.push({ status: 'POSTPONED', label: t("Posponer") })
   }
   if (current.status !== 'CANCELLED') {
-    statusActions.push({ status: 'CANCELLED', label: 'Cancelar evento' })
+    statusActions.push({ status: 'CANCELLED', label: t("Cancelar evento") })
   }
 
   return (
     <section>
       <Link to="/app/eventos" className={styles.back}>
-        ← Volver a gestión de eventos
-      </Link>
+        {t("← Volver a gestión de eventos")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Eventos', to: '/app/eventos' },
+          { label: t("Eventos"), to: '/app/eventos' },
           { label: current.name },
         ]}
         title={current.name}
@@ -165,23 +167,22 @@ export default function EventManageDetailPage() {
       <div className={styles.detailLayout}>
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Información del evento</h2>
+            <h2 className={styles.cardTitle}>{t("Información del evento")}</h2>
 
             <DefList items={infoItems} />
             {current.description !== null && (
               <p className={styles.meta}>{current.description}</p>
             )}
             <p className={styles.helper}>
-              El nombre, las fechas y el aforo se definen al crear el evento.
-            </p>
+              {t("El nombre, las fechas y el aforo se definen al crear el evento.")}</p>
           </article>
         </div>
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Afluencia esperada</h2>
+            <h2 className={styles.cardTitle}>{t("Afluencia esperada")}</h2>
             <Field
-              label="Personas esperadas"
+              label={t("Personas esperadas")}
               type="number"
               min={0}
               value={expected}
@@ -197,17 +198,16 @@ export default function EventManageDetailPage() {
                       eventsApi.estimateAttendance(current.id, {
                         expectedAttendance: Number(expected),
                       }),
-                    'Afluencia actualizada.',
+                    () => t("Afluencia actualizada."),
                   )
                 }
               >
-                Guardar afluencia
-              </Button>
+                {t("Guardar afluencia")}</Button>
             </div>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Estado</h2>
+            <h2 className={styles.cardTitle}>{t("Estado")}</h2>
             <div className={styles.actions}>
               {statusActions.map((action) => (
                 <Button
@@ -222,7 +222,7 @@ export default function EventManageDetailPage() {
                         eventsApi.changeStatus(current.id, {
                           status: action.status,
                         }),
-                      `Evento en estado ${EVENT_STATUS_LABELS[action.status]}.`,
+                      () => t("Evento en estado {0}.", [EVENT_STATUS_LABELS[action.status]]),
                     )
                   }
                 >
@@ -231,9 +231,7 @@ export default function EventManageDetailPage() {
               ))}
             </div>
             <p className={styles.helper}>
-              Transiciones válidas: borrador → publicado/cancelado; publicado →
-              pospuesto/cancelado; pospuesto → publicado/cancelado.
-            </p>
+              {t("Transiciones válidas: borrador → publicado/cancelado; publicado → pospuesto/cancelado; pospuesto → publicado/cancelado.")}</p>
           </article>
         </div>
       </div>

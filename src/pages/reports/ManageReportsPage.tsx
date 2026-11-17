@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -21,18 +24,19 @@ import styles from './reports.module.css'
 const STATUSES: SecurityReportStatus[] = ['ONGOING', 'REPORTED', 'SOLVED']
 
 const FILTERS: Array<{ label: string; status?: SecurityReportStatus }> = [
-  { label: 'Todos' },
-  { label: 'En curso', status: 'ONGOING' },
-  { label: 'Reportados', status: 'REPORTED' },
-  { label: 'Resueltos', status: 'SOLVED' },
+  { get label() { return t("Todos") } },
+  { get label() { return t("En curso") }, status: 'ONGOING' },
+  { get label() { return t("Reportados") }, status: 'REPORTED' },
+  { get label() { return t("Resueltos") }, status: 'SOLVED' },
 ]
 
 export default function ManageReportsPage() {
+  useLanguage()
   const [reports, setReports] = useState<SecurityReportResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [reloadToken, setReloadToken] = useState(0)
   const [counts, setCounts] = useState<SecurityReportCounts | null>(null)
@@ -84,7 +88,7 @@ export default function ManageReportsPage() {
         )
         setError(null)
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -95,7 +99,7 @@ export default function ManageReportsPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -129,9 +133,9 @@ export default function ManageReportsPage() {
               REPORTED: current.REPORTED + 1,
             },
       )
-      setFeedback('Reporte cerrado y marcado como reportado.')
+      setFeedback(() => t("Reporte cerrado y marcado como reportado."))
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -156,9 +160,9 @@ export default function ManageReportsPage() {
               SOLVED: current.SOLVED + 1,
             },
       )
-      setFeedback('Reporte marcado como resuelto.')
+      setFeedback(() => t("Reporte marcado como resuelto."))
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -167,17 +171,17 @@ export default function ManageReportsPage() {
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Reportes' }, { label: 'Reportes de seguridad' }]}
-        title="Reportes de seguridad"
-        description="Estado de los reportes de la ciudad y los más recientes."
+        breadcrumb={[{ label: t("Reportes") }, { label: t("Reportes de seguridad") }]}
+        title={t("Reportes de seguridad")}
+        description={t("Estado de los reportes de la ciudad y los más recientes.")}
       />
 
       {error !== null && (
         <StateMessage
-          title="No se pudieron cargar los reportes"
+          title={t("No se pudieron cargar los reportes")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       )}
       {feedback !== null && (
@@ -200,34 +204,33 @@ export default function ManageReportsPage() {
         <ul className={styles.legend}>
           <li className={styles.legendItem}>
             <span className={`${styles.dot} ${styles.dotWarning}`} />
-            En curso ({counts?.ONGOING ?? '—'})
+            {t("En curso (")}{counts?.ONGOING ?? '—'})
           </li>
           <li className={styles.legendItem}>
             <span className={`${styles.dot} ${styles.dotInfo}`} />
-            Reportados ({counts?.REPORTED ?? '—'})
+            {t("Reportados (")}{counts?.REPORTED ?? '—'})
           </li>
           <li className={styles.legendItem}>
             <span className={`${styles.dot} ${styles.dotSuccess}`} />
-            Resueltos ({counts?.SOLVED ?? '—'})
+            {t("Resueltos (")}{counts?.SOLVED ?? '—'})
           </li>
         </ul>
       </div>
 
       <article className={styles.card}>
-        <h2 className={styles.cardTitle}>Reportes recientes</h2>
+        <h2 className={styles.cardTitle}>{t("Reportes recientes")}</h2>
 
           {isLoading && (
-            <Skeleton variant="table" count={3} label="Cargando reportes…" />
+            <Skeleton variant="table" count={3} label={t("Cargando reportes…")} />
           )}
 
           {!isLoading && error === null && filtered.length === 0 && (
             <StateMessage
-              title="No hay reportes en este estado."
+              title={t("No hay reportes en este estado.")}
               action={
                 filterIndex !== 0 ? (
                   <Button variant="outline" onClick={() => setFilterIndex(0)}>
-                    Ver todos
-                  </Button>
+                    {t("Ver todos")}</Button>
                 ) : undefined
               }
             />
@@ -258,8 +261,7 @@ export default function ManageReportsPage() {
                       disabled={isWorking}
                       onClick={() => void close(report.id)}
                     >
-                      Cerrar reporte
-                    </Button>
+                      {t("Cerrar reporte")}</Button>
                   </div>
                 )}
 
@@ -271,8 +273,7 @@ export default function ManageReportsPage() {
                       disabled={isWorking}
                       onClick={() => void solve(report.id)}
                     >
-                      Resolver
-                    </Button>
+                      {t("Resolver")}</Button>
                   </div>
                 )}
               </div>

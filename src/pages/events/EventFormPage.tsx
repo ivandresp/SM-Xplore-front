@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -16,6 +19,7 @@ import type { Site, Zone } from '@/types'
 import styles from './events.module.css'
 
 export default function EventFormPage() {
+  useLanguage()
   const navigate = useNavigate()
 
   const [name, setName] = useState('')
@@ -24,7 +28,7 @@ export default function EventFormPage() {
   const [siteId, setSiteId] = useState('')
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
-  const [sitesError, setSitesError] = useState<string | null>(null)
+  const [sitesError, setSitesError] = useMessageState<string | null>(null)
   const [price, setPrice] = useState('')
   const [maxCapacity, setMaxCapacity] = useState('')
   const [expectedAttendance, setExpectedAttendance] = useState('')
@@ -34,7 +38,7 @@ export default function EventFormPage() {
   const [publish, setPublish] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -57,7 +61,7 @@ export default function EventFormPage() {
           setSites(sitesResult.value)
           setSitesError(null)
         } else {
-          setSitesError(describeApiError(sitesResult.reason))
+          setSitesError(() => describeApiError(sitesResult.reason))
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -69,7 +73,7 @@ export default function EventFormPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, setSitesError])
 
   function retry() {
     setIsLoading(true)
@@ -105,7 +109,7 @@ export default function EventFormPage() {
       a.name.localeCompare(b.name, 'es'),
     )
     if (orphans.length > 0) {
-      groups.push({ label: 'Otras zonas', sites: orphans })
+      groups.push({ get label() { return t("Otras zonas") }, sites: orphans })
     }
 
     return groups
@@ -115,7 +119,7 @@ export default function EventFormPage() {
     formEvent.preventDefault()
 
     if (siteId.trim() === '') {
-      setError('Selecciona el atractivo donde se realizará el evento.')
+      setError(() => t("Selecciona el atractivo donde se realizará el evento."))
       return
     }
 
@@ -146,27 +150,26 @@ export default function EventFormPage() {
 
       navigate('/app/eventos')
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsSaving(false)
     }
   }
 
   if (isLoading) {
-    return <Skeleton variant="text" count={6} label="Cargando formulario…" />
+    return <Skeleton variant="text" count={6} label={t("Cargando formulario…")} />
   }
 
   if (sitesError !== null) {
     return (
       <section>
         <Link to="/app/eventos" className={styles.back}>
-          ← Volver a gestión de eventos
-        </Link>
+          {t("← Volver a gestión de eventos")}</Link>
         <StateMessage
-          title="No se pudieron cargar los atractivos"
+          title={t("No se pudieron cargar los atractivos")}
           description={sitesError}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </section>
     )
@@ -175,15 +178,14 @@ export default function EventFormPage() {
   return (
     <section>
       <Link to="/app/eventos" className={styles.back}>
-        ← Volver a gestión de eventos
-      </Link>
+        {t("← Volver a gestión de eventos")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Eventos', to: '/app/eventos' },
-          { label: 'Nuevo evento' },
+          { label: t("Eventos"), to: '/app/eventos' },
+          { label: t("Nuevo evento") },
         ]}
-        title="Registrar evento"
+        title={t("Registrar evento")}
       />
 
       {error !== null && (
@@ -194,29 +196,29 @@ export default function EventFormPage() {
 
       <div className={styles.detailLayout}>
         <form className={styles.card} onSubmit={handleSubmit} noValidate>
-          <h2 className={styles.cardTitle}>Información del evento</h2>
+          <h2 className={styles.cardTitle}>{t("Información del evento")}</h2>
 
           <div className={`${styles.grid} ${styles.twoColumns}`}>
             <Field
-              label="Nombre del evento"
-              placeholder="Ej: Festival de Jazz del Caribe"
+              label={t("Nombre del evento")}
+              placeholder={t("Ej: Festival de Jazz del Caribe")}
               required
               value={name}
               onChange={(changeEvent) => setName(changeEvent.target.value)}
             />
             <Field
-              label="Categoría"
-              placeholder="Ej: Cultural"
+              label={t("Categoría")}
+              placeholder={t("Ej: Cultural")}
               required
               value={category}
               onChange={(changeEvent) => setCategory(changeEvent.target.value)}
             />
 
             <label className={styles.full}>
-              <span className={styles.fieldLabel}>Descripción</span>
+              <span className={styles.fieldLabel}>{t("Descripción")}</span>
               <textarea
                 className={styles.textarea}
-                placeholder="Describe el evento, artistas o actividades, y recomendaciones para los asistentes…"
+                placeholder={t("Describe el evento, artistas o actividades, y recomendaciones para los asistentes…")}
                 value={description}
                 onChange={(changeEvent) => setDescription(changeEvent.target.value)}
               />
@@ -224,9 +226,9 @@ export default function EventFormPage() {
 
             <div className={styles.full}>
               <SelectField
-                label="Lugar / atractivo"
+                label={t("Lugar / atractivo")}
                 required
-                placeholder="Selecciona un atractivo…"
+                placeholder={t("Selecciona un atractivo…")}
                 value={siteId}
                 onChange={(changeEvent) => setSiteId(changeEvent.target.value)}
                 groups={groupedSites.map((group) => ({
@@ -239,13 +241,11 @@ export default function EventFormPage() {
               />
               {sites.length === 0 && (
                 <p className={styles.helper}>
-                  Todavía no hay atractivos registrados: una gestora debe
-                  crearlos en Zonas.
-                </p>
+                  {t("Todavía no hay atractivos registrados: una gestora debe crearlos en Zonas.")}</p>
               )}
             </div>
             <Field
-              label="Precio de entrada (COP)"
+              label={t("Precio de entrada (COP)")}
               type="number"
               min={0}
               required
@@ -254,7 +254,7 @@ export default function EventFormPage() {
             />
 
             <Field
-              label="Aforo / capacidad"
+              label={t("Aforo / capacidad")}
               type="number"
               min={1}
               required
@@ -262,10 +262,10 @@ export default function EventFormPage() {
               onChange={(changeEvent) => setMaxCapacity(changeEvent.target.value)}
             />
             <Field
-              label="Afluencia esperada"
+              label={t("Afluencia esperada")}
               type="number"
               min={0}
-              hint="Alimenta los indicadores de congestión."
+              hint={t("Alimenta los indicadores de congestión.")}
               value={expectedAttendance}
               onChange={(changeEvent) =>
                 setExpectedAttendance(changeEvent.target.value)
@@ -273,7 +273,7 @@ export default function EventFormPage() {
             />
 
             <Field
-              label="Fecha del evento"
+              label={t("Fecha del evento")}
               type="date"
               required
               value={date}
@@ -281,14 +281,14 @@ export default function EventFormPage() {
             />
             <div className={`${styles.grid} ${styles.twoColumns}`}>
               <Field
-                label="Hora inicio"
+                label={t("Hora inicio")}
                 type="time"
                 required
                 value={startTime}
                 onChange={(changeEvent) => setStartTime(changeEvent.target.value)}
               />
               <Field
-                label="Hora fin"
+                label={t("Hora fin")}
                 type="time"
                 required
                 value={endTime}
@@ -300,26 +300,24 @@ export default function EventFormPage() {
           <div className={styles.actions}>
             <Button variant="accent" size="lg" type="submit" disabled={isSaving}>
               {isSaving
-                ? 'Guardando…'
+                ? t("Guardando…")
                 : publish
-                  ? 'Publicar evento'
-                  : 'Guardar borrador'}
+                  ? t("Publicar evento")
+                  : t("Guardar borrador")}
             </Button>
             <Link to="/app/eventos">
               <Button variant="outline" size="lg">
-                Cancelar
-              </Button>
+                {t("Cancelar")}</Button>
             </Link>
           </div>
 
           <p className={styles.notice}>
-            El lugar se guarda como sitio (atractivo).
-          </p>
+            {t("El lugar se guarda como sitio (atractivo).")}</p>
         </form>
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Estado</h2>
+            <h2 className={styles.cardTitle}>{t("Estado")}</h2>
             <label className={styles.radioRow}>
               <input
                 type="radio"
@@ -327,8 +325,7 @@ export default function EventFormPage() {
                 checked={!publish}
                 onChange={() => setPublish(false)}
               />
-              Guardar como borrador
-            </label>
+              {t("Guardar como borrador")}</label>
             <label className={styles.radioRow}>
               <input
                 type="radio"
@@ -336,15 +333,13 @@ export default function EventFormPage() {
                 checked={publish}
                 onChange={() => setPublish(true)}
               />
-              Publicar en la agenda
-            </label>
+              {t("Publicar en la agenda")}</label>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Imagen del evento</h2>
+            <h2 className={styles.cardTitle}>{t("Imagen del evento")}</h2>
             <p className={styles.helper}>
-              Los eventos no admiten imágenes por ahora.
-            </p>
+              {t("Los eventos no admiten imágenes por ahora.")}</p>
           </article>
         </div>
       </div>

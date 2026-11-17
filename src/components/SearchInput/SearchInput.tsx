@@ -1,3 +1,4 @@
+import { useLanguage } from '@/hooks/useLanguage'
 import styles from './SearchInput.module.css'
 
 export interface SearchInputProps {
@@ -16,6 +17,7 @@ export function SearchInput({
   label,
   className,
 }: SearchInputProps) {
+  useLanguage()
   return (
     <input
       type="search"

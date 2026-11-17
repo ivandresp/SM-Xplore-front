@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -16,6 +19,7 @@ import styles from './guide.module.css'
 
 /** El backend guarda una fecha/hora de inicio y otra de fin, no un calendario. */
 export default function ActivityFormPage() {
+  useLanguage()
   const { user } = useAuth()
   const navigate = useNavigate()
 
@@ -26,7 +30,7 @@ export default function ActivityFormPage() {
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
   const [isLoadingSites, setIsLoadingSites] = useState(true)
-  const [sitesError, setSitesError] = useState<string | null>(null)
+  const [sitesError, setSitesError] = useMessageState<string | null>(null)
   const [price, setPrice] = useState('')
   const [maxCapacity, setMaxCapacity] = useState('')
   const [durationHours, setDurationHours] = useState('4')
@@ -35,7 +39,7 @@ export default function ActivityFormPage() {
   const [endTime, setEndTime] = useState('12:00')
   const [publish, setPublish] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -55,7 +59,7 @@ export default function ActivityFormPage() {
         setSites(sitesResult.value)
         setSitesError(null)
       } else {
-        setSitesError(describeApiError(sitesResult.reason))
+        setSitesError(() => describeApiError(sitesResult.reason))
       }
     }
 
@@ -64,7 +68,7 @@ export default function ActivityFormPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [setSitesError])
 
   /** Atractivos agrupados por zona (los huérfanos van al final). */
   const groupedSites = useMemo(() => {
@@ -94,7 +98,7 @@ export default function ActivityFormPage() {
       a.name.localeCompare(b.name, 'es'),
     )
     if (orphans.length > 0) {
-      groups.push({ label: 'Otras zonas', sites: orphans })
+      groups.push({ get label() { return t("Otras zonas") }, sites: orphans })
     }
 
     return groups
@@ -108,7 +112,7 @@ export default function ActivityFormPage() {
     }
 
     if (siteId.trim() === '') {
-      setError('Selecciona el atractivo donde se realizará la actividad.')
+      setError(() => t("Selecciona el atractivo donde se realizará la actividad."))
       return
     }
 
@@ -135,7 +139,7 @@ export default function ActivityFormPage() {
 
       navigate('/app/mis-actividades')
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsSaving(false)
     }
@@ -144,15 +148,14 @@ export default function ActivityFormPage() {
   return (
     <section>
       <Link to="/app/mis-actividades" className={styles.back}>
-        ← Volver a mis actividades
-      </Link>
+        {t("← Volver a mis actividades")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Mis actividades', to: '/app/mis-actividades' },
-          { label: 'Nueva actividad' },
+          { label: t("Mis actividades"), to: '/app/mis-actividades' },
+          { label: t("Nueva actividad") },
         ]}
-        title="Registrar nueva actividad"
+        title={t("Registrar nueva actividad")}
       />
 
       {error !== null && (
@@ -163,29 +166,29 @@ export default function ActivityFormPage() {
 
       <div className={styles.layout}>
         <form className={styles.card} onSubmit={handleSubmit} noValidate>
-          <h2 className={styles.cardTitle}>Información de la actividad</h2>
+          <h2 className={styles.cardTitle}>{t("Información de la actividad")}</h2>
 
           <div className={`${styles.grid} ${styles.twoColumns}`}>
             <Field
-              label="Nombre de la actividad"
-              placeholder="Ej: Snorkel en Playa Cristal"
+              label={t("Nombre de la actividad")}
+              placeholder={t("Ej: Snorkel en Playa Cristal")}
               required
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
             <Field
-              label="Categoría"
-              placeholder="Ej: Aventura"
+              label={t("Categoría")}
+              placeholder={t("Ej: Aventura")}
               required
               value={category}
               onChange={(event) => setCategory(event.target.value)}
             />
 
             <label className={styles.full}>
-              <span className={styles.summaryValue}>Descripción</span>
+              <span className={styles.summaryValue}>{t("Descripción")}</span>
               <textarea
                 className={styles.textarea}
-                placeholder="Describe la experiencia, qué incluye y recomendaciones…"
+                placeholder={t("Describe la experiencia, qué incluye y recomendaciones…")}
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
               />
@@ -193,12 +196,12 @@ export default function ActivityFormPage() {
 
             <div className={styles.full}>
               <SelectField
-                label="Atractivo asociado"
+                label={t("Atractivo asociado")}
                 required
                 placeholder={
                   isLoadingSites
-                    ? 'Cargando atractivos…'
-                    : 'Selecciona un atractivo…'
+                    ? t("Cargando atractivos…")
+                    : t("Selecciona un atractivo…")
                 }
                 value={siteId}
                 disabled={isLoadingSites}
@@ -216,13 +219,11 @@ export default function ActivityFormPage() {
               )}
               {!isLoadingSites && sitesError === null && sites.length === 0 && (
                 <p className={styles.muted}>
-                  Todavía no hay atractivos registrados: una gestora debe
-                  crearlos en Zonas.
-                </p>
+                  {t("Todavía no hay atractivos registrados: una gestora debe crearlos en Zonas.")}</p>
               )}
             </div>
             <Field
-              label="Precio por persona (COP)"
+              label={t("Precio por persona (COP)")}
               type="number"
               min={0}
               required
@@ -231,7 +232,7 @@ export default function ActivityFormPage() {
             />
 
             <Field
-              label="Duración (horas)"
+              label={t("Duración (horas)")}
               type="number"
               min={0.5}
               step={0.5}
@@ -240,7 +241,7 @@ export default function ActivityFormPage() {
               onChange={(event) => setDurationHours(event.target.value)}
             />
             <Field
-              label="Capacidad máxima (personas)"
+              label={t("Capacidad máxima (personas)")}
               type="number"
               min={1}
               required
@@ -249,7 +250,7 @@ export default function ActivityFormPage() {
             />
 
             <Field
-              label="Fecha"
+              label={t("Fecha")}
               type="date"
               required
               value={date}
@@ -257,14 +258,14 @@ export default function ActivityFormPage() {
             />
             <div className={`${styles.grid} ${styles.twoColumns}`}>
               <Field
-                label="Hora inicio"
+                label={t("Hora inicio")}
                 type="time"
                 required
                 value={startTime}
                 onChange={(event) => setStartTime(event.target.value)}
               />
               <Field
-                label="Hora fin"
+                label={t("Hora fin")}
                 type="time"
                 required
                 value={endTime}
@@ -276,26 +277,24 @@ export default function ActivityFormPage() {
           <div className={styles.actions}>
             <Button variant="accent" size="lg" type="submit" disabled={isSaving}>
               {isSaving
-                ? 'Guardando…'
+                ? t("Guardando…")
                 : publish
-                  ? 'Publicar actividad'
-                  : 'Guardar borrador'}
+                  ? t("Publicar actividad")
+                  : t("Guardar borrador")}
             </Button>
             <Link to="/app/mis-actividades">
               <Button variant="outline" size="lg">
-                Cancelar
-              </Button>
+                {t("Cancelar")}</Button>
             </Link>
           </div>
 
           <p className={styles.notice}>
-            La zona se deduce del atractivo elegido.
-          </p>
+            {t("La zona se deduce del atractivo elegido.")}</p>
         </form>
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Estado</h2>
+            <h2 className={styles.cardTitle}>{t("Estado")}</h2>
             <label className={styles.radioRow}>
               <input
                 type="radio"
@@ -303,8 +302,7 @@ export default function ActivityFormPage() {
                 checked={!publish}
                 onChange={() => setPublish(false)}
               />
-              Guardar como borrador
-            </label>
+              {t("Guardar como borrador")}</label>
             <label className={styles.radioRow}>
               <input
                 type="radio"
@@ -312,15 +310,13 @@ export default function ActivityFormPage() {
                 checked={publish}
                 onChange={() => setPublish(true)}
               />
-              Publicar al guardar
-            </label>
+              {t("Publicar al guardar")}</label>
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Fotos de la actividad</h2>
+            <h2 className={styles.cardTitle}>{t("Fotos de la actividad")}</h2>
             <p className={styles.muted}>
-              Las actividades no admiten fotos por ahora.
-            </p>
+              {t("Las actividades no admiten fotos por ahora.")}</p>
           </article>
         </div>
       </div>

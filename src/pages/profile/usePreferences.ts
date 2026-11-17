@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
 import { categoriesApi } from '@/services/categoriesApi'
 import { recommendationsApi } from '@/services/recommendationsApi'
 import { describeApiError, logApiError } from '@/utils/errors'
@@ -34,7 +36,7 @@ export function usePreferences({
   const [preferences, setPreferences] = useState<PreferenceResponse[]>([])
   const [categories, setCategories] = useState<CategoryResponse[]>([])
   const [isLoading, setIsLoading] = useState(enabled)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [savingCategory, setSavingCategory] = useState<string | null>(null)
 
   useEffect(() => {
@@ -74,7 +76,7 @@ export function usePreferences({
         }
 
         logApiError(failure, 'preferencias')
-        setError(describeApiError(failure))
+        setError(() => describeApiError(failure))
       })
       .finally(() => {
         if (!cancelled) {
@@ -85,7 +87,7 @@ export function usePreferences({
     return () => {
       cancelled = true
     }
-  }, [enabled])
+  }, [enabled, setError])
 
   const add = useCallback(async (categoryId: string): Promise<boolean> => {
     setSavingCategory(categoryId)
@@ -99,13 +101,13 @@ export function usePreferences({
       ])
       return true
     } catch (cause) {
-      logApiError(cause, 'preferencias: añadir')
-      setError(describeApiError(cause))
+      logApiError(cause, t("preferencias: añadir"))
+      setError(() => describeApiError(cause))
       return false
     } finally {
       setSavingCategory(null)
     }
-  }, [])
+  }, [setError])
 
   const remove = useCallback(async (categoryId: string): Promise<boolean> => {
     setSavingCategory(categoryId)
@@ -118,13 +120,13 @@ export function usePreferences({
       )
       return true
     } catch (cause) {
-      logApiError(cause, 'preferencias: quitar')
-      setError(describeApiError(cause))
+      logApiError(cause, t("preferencias: quitar"))
+      setError(() => describeApiError(cause))
       return false
     } finally {
       setSavingCategory(null)
     }
-  }, [])
+  }, [setError])
 
   return {
     preferences,

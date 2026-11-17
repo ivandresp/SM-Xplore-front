@@ -1,5 +1,7 @@
 import { Suspense } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Footer } from '@/components/Footer'
 import { Skeleton } from '@/components/Skeleton'
@@ -22,6 +24,7 @@ const CATALOG_PREFIXES = [
  * El catálogo usa la variante oscura, como en los mockups.
  */
 export function PublicLayout() {
+  useLanguage()
   const { isAuthenticated, user } = useAuth()
   const { pathname } = useLocation()
 
@@ -38,8 +41,8 @@ export function PublicLayout() {
     isAuthenticated && user?.role === 'TOURIST'
       ? [
           ...PUBLIC_NAV,
-          { to: '/itinerario', label: 'Mis viajes' },
-          { to: '/mis-reservas', label: 'Mis reservas' },
+          { to: '/itinerario', label: t("Mis viajes") },
+          { to: '/mis-reservas', label: t("Mis reservas") },
         ]
       : PUBLIC_NAV
   ).map((link) =>
@@ -59,14 +62,13 @@ export function PublicLayout() {
               {!isCatalog && (
                 <Link to="/app">
                   <Button variant="outline" size="sm">
-                    Ir al panel
-                  </Button>
+                    {t("Ir al panel")}</Button>
                 </Link>
               )}
               <Link
                 to="/perfil"
                 className={styles.avatarLink}
-                aria-label={`Mi perfil: ${user?.fullName ?? 'tu cuenta'}`}
+                aria-label={t("Mi perfil: {0}", [user?.fullName ?? t('tu cuenta')])}
               >
                 <span className={styles.avatar} aria-hidden="true">
                   {user?.fullName.charAt(0).toUpperCase() ?? '?'}
@@ -75,11 +77,12 @@ export function PublicLayout() {
             </>
           ) : isCatalog ? (
             <Link to="/login" className={styles.sessionLink}>
-              Iniciar sesión
-            </Link>
+              {t("Iniciar sesión")}</Link>
           ) : (
-            <Link to="/registro">
-              <Button variant="outline">Crear cuenta</Button>
+            <Link to={pathname === '/registro' ? '/login' : '/registro'}>
+              <Button variant="outline">
+                {pathname === '/registro' ? t("Iniciar sesión") : t("Crear cuenta")}
+              </Button>
             </Link>
           )
         }
@@ -87,7 +90,7 @@ export function PublicLayout() {
 
       <main className={styles.main}>
         <Suspense
-          fallback={<Skeleton variant="card" count={3} label="Cargando la pagina" />}
+          fallback={<Skeleton variant="card" count={3} label={t("Cargando la pagina")} />}
         >
           <Outlet />
         </Suspense>

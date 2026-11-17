@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { useLanguage } from '@/hooks/useLanguage'
 import { classNames } from '@/utils/format'
 import styles from './DefList.module.css'
 
@@ -15,6 +16,7 @@ export interface DefListProps {
 
 /** Lista de pares etiqueta/valor (fichas de datos). */
 export function DefList({ items, columns = 2 }: DefListProps) {
+  useLanguage()
   return (
     <dl className={classNames(styles.list, columns === 2 && styles.twoColumns)}>
       {items.map((item) => (

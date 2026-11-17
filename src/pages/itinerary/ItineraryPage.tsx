@@ -1,11 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { getLocale, translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { useAuth } from '@/hooks/useAuth'
-import { useItinerary } from '@/hooks/useItinerary'
+import { itineraryEntryMeta, useItinerary } from '@/hooks/useItinerary'
 import type { ItineraryEntry } from '@/hooks/useItinerary'
 import { reservationsApi } from '@/services/reservationsApi'
 import { describeApiError } from '@/utils/errors'
@@ -13,27 +16,28 @@ import { formatCurrency } from '@/utils/format'
 import styles from './itinerary.module.css'
 
 function formatTime(value: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(getLocale(), {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
 }
 
 function formatDay(value: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(getLocale(), {
     day: 'numeric',
     month: 'short',
   }).format(new Date(value))
 }
 
 export default function ItineraryPage() {
+  useLanguage()
   const { user } = useAuth()
   const navigate = useNavigate()
   const { itinerary, updateTrip, removeEntry, patchEntry } = useItinerary()
 
   const [isReserving, setIsReserving] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
 
   const days = useMemo(() => {
     const map = new Map<string, ItineraryEntry[]>()
@@ -102,12 +106,12 @@ export default function ItineraryPage() {
         created += 1
       }
 
-      setFeedback('Reservas creadas. Puedes verlas en "Mis reservas".')
+      setFeedback(() => t("Reservas creadas. Puedes verlas en \"Mis reservas\"."))
     } catch (cause) {
       setError(
-        created === 0
+        () => created === 0
           ? describeApiError(cause)
-          : `${created} de ${entries.length} reservas creadas. Las demás fallaron: ${describeApiError(cause)}`,
+          : t("{0} de {1} reservas creadas. Las demás fallaron: {2}", [created, entries.length, describeApiError(cause)]),
       )
     } finally {
       setIsReserving(false)
@@ -118,18 +122,18 @@ export default function ItineraryPage() {
     <div className={styles.page}>
       <PageHeader
         breadcrumb={[
-          { label: 'Inicio', to: '/explorar' },
-          { label: 'Mis viajes', to: '/itinerario' },
-          { label: 'Nuevo itinerario' },
+          { label: t("Inicio"), to: '/explorar' },
+          { label: t("Mis viajes"), to: '/itinerario' },
+          { label: t("Nuevo itinerario") },
         ]}
-        title="Crear itinerario de viaje"
-        description="Organiza por día los servicios, actividades y eventos que quieres reservar."
+        title={t("Crear itinerario de viaje")}
+        description={t("Organiza por día los servicios, actividades y eventos que quieres reservar.")}
       />
 
       {error !== null && (
         <StateMessage
           tone="error"
-          title="No se pudieron crear las reservas"
+          title={t("No se pudieron crear las reservas")}
           description={error}
         />
       )}
@@ -140,15 +144,15 @@ export default function ItineraryPage() {
       <div className={styles.layout}>
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Datos del viaje</h2>
+            <h2 className={styles.cardTitle}>{t("Datos del viaje")}</h2>
 
             <div className={styles.grid}>
               <label>
-                <span className={styles.fieldLabel}>Nombre del itinerario</span>
+                <span className={styles.fieldLabel}>{t("Nombre del itinerario")}</span>
                 <input
                   className={styles.control}
                   type="text"
-                  placeholder="Ej: Fin de semana en Santa Marta"
+                  placeholder={t("Ej: Fin de semana en Santa Marta")}
                   value={itinerary.name}
                   onChange={(event) =>
                     updateTrip({ name: event.target.value })
@@ -158,7 +162,7 @@ export default function ItineraryPage() {
 
               <div className={`${styles.grid} ${styles.gridTwo}`}>
                 <label>
-                  <span className={styles.fieldLabel}>Desde</span>
+                  <span className={styles.fieldLabel}>{t("Desde")}</span>
                   <input
                     className={styles.control}
                     type="date"
@@ -169,7 +173,7 @@ export default function ItineraryPage() {
                   />
                 </label>
                 <label>
-                  <span className={styles.fieldLabel}>Hasta</span>
+                  <span className={styles.fieldLabel}>{t("Hasta")}</span>
                   <input
                     className={styles.control}
                     type="date"
@@ -182,15 +186,15 @@ export default function ItineraryPage() {
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Itinerario</h2>
+            <h2 className={styles.cardTitle}>{t("Itinerario")}</h2>
 
             {days.length === 0 && (
               <StateMessage
-                title="Todavía no has agregado nada"
-                description='Busca actividades en el catálogo y pulsa "Agregar al itinerario".'
+                title={t("Todavía no has agregado nada")}
+                description={t("Busca actividades en el catálogo y pulsa \"Agregar al itinerario\".")}
                 action={
                   <Link to="/explorar">
-                    <Button variant="outline">Explorar actividades</Button>
+                    <Button variant="outline">{t("Explorar actividades")}</Button>
                   </Link>
                 }
               />
@@ -199,7 +203,7 @@ export default function ItineraryPage() {
             {days.map(([day, entries], index) => (
               <div key={day}>
                 <h3 className={styles.dayTitle}>
-                  Día {index + 1} · {formatDay(day)}
+                  {t("Día")}{" "}{index + 1} · {formatDay(day)}
                 </h3>
 
                 {entries.map((entry) => (
@@ -210,32 +214,30 @@ export default function ItineraryPage() {
 
                     <div className={styles.entryBody}>
                       <p className={styles.entryName}>{entry.name}</p>
-                      <p className={styles.entryMeta}>{entry.meta}</p>
+                      <p className={styles.entryMeta}>{itineraryEntryMeta(entry)}</p>
                     </div>
 
                     <div className={styles.entrySide}>
                       {entry.reservationId === undefined ? (
                         <>
-                          <StatusBadge tone="neutral">Sin reservar</StatusBadge>
+                          <StatusBadge tone="neutral">{t("Sin reservar")}</StatusBadge>
                           <Button
                             variant="warm"
                             size="sm"
                             disabled={isReserving}
                             onClick={() => void reserveEntries([entry])}
                           >
-                            Reservar
-                          </Button>
+                            {t("Reservar")}</Button>
                         </>
                       ) : (
                         <>
-                          <StatusBadge tone="success">Reservado</StatusBadge>
+                          <StatusBadge tone="success">{t("Reservado")}</StatusBadge>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => removeEntry(entry.itemId)}
                           >
-                            Quitar
-                          </Button>
+                            {t("Quitar")}</Button>
                         </>
                       )}
                     </div>
@@ -246,35 +248,34 @@ export default function ItineraryPage() {
 
             {days.length > 0 && (
               <Link to="/explorar" className={styles.addEntry}>
-                + Agregar servicio, actividad o evento
-              </Link>
+                {t("+ Agregar servicio, actividad o evento")}</Link>
             )}
           </article>
         </div>
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Resumen</h2>
+            <h2 className={styles.cardTitle}>{t("Resumen")}</h2>
 
             <div className={styles.summaryLines}>
               <div className={styles.summaryLine}>
-                <span>Duración</span>
+                <span>{t("Duración")}</span>
                 <span>
-                  {estimatedDays} {estimatedDays === 1 ? 'día' : 'días'}
+                  {estimatedDays} {estimatedDays === 1 ? t("día") : t("días")}
                 </span>
               </div>
               <div className={styles.summaryLine}>
-                <span>Elementos</span>
+                <span>{t("Elementos")}</span>
                 <span>{itinerary.entries.length}</span>
               </div>
               <div className={styles.summaryLine}>
-                <span>Reservados</span>
+                <span>{t("Reservados")}</span>
                 <span>
-                  {reserved} de {itinerary.entries.length}
+                  {reserved} {" "}{t("de")}{" "}{itinerary.entries.length}
                 </span>
               </div>
               <div className={styles.summaryTotal}>
-                <span>Total estimado</span>
+                <span>{t("Total estimado")}</span>
                 <span>{formatCurrency(estimatedTotal)}</span>
               </div>
             </div>
@@ -284,22 +285,21 @@ export default function ItineraryPage() {
                 variant="primary"
                 onClick={() => {
                   setError(null)
-                  setFeedback('Itinerario guardado en este navegador.')
+                  setFeedback(() => t("Itinerario guardado en este navegador."))
                 }}
               >
-                Guardar itinerario
-              </Button>
+                {t("Guardar itinerario")}</Button>
               <Button
                 variant="warm"
                 disabled={pending.length === 0 || isReserving}
                 onClick={() => void reserveEntries(pending)}
               >
-                {isReserving ? 'Reservando…' : 'Reservar pendientes'}
+                {isReserving ? t("Reservando…") : t("Reservar pendientes")}
               </Button>
               <p className={styles.note}>
                 {pending.length === 0
-                  ? 'Puedes reservar ahora o más tarde'
-                  : 'Se reservan para 1 persona con pago con tarjeta.'}
+                  ? t("Puedes reservar ahora o más tarde")
+                  : t("Se reservan para 1 persona con pago con tarjeta.")}
               </p>
             </div>
           </article>

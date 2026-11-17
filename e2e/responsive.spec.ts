@@ -33,6 +33,27 @@ test.describe('responsive', () => {
     }
   })
 
+  test('el menu precede al logo en movil y en el recorrido de teclado', async ({ page }) => {
+    for (const width of [375, 768]) {
+      await page.setViewportSize({ width, height: 900 })
+      await page.goto('/login')
+
+      const toggle = page.getByRole('button', { name: 'Abrir menú' })
+      const logo = page.getByRole('link', { name: 'SM-Xplore, ir al inicio' })
+      const buttonBox = await toggle.boundingBox()
+      const logoBox = await logo.boundingBox()
+      expect(buttonBox).not.toBeNull()
+      expect(logoBox).not.toBeNull()
+      expect(buttonBox!.x + buttonBox!.width).toBeLessThanOrEqual(logoBox!.x)
+      expect(Math.abs(buttonBox!.y + buttonBox!.height / 2 - logoBox!.y - logoBox!.height / 2)).toBeLessThan(2)
+
+      await toggle.focus()
+      await page.keyboard.press('Tab')
+      await expect(logo).toBeFocused()
+      expect(await scrollWidth(page)).toBe(await clientWidth(page))
+    }
+  })
+
   test('el menu movil abre, cierra con Esc y devuelve el foco', async ({
     page,
   }) => {

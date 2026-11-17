@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { getLocale, translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { ActivityCard } from '@/components/ActivityCard/ActivityCard'
 import { Button } from '@/components/Button'
 import { MapPreview } from '@/components/MapPreview'
@@ -17,7 +20,7 @@ import type { ActivityResponse, EventResponse, Site, Zone } from '@/types'
 import styles from './catalog.module.css'
 
 function formatTime(value: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(getLocale(), {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
@@ -25,6 +28,7 @@ function formatTime(value: string): string {
 
 /** Ficha pública de un atractivo con sus actividades y eventos. Sin mockup: patrón de actividad. */
 export default function SiteDetailPage() {
+  useLanguage()
   const { siteId } = useParams<{ siteId: string }>()
   useTrackView('SITE', siteId)
 
@@ -33,7 +37,7 @@ export default function SiteDetailPage() {
   const [activities, setActivities] = useState<ActivityResponse[]>([])
   const [events, setEvents] = useState<EventResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -83,7 +87,7 @@ export default function SiteDetailPage() {
           )
         }
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -94,7 +98,7 @@ export default function SiteDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [siteId, reloadToken])
+  }, [siteId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -105,7 +109,7 @@ export default function SiteDetailPage() {
   if (isLoading) {
     return (
       <div className={styles.page}>
-        <Skeleton variant="text" count={6} label="Cargando atractivo…" />
+        <Skeleton variant="text" count={6} label={t("Cargando atractivo…")} />
       </div>
     )
   }
@@ -114,16 +118,14 @@ export default function SiteDetailPage() {
     return (
       <div className={styles.page}>
         <Link to="/atractivos" className={styles.state}>
-          ← Volver a atractivos
-        </Link>
+          {t("← Volver a atractivos")}</Link>
         <StateMessage
           tone="error"
-          title="No pudimos cargar el atractivo"
-          description={error ?? 'No se encontró el atractivo.'}
+          title={t("No pudimos cargar el atractivo")}
+          description={error ?? t("No se encontró el atractivo.")}
           action={
             <Button variant="accent" onClick={retry}>
-              Reintentar
-            </Button>
+              {t("Reintentar")}</Button>
           }
         />
       </div>
@@ -137,15 +139,15 @@ export default function SiteDetailPage() {
       <PageHeader
         serif
         breadcrumb={[
-          { label: 'Inicio', to: '/explorar' },
-          { label: 'Atractivos', to: '/atractivos' },
+          { label: t("Inicio"), to: '/explorar' },
+          { label: t("Atractivos"), to: '/atractivos' },
           { label: site.name },
         ]}
         title={site.name}
         description={
           zone !== null
-            ? `Zona: ${zone.name}`
-            : 'Atractivo turístico de Santa Marta'
+            ? t("Zona: {0}", [zone.name])
+            : t("Atractivo turístico de Santa Marta")
         }
       />
 
@@ -155,25 +157,25 @@ export default function SiteDetailPage() {
             {heroPhoto !== undefined ? (
               <img className={styles.photo} src={heroPhoto} alt={site.name} />
             ) : (
-              'Sin fotos: la gestora no cargó imágenes'
+              t("Sin fotos: la gestora no cargó imágenes")
             )}
           </div>
 
           <div className={styles.tiles}>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Zona</span>
+              <span className={styles.tileLabel}>{t("Zona")}</span>
               <span className={styles.tileValue}>
-                {zone?.name ?? 'Sin zona publicada'}
+                {zone?.name ?? t("Sin zona publicada")}
               </span>
             </div>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Latitud</span>
+              <span className={styles.tileLabel}>{t("Latitud")}</span>
               <span className={styles.tileValue}>
                 {site.latitude.toFixed(5)}
               </span>
             </div>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Longitud</span>
+              <span className={styles.tileLabel}>{t("Longitud")}</span>
               <span className={styles.tileValue}>
                 {site.longitude.toFixed(5)}
               </span>
@@ -181,7 +183,7 @@ export default function SiteDetailPage() {
           </div>
 
           <section>
-            <h2 className={styles.sectionTitle}>Ubicación</h2>
+            <h2 className={styles.sectionTitle}>{t("Ubicación")}</h2>
             <MapPreview
               label={site.name}
               latitude={site.latitude}
@@ -191,12 +193,10 @@ export default function SiteDetailPage() {
 
           <section>
             <h2 className={styles.sectionTitle}>
-              Actividades en este atractivo
-            </h2>
+              {t("Actividades en este atractivo")}</h2>
             {activities.length === 0 ? (
               <p className={styles.paragraphMuted}>
-                No hay actividades publicadas en este atractivo.
-              </p>
+                {t("No hay actividades publicadas en este atractivo.")}</p>
             ) : (
               <div className={styles.cards}>
                 {activities.map((activity) => (
@@ -209,12 +209,11 @@ export default function SiteDetailPage() {
 
         <div className={styles.column}>
           <article className={styles.booking}>
-            <h2 className={styles.sectionTitle}>Eventos en este atractivo</h2>
+            <h2 className={styles.sectionTitle}>{t("Eventos en este atractivo")}</h2>
 
             {events.length === 0 ? (
               <p className={styles.paragraphMuted}>
-                No hay eventos publicados en este atractivo.
-              </p>
+                {t("No hay eventos publicados en este atractivo.")}</p>
             ) : (
               [...events]
                 .sort(
@@ -230,13 +229,12 @@ export default function SiteDetailPage() {
                       {formatDate(event.startsAt)} · {formatTime(event.startsAt)}{' '}
                       ·{' '}
                       {event.price === 0
-                        ? 'Gratis'
+                        ? t("Gratis")
                         : formatCurrency(event.price)}
                     </span>
                     <Link to={`/eventos/${event.id}`}>
                       <Button variant="outline" size="sm">
-                        Ver
-                      </Button>
+                        {t("Ver")}</Button>
                     </Link>
                   </div>
                 ))
@@ -244,10 +242,9 @@ export default function SiteDetailPage() {
           </article>
 
           <article className={styles.booking}>
-            <h2 className={styles.sectionTitle}>¿Cómo llegar?</h2>
+            <h2 className={styles.sectionTitle}>{t("¿Cómo llegar?")}</h2>
             <p className={styles.paragraphMuted}>
-              Abre estas coordenadas en tu aplicación de mapas preferida.
-            </p>
+              {t("Abre estas coordenadas en tu aplicación de mapas preferida.")}</p>
           </article>
         </div>
       </div>

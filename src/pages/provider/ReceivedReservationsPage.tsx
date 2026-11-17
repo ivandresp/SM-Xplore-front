@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { DataTable } from '@/components/DataTable/DataTable'
@@ -23,11 +26,11 @@ import tableStyles from '@/pages/admin/admin.module.css'
 import styles from '@/pages/reservations/reservations.module.css'
 
 const FILTERS: Array<{ label: string; statuses?: ReservationStatus[] }> = [
-  { label: 'Todas' },
-  { label: 'Confirmadas', statuses: ['CONFIRMED'] },
-  { label: 'Canceladas', statuses: ['CANCELLED'] },
-  { label: 'No asistió', statuses: ['NO_SHOW'] },
-  { label: 'Asistió', statuses: ['COMPLETED'] },
+  { get label() { return t("Todas") } },
+  { get label() { return t("Confirmadas") }, statuses: ['CONFIRMED'] },
+  { get label() { return t("Canceladas") }, statuses: ['CANCELLED'] },
+  { get label() { return t("No asistió") }, statuses: ['NO_SHOW'] },
+  { get label() { return t("Asistió") }, statuses: ['COMPLETED'] },
 ]
 
 interface Row {
@@ -36,12 +39,13 @@ interface Row {
 }
 
 export default function ReceivedReservationsPage() {
+  useLanguage()
   const { user } = useAuth()
   const navigate = useNavigate()
 
   const [rows, setRows] = useState<Row[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [term, setTerm] = useState('')
 
@@ -85,7 +89,7 @@ export default function ReceivedReservationsPage() {
       )
     } catch (cause) {
       setRows([])
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsLoading(false)
     }
@@ -118,22 +122,22 @@ export default function ReceivedReservationsPage() {
 
   const columns: Column<Row>[] = [
     {
-      header: 'Reserva',
+      header: t("Reserva"),
       render: (row) => (
         <div>
           <p className={tableStyles.userName}>
-            {row.entry?.name ?? 'Ítem reservado'}
+            {row.entry?.name ?? t("Ítem reservado")}
           </p>
           <p className={tableStyles.userEmail}>#{row.reservation.code}</p>
         </div>
       ),
     },
     {
-      header: 'Fecha',
+      header: t("Fecha"),
       render: (row) => formatDate(row.reservation.bookedFor),
     },
     {
-      header: 'Personas',
+      header: t("Personas"),
       render: (row) => row.reservation.numberOfPeople,
     },
     {
@@ -142,7 +146,7 @@ export default function ReceivedReservationsPage() {
       render: (row) => formatCurrency(row.reservation.total),
     },
     {
-      header: 'Estado',
+      header: t("Estado"),
       render: (row) => (
         <StatusBadge tone={RESERVATION_STATUS_TONES[row.reservation.status]}>
           {RESERVATION_STATUS_LABELS[row.reservation.status]}
@@ -150,7 +154,7 @@ export default function ReceivedReservationsPage() {
       ),
     },
     {
-      header: 'Acciones',
+      header: t("Acciones"),
       align: 'right',
       render: (row) => (
         <Button
@@ -160,8 +164,7 @@ export default function ReceivedReservationsPage() {
             navigate(`/app/reservas-recibidas/${row.reservation.id}`)
           }
         >
-          Ver
-        </Button>
+          {t("Ver")}</Button>
       ),
     },
   ]
@@ -169,13 +172,13 @@ export default function ReceivedReservationsPage() {
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Reservas' }, { label: 'Recibidas' }]}
-        title="Reservas recibidas"
+        breadcrumb={[{ label: t("Reservas") }, { label: t("Recibidas") }]}
+        title={t("Reservas recibidas")}
         actions={
           <div className={tableStyles.search}>
             <SearchInput
-              label="Buscar por actividad o código"
-              placeholder="Buscar por actividad o código…"
+              label={t("Buscar por actividad o código")}
+              placeholder={t("Buscar por actividad o código…")}
               value={term}
               onChange={setTerm}
             />
@@ -185,10 +188,8 @@ export default function ReceivedReservationsPage() {
 
       {!canList ? (
         <p className={styles.notice}>
-          Las reservas recibidas son para guías y prestadoras. Además, los
-          servicios no son reservables, así que una prestadora solo recibe
-          reservas de sus actividades.{' '}
-          <Link to="/app/mis-servicios">Ver mis servicios</Link>
+          {t("Las reservas recibidas son para guías y prestadoras. Además, los servicios no son reservables, así que una prestadora solo recibe reservas de sus actividades.")}{' '}
+          <Link to="/app/mis-servicios">{t("Ver mis servicios")}</Link>
         </p>
       ) : (
         <>
@@ -206,10 +207,10 @@ export default function ReceivedReservationsPage() {
 
           {error !== null ? (
             <StateMessage
-              title="No se pudieron cargar las reservas recibidas"
+              title={t("No se pudieron cargar las reservas recibidas")}
               description={error}
               tone="error"
-              action={<Button onClick={() => void load()}>Reintentar</Button>}
+              action={<Button onClick={() => void load()}>{t("Reintentar")}</Button>}
             />
           ) : (
             <DataTable
@@ -217,21 +218,19 @@ export default function ReceivedReservationsPage() {
               rows={filtered}
               rowKey={(row) => row.reservation.id}
               isLoading={isLoading}
-              loadingMessage="Cargando reservas recibidas…"
-              emptyMessage="No tienes reservas recibidas con estos filtros."
+              loadingMessage={t("Cargando reservas recibidas…")}
+              emptyMessage={t("No tienes reservas recibidas con estos filtros.")}
             />
           )}
 
           <p className={styles.notice}>
-            Datos reales de{' '}
+            {t("Datos reales de")}{' '}
             <code>
               {role === 'GUIDE'
                 ? '/reservations/guides/{id}'
                 : '/reservations/providers/{id}'}
             </code>
-            . Solo se puede confirmar asistencia o marcar no-show desde el
-            detalle.
-          </p>
+            {t(". Solo se puede confirmar asistencia o marcar no-show desde el detalle.")}</p>
         </>
       )}
     </section>

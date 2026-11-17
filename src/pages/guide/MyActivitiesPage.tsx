@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { DataTable } from '@/components/DataTable/DataTable'
 import type { Column } from '@/components/DataTable/DataTable'
@@ -18,11 +21,12 @@ import type { ActivityResponse } from '@/types'
 import styles from './guide.module.css'
 
 export default function MyActivitiesPage() {
+  useLanguage()
   const { user } = useAuth()
 
   const [activities, setActivities] = useState<ActivityResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   const guideId = user?.id
@@ -51,7 +55,7 @@ export default function MyActivitiesPage() {
       } catch (cause) {
         if (!cancelled) {
           setActivities([])
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -65,7 +69,7 @@ export default function MyActivitiesPage() {
     return () => {
       cancelled = true
     }
-  }, [guideId, reloadToken])
+  }, [guideId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -75,7 +79,7 @@ export default function MyActivitiesPage() {
 
   const columns: Column<ActivityResponse>[] = [
     {
-      header: 'Actividad',
+      header: t("Actividad"),
       render: (activity) => (
         <div>
           <p className={styles.summaryValue}>{activity.name}</p>
@@ -86,19 +90,19 @@ export default function MyActivitiesPage() {
       ),
     },
     {
-      header: 'Duración',
+      header: t("Duración"),
       render: (activity) => formatDuration(activity.durationMinutes),
     },
     {
-      header: 'Capacidad',
-      render: (activity) => `${activity.maxCapacity} personas`,
+      header: t("Capacidad"),
+      render: (activity) => t("{0} personas", [activity.maxCapacity]),
     },
     {
-      header: 'Primera fecha',
+      header: t("Primera fecha"),
       render: (activity) => formatDate(activity.startsAt),
     },
     {
-      header: 'Estado',
+      header: t("Estado"),
       render: (activity) => (
         <StatusBadge tone={ACTIVITY_STATUS_TONES[activity.status]}>
           {ACTIVITY_STATUS_LABELS[activity.status]}
@@ -106,19 +110,17 @@ export default function MyActivitiesPage() {
       ),
     },
     {
-      header: 'Acciones',
+      header: t("Acciones"),
       align: 'right',
       render: (activity) => (
         <div className={styles.actions}>
           <Link to={`/app/mis-actividades/${activity.id}`}>
             <Button variant="outline" size="sm">
-              Editar
-            </Button>
+              {t("Editar")}</Button>
           </Link>
           <Link to={`/app/disponibilidad?id=${activity.id}`}>
             <Button variant="outline" size="sm">
-              Disponibilidad
-            </Button>
+              {t("Disponibilidad")}</Button>
           </Link>
         </div>
       ),
@@ -128,21 +130,21 @@ export default function MyActivitiesPage() {
   return (
     <section>
       <PageHeader
-        breadcrumb={[{ label: 'Mis actividades' }, { label: 'Listado' }]}
-        title="Mis actividades"
+        breadcrumb={[{ label: t("Mis actividades") }, { label: t("Listado") }]}
+        title={t("Mis actividades")}
         actions={
           <Link to="/app/mis-actividades/nueva">
-            <Button variant="accent">Nueva actividad</Button>
+            <Button variant="accent">{t("Nueva actividad")}</Button>
           </Link>
         }
       />
 
       {error !== null && (
         <StateMessage
-          title="No se pudieron cargar tus actividades"
+          title={t("No se pudieron cargar tus actividades")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       )}
 
@@ -152,22 +154,19 @@ export default function MyActivitiesPage() {
           rows={activities}
           rowKey={(activity) => activity.id}
           isLoading={isLoading}
-          loadingMessage="Cargando tus actividades…"
-          emptyMessage="Todavía no tienes actividades. Crea la primera con “Nueva actividad”."
+          loadingMessage={t("Cargando tus actividades…")}
+          emptyMessage={t("Todavía no tienes actividades. Crea la primera con “Nueva actividad”.")}
           emptyAction={
             <Link to="/app/mis-actividades/nueva">
               <Button variant="outline" size="sm">
-                Nueva actividad
-              </Button>
+                {t("Nueva actividad")}</Button>
             </Link>
           }
         />
       )}
 
       <p className={styles.notice}>
-        Aquí ves todas tus actividades, incluidas las que aún no están
-        publicadas.
-      </p>
+        {t("Aquí ves todas tus actividades, incluidas las que aún no están publicadas.")}</p>
     </section>
   )
 }

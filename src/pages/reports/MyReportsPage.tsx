@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
@@ -19,20 +22,21 @@ import styles from './reports.module.css'
 type SortOrder = 'recent' | 'oldest'
 
 const FILTERS: Array<{ label: string; status?: SecurityReportStatus }> = [
-  { label: 'Todos' },
-  { label: 'En curso', status: 'ONGOING' },
-  { label: 'Reportados', status: 'REPORTED' },
-  { label: 'Resueltos', status: 'SOLVED' },
+  { get label() { return t("Todos") } },
+  { get label() { return t("En curso") }, status: 'ONGOING' },
+  { get label() { return t("Reportados") }, status: 'REPORTED' },
+  { get label() { return t("Resueltos") }, status: 'SOLVED' },
 ]
 
 /** Reportes del propio usuario. El feed comunitario es solo para gestoras y admins. */
 export default function MyReportsPage() {
+  useLanguage()
   const { user } = useAuth()
 
   const [reports, setReports] = useState<SecurityReportResponse[]>([])
   const [comments, setComments] = useState<Record<string, number>>({})
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [sort, setSort] = useState<SortOrder>('recent')
   const [reloadToken, setReloadToken] = useState(0)
@@ -70,7 +74,7 @@ export default function MyReportsPage() {
       } catch (cause) {
         if (!cancelled) {
           setReports([])
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -82,7 +86,7 @@ export default function MyReportsPage() {
     return () => {
       cancelled = true
     }
-  }, [userId, reloadToken])
+  }, [userId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -105,22 +109,22 @@ export default function MyReportsPage() {
   return (
     <div className={styles.page}>
       <PageHeader
-        title="Mis reportes de seguridad"
+        title={t("Mis reportes de seguridad")}
         meta={`${filtered.length} ${filtered.length === 1 ? 'reporte' : 'reportes'}`}
-        description="Lo que has reportado a las autoridades de destino."
+        description={t("Lo que has reportado a las autoridades de destino.")}
         actions={
           <Link to="/reportes/nuevo">
-            <Button variant="accent">Nuevo reporte</Button>
+            <Button variant="accent">{t("Nuevo reporte")}</Button>
           </Link>
         }
       />
 
       {error !== null && (
         <StateMessage
-          title="No se pudieron cargar tus reportes"
+          title={t("No se pudieron cargar tus reportes")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       )}
 
@@ -138,10 +142,10 @@ export default function MyReportsPage() {
 
           <div className={styles.sortSlot}>
             <SelectField
-              aria-label="Ordenar"
+              aria-label={t("Ordenar")}
               options={[
-                { value: 'recent', label: 'Ordenar: más recientes' },
-                { value: 'oldest', label: 'Ordenar: más antiguos' },
+                { value: 'recent', label: t("Ordenar: más recientes") },
+                { value: 'oldest', label: t("Ordenar: más antiguos") },
               ]}
               value={sort}
               onChange={(changeEvent) =>
@@ -153,16 +157,16 @@ export default function MyReportsPage() {
       )}
 
       {isLoading && (
-        <Skeleton variant="table" count={3} label="Cargando reportes…" />
+        <Skeleton variant="table" count={3} label={t("Cargando reportes…")} />
       )}
 
       {!isLoading && reports.length === 0 && error === null && (
         <StateMessage
-          title="Todavía no has reportado nada"
-          description="Cuéntanos qué pasó y dónde; las gestoras de destino recibirán el aviso."
+          title={t("Todavía no has reportado nada")}
+          description={t("Cuéntanos qué pasó y dónde; las gestoras de destino recibirán el aviso.")}
           action={
             <Link to="/reportes/nuevo">
-              <Button variant="accent">Crear el primer reporte</Button>
+              <Button variant="accent">{t("Crear el primer reporte")}</Button>
             </Link>
           }
         />
@@ -170,11 +174,10 @@ export default function MyReportsPage() {
 
       {!isLoading && reports.length > 0 && filtered.length === 0 && (
         <StateMessage
-          title="No tienes reportes en este estado."
+          title={t("No tienes reportes en este estado.")}
           action={
             <Button variant="outline" onClick={() => setFilterIndex(0)}>
-              Ver todos
-            </Button>
+              {t("Ver todos")}</Button>
           }
         />
       )}
@@ -208,7 +211,7 @@ export default function MyReportsPage() {
             {report.photosUrls.length > 0 && (
               <div className={styles.photo}>
                 {report.photosUrls.length}{' '}
-                {report.photosUrls.length === 1 ? 'foto adjunta' : 'fotos adjuntas'}
+                {report.photosUrls.length === 1 ? t("foto adjunta") : t("fotos adjuntas")}
               </div>
             )}
 
@@ -218,8 +221,7 @@ export default function MyReportsPage() {
                 {(comments[report.id] ?? 0) === 1 ? 'respuesta' : 'respuestas'}
               </span>
               <Link to={`/reportes/${report.id}`} className={styles.linkButton}>
-                Ver detalle y responder
-              </Link>
+                {t("Ver detalle y responder")}</Link>
             </div>
           </article>
         ))}

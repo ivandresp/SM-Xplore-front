@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { getLocale, translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { ActivityCard } from '@/components/ActivityCard/ActivityCard'
 import { Button } from '@/components/Button'
 import { FilterBar } from '@/components/FilterBar'
@@ -35,11 +38,11 @@ const PAGE_SIZE = 12
 
 
 const SORT_OPTIONS: Array<{ value: ActivitySort; label: string }> = [
-  { value: 'name', label: 'Nombre (A–Z)' },
-  { value: 'priceAsc', label: 'Precio: menor a mayor' },
-  { value: 'priceDesc', label: 'Precio: mayor a menor' },
-  { value: 'durationAsc', label: 'Duración: menor a mayor' },
-  { value: 'dateAsc', label: 'Fecha: próximas primero' },
+  { value: 'name', get label() { return t("Nombre (A–Z)") } },
+  { value: 'priceAsc', get label() { return t("Precio: menor a mayor") } },
+  { value: 'priceDesc', get label() { return t("Precio: mayor a menor") } },
+  { value: 'durationAsc', get label() { return t("Duración: menor a mayor") } },
+  { value: 'dateAsc', get label() { return t("Fecha: próximas primero") } },
 ]
 
 const FILTER_KEYS = [
@@ -62,7 +65,7 @@ function dateToIsoStart(value: string): string | undefined {
 }
 
 function formatDate(value: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(getLocale(), {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -70,10 +73,11 @@ function formatDate(value: string): string {
 }
 
 export default function ExplorePage() {
+  useLanguage()
   const [params, setParams] = useSearchParams()
   const [term, setTerm] = useSearchParamTerm()
   const [category, setCategory] = useSearchParamText('categoria')
-  const [siteId, setSiteId] = useFilterParam('sitio')
+  const [siteId, setSiteId] = useFilterParam(t("sitio"))
   const [maxPrice, setMaxPrice] = useFilterParam('precioMax')
   const [fromDate, setFromDate] = useFilterParam('desde')
   const [sortParam, setSortParam] = useFilterParam('orden')
@@ -87,7 +91,7 @@ export default function ExplorePage() {
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
   const isFirstLoad = result === null
@@ -127,7 +131,7 @@ export default function ExplorePage() {
       .list({
         search: current.get('search') ?? undefined,
         category: current.get('categoria') ?? undefined,
-        siteId: current.get('sitio') ?? undefined,
+        siteId: current.get(t("sitio")) ?? undefined,
         priceMax: Number(current.get('precioMax')) || undefined,
         startsAfter: dateToIsoStart(current.get('desde') ?? ''),
         sort: parseSort(current.get('orden') ?? ''),
@@ -142,7 +146,7 @@ export default function ExplorePage() {
       .catch((cause: unknown) => {
         if (!cancelled) {
           setResult(null)
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       })
       .finally(() => {
@@ -152,7 +156,7 @@ export default function ExplorePage() {
     return () => {
       cancelled = true
     }
-  }, [queryKey, reloadToken])
+  }, [queryKey, reloadToken, setError])
 
   const siteOptions = useMemo(
     () =>
@@ -182,33 +186,33 @@ export default function ExplorePage() {
 
   const activeFilters: ActiveFilter[] = []
   if (term.trim() !== '') {
-    activeFilters.push({ key: 'search', label: 'Buscar', value: term.trim() })
+    activeFilters.push({ key: 'search', label: t("Buscar"), value: term.trim() })
   }
   if (category.trim() !== '') {
     activeFilters.push({
       key: 'categoria',
-      label: 'Categoría',
+      label: t("Categoría"),
       value: category.trim(),
     })
   }
   if (siteId !== '') {
     activeFilters.push({
       key: 'sitio',
-      label: 'Atractivo',
-      value: siteNameById.get(siteId) ?? 'Seleccionado',
+      label: t("Atractivo"),
+      value: siteNameById.get(siteId) ?? t('Seleccionado'),
     })
   }
   if (maxPrice !== '') {
     activeFilters.push({
       key: 'precioMax',
-      label: 'Precio',
-      value: `Hasta ${formatCurrency(Number(maxPrice))}`,
+      label: t("Precio"),
+      value: t('Hasta {0}', [formatCurrency(Number(maxPrice))]),
     })
   }
   if (fromDate !== '') {
     activeFilters.push({
       key: 'desde',
-      label: 'Desde',
+      label: t("Desde"),
       value: formatDate(fromDate),
     })
   }
@@ -257,23 +261,23 @@ export default function ExplorePage() {
   const total = result?.total ?? 0
   const hasActiveFilters = activeFilters.length > 0
   const resultSummary = isBusy
-    ? 'Buscando…'
+    ? t("Buscando…")
     : error !== null
-      ? 'Resultados no disponibles'
-      : `${total} ${total === 1 ? 'resultado' : 'resultados'}`
+      ? t("Resultados no disponibles")
+      : `${total} ${total === 1 ? t("resultado") : t("resultados")}`
 
   return (
     <div className={styles.page}>
       <PageHeader
         serif
-        title="Actividades turísticas en Santa Marta"
+        title={t("Actividades turísticas en Santa Marta")}
         actions={
           <SelectField
-            aria-label="Ordenar resultados"
+            aria-label={t("Ordenar resultados")}
             className={styles.sort}
             options={SORT_OPTIONS.map((option) => ({
               value: option.value,
-              label: `Ordenar: ${option.label}`,
+              label: t("Ordenar: {0}", [option.label]),
             }))}
             value={sort}
             onChange={(event) => setSortParam(event.target.value)}
@@ -288,31 +292,31 @@ export default function ExplorePage() {
         resultSummary={resultSummary}
       >
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Buscar</span>
+          <span className={styles.fieldLabel}>{t("Buscar")}</span>
           <SearchInput
             value={term}
             onChange={setTerm}
-            label="Buscar actividades por nombre"
-            placeholder="Nombre de la actividad…"
+            label={t("Buscar actividades por nombre")}
+            placeholder={t("Nombre de la actividad…")}
             className={styles.control}
           />
         </label>
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Categoría</span>
+          <span className={styles.fieldLabel}>{t("Categoría")}</span>
           <input
             className={styles.control}
             type="search"
             value={category}
-            placeholder="Aventura, cultural…"
+            placeholder={t("Aventura, cultural…")}
             onChange={(event) => setCategory(event.target.value)}
           />
         </label>
 
         <SelectField
-          label="Atractivo"
+          label={t("Atractivo")}
           className={styles.control}
-          placeholder="Todos los atractivos"
+          placeholder={t("Todos los atractivos")}
           value={siteId}
           disabled={siteOptions.length === 0}
           onChange={(event) => setSiteId(event.target.value)}
@@ -328,19 +332,19 @@ export default function ExplorePage() {
         />
 
         <SelectField
-          label="Precio"
+          label={t("Precio")}
           className={styles.control}
-          placeholder="Cualquier precio"
+          placeholder={t("Cualquier precio")}
           value={maxPrice}
           onChange={(event) => setMaxPrice(event.target.value)}
           options={MAX_PRICE_OPTIONS.map((value) => ({
             value: String(value),
-            label: `Hasta ${formatCurrency(value)}`,
+            label: t("Hasta {0}", [formatCurrency(value)]),
           }))}
         />
 
         <label className={styles.field}>
-          <span className={styles.fieldLabel}>Desde</span>
+          <span className={styles.fieldLabel}>{t("Desde")}</span>
           <input
             className={styles.control}
             type="date"
@@ -364,12 +368,11 @@ export default function ExplorePage() {
         {error !== null && !showSkeleton && (isLoading || !holdSkeleton) && (
           <StateMessage
             tone="error"
-            title="No pudimos cargar las actividades"
+            title={t("No pudimos cargar las actividades")}
             description={error}
             action={
               <Button variant="accent" onClick={retry} disabled={isLoading}>
-                Reintentar
-              </Button>
+                {t("Reintentar")}</Button>
             }
           />
         )}
@@ -378,19 +381,18 @@ export default function ExplorePage() {
           <StateMessage
             title={
               hasActiveFilters
-                ? 'No encontramos actividades con esos filtros'
-                : 'Todavía no hay actividades publicadas'
+                ? t("No encontramos actividades con esos filtros")
+                : t("Todavía no hay actividades publicadas")
             }
             description={
               hasActiveFilters
-                ? 'Prueba con otra categoría, atractivo o fecha, o sube el precio máximo.'
-                : 'Cuando las gestoras publiquen actividades aparecerán aquí.'
+                ? t("Prueba con otra categoría, atractivo o fecha, o sube el precio máximo.")
+                : t("Cuando las gestoras publiquen actividades aparecerán aquí.")
             }
             action={
               hasActiveFilters ? (
                 <Button variant="outline" onClick={clearFilters}>
-                  Limpiar filtros
-                </Button>
+                  {t("Limpiar filtros")}</Button>
               ) : undefined
             }
           />

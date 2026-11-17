@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field, SelectField } from '@/components/FormField'
 import { useAuth } from '@/hooks/useAuth'
@@ -50,22 +53,22 @@ const INITIAL_FORM: RegisterFormValues = {
 }
 
 const ACCOUNT_OPTIONS = [
-  { value: 'TOURIST', label: 'Turista' },
-  { value: 'GUIDE', label: 'Guía turístico' },
-  { value: 'SERVICE_PROVIDER', label: 'Prestadora de servicios' },
+  { value: 'TOURIST', get label() { return t("Turista") } },
+  { value: 'GUIDE', get label() { return t("Guía turístico") } },
+  { value: 'SERVICE_PROVIDER', get label() { return t("Prestadora de servicios") } },
 ]
 
 const DNI_TYPE_OPTIONS = [
-  { value: 'CC', label: 'Cédula de ciudadanía' },
-  { value: 'CE', label: 'Cédula de extranjería' },
-  { value: 'PA', label: 'Pasaporte' },
+  { value: 'CC', get label() { return t("Cédula de ciudadanía") } },
+  { value: 'CE', get label() { return t("Cédula de extranjería") } },
+  { value: 'PA', get label() { return t("Pasaporte") } },
   { value: 'NIT', label: 'NIT' },
 ]
 
 const LANGUAGE_OPTIONS = [
-  { value: 'es', label: 'Español' },
-  { value: 'en', label: 'Inglés' },
-  { value: 'fr', label: 'Francés' },
+  { value: 'es', get label() { return t("Español") } },
+  { value: 'en', get label() { return t("Inglés") } },
+  { value: 'fr', get label() { return t("Francés") } },
 ]
 
 const PASSWORD_CHECKLIST_ID = 'password-requirements'
@@ -127,7 +130,7 @@ function summaryMessage(errors: FieldErrors): string {
   const labels = FIELD_ORDER.filter(
     (field) => errors[field] !== undefined,
   ).map(fieldLabel)
-  return `Revisa los datos: ${labels.join(', ')}.`
+  return t("Revisa los datos: {0}.", [labels.join(', ')])
 }
 
 interface RegisterPageProps {
@@ -138,6 +141,7 @@ interface RegisterPageProps {
 export default function RegisterPage({
   initialKind = 'TOURIST',
 }: RegisterPageProps) {
+  useLanguage()
   const { registerTourist, registerProvider, registerGuide } = useAuth()
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
@@ -158,8 +162,8 @@ export default function RegisterPage({
     Partial<Record<RegisterFieldKey, boolean>>
   >({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
-  const [serverErrors, setServerErrors] = useState<FieldErrors>({})
-  const [formError, setFormError] = useState<string | null>(null)
+  const [serverErrors, setServerErrors] = useMessageState<FieldErrors>({})
+  const [formError, setFormError] = useMessageState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [created, setCreated] = useState<{
     kind: AccountKind
@@ -232,9 +236,9 @@ export default function RegisterPage({
 
   function handleRegisterError(cause: unknown) {
     if (isApiError(cause) && cause.code === 'EMAIL_ALREADY_EXISTS') {
-      const message =
-        'Ya existe una cuenta con ese correo. Inicia sesión o usa otro correo.'
-      setServerErrors({ email: message })
+      const message = () =>
+        t("Ya existe una cuenta con ese correo. Inicia sesión o usa otro correo.")
+      setServerErrors(() => ({ email: message() }))
       setFormError(message)
       requestFocus('email')
       return
@@ -246,14 +250,14 @@ export default function RegisterPage({
         (field) => fields[field] !== undefined,
       )
       if (mapped.length > 0) {
-        setServerErrors(fields)
-        setFormError(summaryMessage(fields))
+        setServerErrors(() => mapServerFieldErrors(cause.fieldErrors).fields)
+        setFormError(() => summaryMessage(mapServerFieldErrors(cause.fieldErrors).fields))
         requestFocus(mapped[0])
         return
       }
     }
 
-    setFormError(describeApiError(cause))
+    setFormError(() => describeApiError(cause))
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -262,7 +266,7 @@ export default function RegisterPage({
     const blocked = firstInvalidField(kind, values)
     if (blocked !== null) {
       setSubmitAttempted(true)
-      setFormError(summaryMessage(clientErrors))
+      setFormError(() => summaryMessage(validateRegisterForm(kind, values)))
       requestFocus(blocked)
       return
     }
@@ -295,23 +299,23 @@ export default function RegisterPage({
     const isGuide = created.kind === 'GUIDE'
     return (
       <AuthShell
-        title="Solicitud enviada"
+        title={t("Solicitud enviada")}
         subtitle={
           isGuide
-            ? 'Tu solicitud como guía quedó registrada y está pendiente de revisión.'
-            : 'Tu prestadora quedó registrada y está pendiente de revisión.'
+            ? t("Tu solicitud como guía quedó registrada y está pendiente de revisión.")
+            : t("Tu prestadora quedó registrada y está pendiente de revisión.")
         }
         footer={
           <p>
-            <Link to="/login">Ir a iniciar sesión</Link>
+            <Link to="/login">{t("Ir a iniciar sesión")}</Link>
           </p>
         }
       >
         <p className={styles.notice}>
-          Revisa tu correo: puede llegar un aviso a {created.email}.{' '}
+          {t("Revisa tu correo: puede llegar un aviso a")}{" "}{created.email}.{' '}
           {isGuide
-            ? 'Una gestora revisará tu solicitud y, si la aprueba, podrás iniciar sesión.'
-            : 'Un administrador revisará el registro; la cuenta sigue activa y el perfil no se publica en el catálogo hasta que se apruebe.'}
+            ? t("Una gestora revisará tu solicitud y, si la aprueba, podrás iniciar sesión.")
+            : t("Un administrador revisará el registro; la cuenta sigue activa y el perfil no se publica en el catálogo hasta que se apruebe.")}
         </p>
       </AuthShell>
     )
@@ -321,11 +325,11 @@ export default function RegisterPage({
 
   return (
     <AuthShell
-      title="Crear cuenta"
-      subtitle="Regístrate como turista, guía turístico o prestadora de servicios."
+      title={t("Crear cuenta")}
+      subtitle={t("Regístrate como turista, guía turístico o prestadora de servicios.")}
       footer={
         <p>
-          ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
+          {t("¿Ya tienes cuenta?")}{" "}<Link to="/login">{t("Inicia sesión")}</Link>
         </p>
       }
     >
@@ -342,7 +346,7 @@ export default function RegisterPage({
         )}
 
         <SelectField
-          label="Tipo de cuenta"
+          label={t("Tipo de cuenta")}
           name="kind"
           options={ACCOUNT_OPTIONS}
           value={kind}
@@ -356,7 +360,7 @@ export default function RegisterPage({
         />
 
         <Field
-          label="Nombre completo"
+          label={t("Nombre completo")}
           name="fullName"
           autoComplete="name"
           required
@@ -368,7 +372,7 @@ export default function RegisterPage({
 
         <div className={styles.grid}>
           <Field
-            label="Correo electrónico"
+            label={t("Correo electrónico")}
             type="email"
             name="email"
             autoComplete="email"
@@ -380,13 +384,13 @@ export default function RegisterPage({
             onBlur={() => markTouched('email')}
           />
           <Field
-            label="Teléfono"
+            label={t("Teléfono")}
             type="tel"
             inputMode="tel"
             name="phone"
             autoComplete="tel"
             required
-            hint="Móvil colombiano: +57 300 123 4567. También aceptamos fijos e internacionales."
+            hint={t("Móvil colombiano: +57 300 123 4567. También aceptamos fijos e internacionales.")}
             value={values.phone}
             error={errorFor('phone')}
             onChange={(event) => update('phone', event.target.value)}
@@ -396,13 +400,13 @@ export default function RegisterPage({
 
         <div className={styles.fieldGroup}>
           <Field
-            label="Contraseña"
+            label={t("Contraseña")}
             type="password"
             name="password"
             autoComplete="new-password"
             spellCheck={false}
             required
-            hint="Mínimo 12 caracteres; combina al menos 3 tipos."
+            hint={t("Mínimo 12 caracteres; combina al menos 3 tipos.")}
             aria-describedby={
               values.password === '' ? undefined : PASSWORD_CHECKLIST_ID
             }
@@ -415,7 +419,7 @@ export default function RegisterPage({
             <ul
               className={styles.checklist}
               id={PASSWORD_CHECKLIST_ID}
-              aria-label="Requisitos de la contraseña"
+              aria-label={t("Requisitos de la contraseña")}
               aria-live="polite"
             >
               {checks.map((check) => (
@@ -438,10 +442,10 @@ export default function RegisterPage({
                   <span>{check.label}</span>
                   <span className={styles.checkStatus}>
                     {check.state === 'met'
-                      ? 'Cumple'
+                      ? t("Cumple")
                       : check.state === 'empty'
-                        ? 'Pendiente'
-                        : 'Falta'}
+                        ? t("Pendiente")
+                        : t("Falta")}
                   </span>
                 </li>
               ))}
@@ -451,10 +455,10 @@ export default function RegisterPage({
 
         {isTourist ? (
           <>
-            <p className={styles.groupTitle}>Documento</p>
+            <p className={styles.groupTitle}>{t("Documento")}</p>
             <div className={styles.grid}>
               <SelectField
-                label="Tipo de documento"
+                label={t("Tipo de documento")}
                 name="dniType"
                 required
                 options={DNI_TYPE_OPTIONS}
@@ -464,7 +468,7 @@ export default function RegisterPage({
                 onBlur={() => markTouched('dniType')}
               />
               <Field
-                label="Número de documento"
+                label={t("Número de documento")}
                 name="dniNumber"
                 required
                 value={values.dniNumber}
@@ -476,7 +480,7 @@ export default function RegisterPage({
 
             <div className={styles.grid}>
               <Field
-                label="Nacionalidad"
+                label={t("Pais de Origen")}
                 name="nationality"
                 value={values.nationality}
                 error={errorFor('nationality')}
@@ -484,10 +488,10 @@ export default function RegisterPage({
                 onBlur={() => markTouched('nationality')}
               />
               <SelectField
-                label="Idioma preferido"
+                label={t("Idioma preferido")}
                 name="preferredLanguage"
                 options={[
-                  { value: '', label: 'Sin especificar' },
+                  { value: '', label: t("Sin especificar") },
                   ...LANGUAGE_OPTIONS,
                 ]}
                 value={values.preferredLanguage}
@@ -500,7 +504,7 @@ export default function RegisterPage({
             </div>
 
             <Field
-              label="Fecha de nacimiento"
+              label={t("Fecha de nacimiento")}
               type="date"
               name="birthDate"
               value={values.birthDate}
@@ -513,10 +517,10 @@ export default function RegisterPage({
 
         {kind === 'GUIDE' && (
           <>
-            <p className={styles.groupTitle}>Documento y licencia</p>
+            <p className={styles.groupTitle}>{t("Documento y licencia")}</p>
             <div className={styles.grid}>
               <SelectField
-                label="Tipo de documento"
+                label={t("Tipo de documento")}
                 name="dniType"
                 required
                 options={DNI_TYPE_OPTIONS}
@@ -526,7 +530,7 @@ export default function RegisterPage({
                 onBlur={() => markTouched('dniType')}
               />
               <Field
-                label="Número de documento"
+                label={t("Número de documento")}
                 name="dniNumber"
                 required
                 value={values.dniNumber}
@@ -537,11 +541,11 @@ export default function RegisterPage({
             </div>
 
             <Field
-              label="Licencia de guía"
+              label={t("Licencia de guía")}
               name="license"
               autoComplete="off"
               required
-              hint="Número de la licencia de guía turístico (máximo 50 caracteres)."
+              hint={t("Número de la licencia de guía turístico (máximo 50 caracteres).")}
               value={values.license}
               error={errorFor('license')}
               onChange={(event) => update('license', event.target.value)}
@@ -549,10 +553,10 @@ export default function RegisterPage({
             />
 
             <Field
-              label="Fecha de inicio de operación"
+              label={t("Fecha de inicio de operación")}
               type="date"
               name="startOperationDate"
-              hint="Opcional: cuándo empezaste a operar como guía."
+              hint={t("Opcional: cuándo empezaste a operar como guía.")}
               value={values.startOperationDate}
               error={errorFor('startOperationDate')}
               onChange={(event) =>
@@ -562,29 +566,27 @@ export default function RegisterPage({
             />
 
             <p className={styles.notice}>
-              Tu solicitud queda en revisión: una gestora la aprueba o la rechaza
-              y te avisamos por correo. Hasta entonces no podrás iniciar sesión.
-            </p>
+              {t("Tu solicitud queda en revisión: una gestora la aprueba o la rechaza y te avisamos por correo. Hasta entonces no podrás iniciar sesión.")}</p>
           </>
         )}
 
         {kind === 'SERVICE_PROVIDER' && (
           <>
-            <p className={styles.groupTitle}>Empresa</p>
+            <p className={styles.groupTitle}>{t("Empresa")}</p>
             <Field
               label="NIT"
               name="nit"
               required
-              hint="Solo números y guiones, entre 6 y 30 caracteres."
+              hint={t("Solo números y guiones, entre 6 y 30 caracteres.")}
               value={values.nit}
               error={errorFor('nit')}
               onChange={(event) => update('nit', event.target.value)}
               onBlur={() => markTouched('nit')}
             />
             <Field
-              label="Tipo de negocio"
+              label={t("Tipo de negocio")}
               name="businessType"
-              hint="Alojamiento, transporte, alimentación…"
+              hint={t("Alojamiento, transporte, alimentación…")}
               value={values.businessType}
               error={errorFor('businessType')}
               onChange={(event) => update('businessType', event.target.value)}
@@ -592,7 +594,7 @@ export default function RegisterPage({
             />
             <div className={styles.grid}>
               <Field
-                label="Latitud"
+                label={t("Latitud")}
                 name="latitude"
                 inputMode="decimal"
                 value={values.latitude}
@@ -601,7 +603,7 @@ export default function RegisterPage({
                 onBlur={() => markTouched('latitude')}
               />
               <Field
-                label="Longitud"
+                label={t("Longitud")}
                 name="longitude"
                 inputMode="decimal"
                 value={values.longitude}
@@ -611,7 +613,7 @@ export default function RegisterPage({
               />
             </div>
             <Field
-              label="Sitio web"
+              label={t("Sitio web")}
               type="url"
               name="websiteUrl"
               value={values.websiteUrl}
@@ -620,7 +622,7 @@ export default function RegisterPage({
               onBlur={() => markTouched('websiteUrl')}
             />
             <Field
-              label="Fecha de inicio de operación"
+              label={t("Fecha de inicio de operación")}
               type="date"
               name="startOperationDate"
               value={values.startOperationDate}
@@ -635,8 +637,8 @@ export default function RegisterPage({
 
         {kind !== 'GUIDE' && (
           <p className={styles.footer}>
-            ¿Eres guía turístico?{' '}
-            <Link to="/registro/guia">Registra tu solicitud como guía</Link>
+            {t("¿Eres guía turístico?")}{' '}
+            <Link to="/registro/guia">{t("Registra tu solicitud como guía")}</Link>
           </p>
         )}
 
@@ -649,7 +651,7 @@ export default function RegisterPage({
           // (el primer clic se perdía). El teclado sigue enfocando por Tab.
           onMouseDown={(event) => event.preventDefault()}
         >
-          {isSubmitting ? 'Creando cuenta…' : 'Crear cuenta'}
+          {isSubmitting ? t("Creando cuenta…") : t("Crear cuenta")}
         </Button>
       </form>
     </AuthShell>

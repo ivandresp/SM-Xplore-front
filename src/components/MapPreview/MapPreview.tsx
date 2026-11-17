@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { coordinatePoint, mercatorFrame, tileUrl } from './mercator'
 import styles from './MapPreview.module.css'
 
@@ -39,6 +41,7 @@ export function MapPreview({
   label,
   zoom = DEFAULT_ZOOM,
 }: MapPreviewProps) {
+  useLanguage()
   const point = coordinatePoint(latitude, longitude)
   const zoomLevel = Number.isFinite(zoom) ? zoom : DEFAULT_ZOOM
   const frame =
@@ -91,8 +94,7 @@ export function MapPreview({
       <div className={styles.wrapper}>
         <div className={styles.viewport}>
           <p className={styles.empty}>
-            Esta ficha todavía no tiene coordenadas publicadas.
-          </p>
+            {t("Esta ficha todavía no tiene coordenadas publicadas.")}</p>
         </div>
         <Attribution />
       </div>
@@ -109,8 +111,7 @@ export function MapPreview({
       {showFallback ? (
         <div className={styles.viewport}>
           <p className={styles.empty}>
-            No pudimos cargar el mapa.
-            <br />
+            {t("No pudimos cargar el mapa.")}<br />
             <span className={styles.coords}>{coordinates}</span>
           </p>
           <a
@@ -118,16 +119,15 @@ export function MapPreview({
             href={externalUrl}
             target="_blank"
             rel="noreferrer"
-            aria-label="Abrir en OpenStreetMap (abre en pestaña nueva)"
+            aria-label={t("Abrir en OpenStreetMap (abre en pestaña nueva)")}
           >
-            Abrir en OpenStreetMap
-          </a>
+            {t("Abrir en OpenStreetMap")}</a>
         </div>
       ) : (
         <div
           className={styles.viewport}
           role="img"
-          aria-label={`Mapa de ${label} en ${coordinates}`}
+          aria-label={t("Mapa de {0} en {1}", [label, coordinates])}
           aria-busy={isLoading}
         >
           {tiles.map((tile, index) => {
@@ -156,7 +156,7 @@ export function MapPreview({
             )
           })}
           <span className={styles.marker} aria-hidden="true" />
-          {loadedCount === 0 && <span className={styles.loading}>Cargando el mapa…</span>}
+          {loadedCount === 0 && <span className={styles.loading}>{t("Cargando el mapa…")}</span>}
         </div>
       )}
       <Attribution />
@@ -165,6 +165,7 @@ export function MapPreview({
 }
 
 function Attribution() {
+  useLanguage()
   return (
     <p className={styles.attribution}>
       <a
@@ -172,7 +173,7 @@ function Attribution() {
         href="https://www.openstreetmap.org/copyright"
         target="_blank"
         rel="noreferrer"
-        aria-label="© OpenStreetMap contributors (abre en pestaña nueva)"
+        aria-label={t("© OpenStreetMap contributors (abre en pestaña nueva)")}
       >
         © OpenStreetMap contributors
       </a>

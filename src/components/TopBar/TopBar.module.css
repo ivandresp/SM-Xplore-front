@@ -403,18 +403,21 @@
 }
 
 /* El toggle vive en la barra desde 900px; por debajo, dentro del menú. */
-.barTheme {
+.barPreferences {
   display: none;
 }
 
 @media (min-width: 900px) {
-  .barTheme {
+  .barPreferences {
     display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 }
 
 .menuTheme {
   display: flex;
+  gap: 0.5rem;
   justify-content: flex-end;
   padding: 0.75rem 1.25rem;
   border-top: 1px solid var(--color-border);
@@ -516,6 +519,5 @@
 @media (max-width: 899px) {
   .menuButton {
     display: inline-flex;
-    order: 1;
   }
 }

@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { classNames } from '@/utils/format'
 import styles from './SelectField.module.css'
 
@@ -124,6 +126,7 @@ export function SelectField({
   onChange,
   onBlur,
 }: SelectFieldProps) {
+  useLanguage()
   const generatedId = useId()
   const fieldId = id ?? generatedId
   const labelId = `${fieldId}-label`
@@ -424,7 +427,7 @@ export function SelectField({
         hidden={!open}
         className={styles.listbox}
       >
-        {flat.length === 0 && <p className={styles.empty}>Sin opciones</p>}
+        {flat.length === 0 && <p className={styles.empty}>{t("Sin opciones")}</p>}
 
         {placeholder !== undefined && renderOption(0, flat[0] as SelectOption)}
 

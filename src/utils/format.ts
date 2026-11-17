@@ -1,3 +1,5 @@
+import { getLocale, translate as t } from '@/i18n/language'
+
 /** Une clases CSS ignorando los valores falsy. */
 export function classNames(
   ...values: Array<string | false | null | undefined>
@@ -6,7 +8,7 @@ export function classNames(
 }
 
 /** Formatea una fecha como "12 oct 2026" en el locale indicado. */
-export function formatDate(value: string | Date, locale = 'es-CO'): string {
+export function formatDate(value: string | Date, locale = getLocale()): string {
   const date = value instanceof Date ? value : new Date(value)
   return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
@@ -16,7 +18,7 @@ export function formatDate(value: string | Date, locale = 'es-CO'): string {
 }
 
 /** Formatea una fecha como "octubre 2026". */
-export function formatMonthYear(value: string | Date, locale = 'es-CO'): string {
+export function formatMonthYear(value: string | Date, locale = getLocale()): string {
   const date = value instanceof Date ? value : new Date(value)
   return new Intl.DateTimeFormat(locale, {
     month: 'long',
@@ -25,7 +27,7 @@ export function formatMonthYear(value: string | Date, locale = 'es-CO'): string 
 }
 
 /** Formatea una fecha con hora en el locale indicado (`es-CO` por defecto). */
-export function formatDateTime(value: string | Date, locale = 'es-CO'): string {
+export function formatDateTime(value: string | Date, locale = getLocale()): string {
   const date = value instanceof Date ? value : new Date(value)
   return new Intl.DateTimeFormat(locale, {
     dateStyle: 'medium',
@@ -34,7 +36,7 @@ export function formatDateTime(value: string | Date, locale = 'es-CO'): string {
 }
 
 /** Tiempo relativo: "hace 2 h", "ayer". */
-export function formatRelativeTime(value: string | Date, locale = 'es-CO'): string {
+export function formatRelativeTime(value: string | Date, locale = getLocale()): string {
   const date = value instanceof Date ? value : new Date(value)
   const diffSeconds = Math.round((date.getTime() - Date.now()) / 1000)
   const formatter = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
@@ -57,7 +59,7 @@ export function formatRelativeTime(value: string | Date, locale = 'es-CO'): stri
 }
 
 /** Formatea un precio en pesos colombianos: 120000 → "$ 120.000". */
-export function formatCurrency(value: number, locale = 'es-CO'): string {
+export function formatCurrency(value: number, locale = getLocale()): string {
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency: 'COP',
@@ -78,13 +80,13 @@ export function formatDuration(minutes: number): string {
 /** Duración en palabras: 240 → "4 horas", 45 → "45 minutos". */
 export function formatDurationLong(minutes: number): string {
   if (minutes < 60) {
-    return `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`
+    return t(minutes === 1 ? '{0} minuto' : '{0} minutos', [minutes])
   }
 
   const hours = minutes / 60
   if (Number.isInteger(hours)) {
-    return `${hours} ${hours === 1 ? 'hora' : 'horas'}`
+    return t(hours === 1 ? '{0} hora' : '{0} horas', [hours])
   }
 
-  return `${hours.toFixed(1)} horas`
+  return t('{0} horas', [hours.toFixed(1)])
 }

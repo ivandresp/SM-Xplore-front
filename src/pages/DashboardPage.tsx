@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Skeleton } from '@/components/Skeleton'
 import type { SkeletonVariant } from '@/components/Skeleton'
@@ -39,27 +41,26 @@ import styles from './DashboardPage.module.css'
 const ITEM_RESERVATIONS_LIMIT = 100
 
 const ROLE_SUBTITLES: Record<UserRole, string> = {
-  TOURIST: 'Tus próximas reservas y sugerencias del catálogo.',
-  GUIDE: 'Tus actividades, su estado y las reservas que han recibido.',
-  SERVICE_PROVIDER: 'Tus servicios publicados y su estado.',
-  DESTINATION_MANAGER:
-    'Reportes de seguridad abiertos y el catálogo de zonas y atractivos.',
-  ADMIN: 'Prestadoras pendientes de aprobación y el estado de las cuentas.',
+  get TOURIST() { return t("Tus próximas reservas y sugerencias del catálogo.") },
+  get GUIDE() { return t("Tus actividades, su estado y las reservas que han recibido.") },
+  get SERVICE_PROVIDER() { return t("Tus servicios publicados y su estado.") },
+  get DESTINATION_MANAGER() { return t("Reportes de seguridad abiertos y el catálogo de zonas y atractivos.") },
+  get ADMIN() { return t("Prestadoras pendientes de aprobación y el estado de las cuentas.") },
 }
 
 const RESERVATION_ITEM_LABELS: Record<ReservationItemType, string> = {
-  ACTIVITY: 'Actividad',
-  EVENT: 'Evento',
+  get ACTIVITY() { return t("Actividad") },
+  get EVENT() { return t("Evento") },
 }
 
 const RECOMMENDATION_LINKS: Record<
   RecommendationItemType,
   { label: string; to: string; action: string }
 > = {
-  SITE: { label: 'Atractivo', to: '/atractivos', action: 'Ver atractivos' },
-  ACTIVITY: { label: 'Actividad', to: '/explorar', action: 'Ver actividades' },
-  EVENT: { label: 'Evento', to: '/eventos', action: 'Ver eventos' },
-  SERVICE: { label: 'Servicio', to: '/servicios', action: 'Ver servicios' },
+  SITE: { get label() { return t("Atractivo") }, to: '/atractivos', get action() { return t("Ver atractivos") } },
+  ACTIVITY: { get label() { return t("Actividad") }, to: '/explorar', get action() { return t("Ver actividades") } },
+  EVENT: { get label() { return t("Evento") }, to: '/eventos', get action() { return t("Ver eventos") } },
+  SERVICE: { get label() { return t("Servicio") }, to: '/servicios', get action() { return t("Ver servicios") } },
 }
 
 interface LoadState<T> {
@@ -102,7 +103,7 @@ function useLoad<T>(key: string, load: () => Promise<T>): LoadState<T> {
           setResult({
             key: requestKey,
             data: null,
-            error: describeApiError(cause),
+            get error() { return describeApiError(cause) },
           })
         }
       },
@@ -139,12 +140,13 @@ function Loadable<T>({
   skeletonCount = 2,
   children,
 }: LoadableProps<T>) {
+  useLanguage()
   if (state.isLoading) {
     return (
       <Skeleton
         variant={skeleton}
         count={skeletonCount}
-        label="Cargando información del panel"
+        label={t("Cargando información del panel")}
       />
     )
   }
@@ -155,7 +157,7 @@ function Loadable<T>({
         tone="error"
         title={errorTitle}
         description={state.error}
-        action={<Button onClick={state.retry}>Reintentar</Button>}
+        action={<Button onClick={state.retry}>{t("Reintentar")}</Button>}
       />
     )
   }
@@ -172,6 +174,7 @@ function Panel({
   action?: ReactNode
   children: ReactNode
 }) {
+  useLanguage()
   return (
     <section className={styles.panel}>
       <div className={styles.panelHead}>
@@ -196,15 +199,15 @@ function receivedReservationsLabel(
   }
 
   if (result.status === 'rejected') {
-    return 'Sin dato'
+    return t("Sin dato")
   }
 
   const total = result.value.length
   if (total >= ITEM_RESERVATIONS_LIMIT) {
-    return `${ITEM_RESERVATIONS_LIMIT}+ reservas`
+    return t("{0}+ reservas", [ITEM_RESERVATIONS_LIMIT])
   }
 
-  return `${total} ${total === 1 ? 'reserva' : 'reservas'}`
+  return `${total} ${total === 1 ? t("reserva") : t("reservas")}`
 }
 
 type TouristUser = Extract<AuthUser, { role: 'TOURIST' }>
@@ -212,6 +215,7 @@ type GuideUser = Extract<AuthUser, { role: 'GUIDE' }>
 type ProviderUser = Extract<AuthUser, { role: 'SERVICE_PROVIDER' }>
 
 function TouristDashboard({ user }: { user: TouristUser }) {
+  useLanguage()
   const reservations = useLoad('tourist-reservations', () =>
     reservationsApi.listByTourist(user.id, 50),
   )
@@ -221,10 +225,10 @@ function TouristDashboard({ user }: { user: TouristUser }) {
 
   return (
     <div className={styles.grid}>
-      <Panel title="Próximas reservas">
+      <Panel title={t("Próximas reservas")}>
         <Loadable
           state={reservations}
-          errorTitle="No se pudieron cargar tus reservas"
+          errorTitle={t("No se pudieron cargar tus reservas")}
           skeleton="table"
           skeletonCount={3}
         >
@@ -245,12 +249,11 @@ function TouristDashboard({ user }: { user: TouristUser }) {
             if (upcoming.length === 0) {
               return (
                 <StateMessage
-                  title="Sin reservas próximas"
-                  description="Cuando reserves una actividad o un evento aparecerá aquí."
+                  title={t("Sin reservas próximas")}
+                  description={t("Cuando reserves una actividad o un evento aparecerá aquí.")}
                   action={
                     <Link className={styles.action} to="/explorar">
-                      Explorar actividades
-                    </Link>
+                      {t("Explorar actividades")}</Link>
                   }
                 />
               )
@@ -271,7 +274,7 @@ function TouristDashboard({ user }: { user: TouristUser }) {
                       <p className={styles.itemMeta}>
                         {formatDateTime(reservation.itemStartsAt)} ·{' '}
                         {reservation.numberOfPeople}{' '}
-                        {reservation.numberOfPeople === 1 ? 'persona' : 'personas'}
+                        {reservation.numberOfPeople === 1 ? t("persona") : t("personas")}
                       </p>
                     </div>
                     <StatusBadge
@@ -288,25 +291,22 @@ function TouristDashboard({ user }: { user: TouristUser }) {
 
         <div className={styles.actions}>
           <Link className={styles.action} to="/mis-reservas">
-            Ver todas mis reservas
-          </Link>
+            {t("Ver todas mis reservas")}</Link>
           <Link className={styles.action} to="/explorar">
-            Explorar
-          </Link>
+            {t("Explorar")}</Link>
         </div>
       </Panel>
 
       <Panel
-        title="Recomendado para ti"
+        title={t("Recomendado para ti")}
         action={
           <Link className={styles.panelLink} to="/recomendaciones">
-            Ver todas
-          </Link>
+            {t("Ver todas")}</Link>
         }
       >
         <Loadable
           state={recommendations}
-          errorTitle="No se pudieron cargar tus recomendaciones"
+          errorTitle={t("No se pudieron cargar tus recomendaciones")}
           skeleton="card"
           skeletonCount={4}
         >
@@ -316,12 +316,11 @@ function TouristDashboard({ user }: { user: TouristUser }) {
             if (items.length === 0) {
               return (
                 <StateMessage
-                  title="Aún no hay sugerencias"
-                  description="Explora el catálogo y vuelve: con tus primeras visitas podremos ordenarlo."
+                  title={t("Aún no hay sugerencias")}
+                  description={t("Explora el catálogo y vuelve: con tus primeras visitas podremos ordenarlo.")}
                   action={
                     <Link className={styles.action} to="/explorar">
-                      Explorar
-                    </Link>
+                      {t("Explorar")}</Link>
                   }
                 />
               )
@@ -353,6 +352,7 @@ function TouristDashboard({ user }: { user: TouristUser }) {
 }
 
 function GuideDashboard({ user }: { user: GuideUser }) {
+  useLanguage()
   const activities = useLoad(`guide-activities:${user.id}`, () =>
     // El backend ya filtra por guía y devuelve también los borradores propios.
     activitiesApi.list({ guideId: user.id, size: MAX_PAGE_SIZE }).then((page) =>
@@ -381,10 +381,10 @@ function GuideDashboard({ user }: { user: GuideUser }) {
 
   return (
     <div className={styles.grid}>
-      <Panel title="Mis actividades">
+      <Panel title={t("Mis actividades")}>
         <Loadable
           state={activities}
-          errorTitle="No se pudieron cargar tus actividades"
+          errorTitle={t("No se pudieron cargar tus actividades")}
           skeleton="table"
           skeletonCount={3}
         >
@@ -392,12 +392,11 @@ function GuideDashboard({ user }: { user: GuideUser }) {
             if (items.length === 0) {
               return (
                 <StateMessage
-                  title="Todavía no tienes actividades"
-                  description="Crea la primera para que los turistas puedan reservarla."
+                  title={t("Todavía no tienes actividades")}
+                  description={t("Crea la primera para que los turistas puedan reservarla.")}
                   action={
                     <Link className={styles.action} to="/app/mis-actividades/nueva">
-                      Nueva actividad
-                    </Link>
+                      {t("Nueva actividad")}</Link>
                   }
                 />
               )
@@ -438,11 +437,9 @@ function GuideDashboard({ user }: { user: GuideUser }) {
 
         <div className={styles.actions}>
           <Link className={styles.action} to="/app/mis-actividades">
-            Mis actividades
-          </Link>
+            {t("Mis actividades")}</Link>
           <Link className={styles.action} to="/app/disponibilidad">
-            Disponibilidad
-          </Link>
+            {t("Disponibilidad")}</Link>
         </div>
       </Panel>
     </div>
@@ -450,6 +447,7 @@ function GuideDashboard({ user }: { user: GuideUser }) {
 }
 
 function ProviderDashboard({ user }: { user: ProviderUser }) {
+  useLanguage()
   const services = useLoad(`provider-services:${user.id}`, () =>
     servicesApi
       .list({ providerId: user.id, size: MAX_PAGE_SIZE })
@@ -458,10 +456,10 @@ function ProviderDashboard({ user }: { user: ProviderUser }) {
 
   return (
     <div className={styles.grid}>
-      <Panel title="Mis servicios">
+      <Panel title={t("Mis servicios")}>
         <Loadable
           state={services}
-          errorTitle="No se pudieron cargar tus servicios"
+          errorTitle={t("No se pudieron cargar tus servicios")}
           skeleton="table"
           skeletonCount={3}
         >
@@ -469,12 +467,11 @@ function ProviderDashboard({ user }: { user: ProviderUser }) {
             if (items.length === 0) {
               return (
                 <StateMessage
-                  title="Todavía no tienes servicios"
-                  description="Publica tu alojamiento, transporte o alimentación."
+                  title={t("Todavía no tienes servicios")}
+                  description={t("Publica tu alojamiento, transporte o alimentación.")}
                   action={
                     <Link className={styles.action} to="/app/mis-servicios/nuevo">
-                      Crear servicio
-                    </Link>
+                      {t("Crear servicio")}</Link>
                   }
                 />
               )
@@ -493,8 +490,7 @@ function ProviderDashboard({ user }: { user: ProviderUser }) {
                       </Link>
                       <p className={styles.itemMeta}>
                         {formatCurrency(service.price)} ·{' '}
-                        {service.maxCapacity} personas
-                      </p>
+                        {service.maxCapacity} {" "}{t("personas")}</p>
                     </div>
                     <StatusBadge tone={CONTENT_STATUS_TONES[service.status]}>
                       {CONTENT_STATUS_LABELS[service.status]}
@@ -508,11 +504,9 @@ function ProviderDashboard({ user }: { user: ProviderUser }) {
 
         <div className={styles.actions}>
           <Link className={styles.action} to="/app/mis-servicios">
-            Mis servicios
-          </Link>
+            {t("Mis servicios")}</Link>
           <Link className={styles.action} to="/app/mis-servicios/nuevo">
-            Crear servicio
-          </Link>
+            {t("Crear servicio")}</Link>
         </div>
       </Panel>
     </div>
@@ -521,6 +515,7 @@ function ProviderDashboard({ user }: { user: ProviderUser }) {
 
 /** Una cifra con su etiqueta: el mismo bloque en todas las tarjetas de conteo. */
 function Stat({ value, label }: { value: string | number; label: string }) {
+  useLanguage()
   return (
     <div className={styles.stat}>
       <p className={styles.statValue}>{value}</p>
@@ -530,6 +525,7 @@ function Stat({ value, label }: { value: string | number; label: string }) {
 }
 
 function ManagerDashboard() {
+  useLanguage()
   const reports = useLoad('manager-reports', async () => {
     const [ongoing, reported] = await Promise.all([
       securityReportsApi.list({ status: 'ONGOING', size: 100 }),
@@ -546,60 +542,57 @@ function ManagerDashboard() {
   return (
     <div className={styles.grid}>
       <Panel
-        title="Reportes de seguridad"
+        title={t("Reportes de seguridad")}
         action={
           <Link className={styles.panelLink} to="/app/reportes">
-            Gestionar
-          </Link>
+            {t("Gestionar")}</Link>
         }
       >
         <Loadable
           state={reports}
-          errorTitle="No se pudieron cargar los reportes"
+          errorTitle={t("No se pudieron cargar los reportes")}
           skeleton="text"
           skeletonCount={2}
         >
           {(data) => (
             <div className={styles.stats}>
-              <Stat label="En curso" value={cursorCount(data.ongoing)} />
-              <Stat label="Reportados" value={cursorCount(data.reported)} />
+              <Stat label={t("En curso")} value={cursorCount(data.ongoing)} />
+              <Stat label={t("Reportados")} value={cursorCount(data.reported)} />
             </div>
           )}
         </Loadable>
       </Panel>
 
       <Panel
-        title="Zonas y atractivos"
+        title={t("Zonas y atractivos")}
         action={
           <Link className={styles.panelLink} to="/app/zonas">
-            Ver zonas
-          </Link>
+            {t("Ver zonas")}</Link>
         }
       >
         <Loadable
           state={catalog}
-          errorTitle="No se pudo cargar el catálogo"
+          errorTitle={t("No se pudo cargar el catálogo")}
           skeleton="text"
           skeletonCount={2}
         >
           {(data) => (
             <div className={styles.stats}>
-              <Stat label="Zonas registradas" value={data.zones} />
-              <Stat label="Atractivos registrados" value={data.sites} />
+              <Stat label={t("Zonas registradas")} value={data.zones} />
+              <Stat label={t("Atractivos registrados")} value={data.sites} />
             </div>
           )}
         </Loadable>
 
         <p className={styles.note}>
-          El catálogo no distingue zonas por gestora: estos son los totales
-          registrados.
-        </p>
+          {t("El catálogo no distingue zonas por gestora: estos son los totales registrados.")}</p>
       </Panel>
     </div>
   )
 }
 
 function AdminDashboard() {
+  useLanguage()
   const pending = useLoad('admin-pending', () =>
     usersApi.list({
       providerStatus: 'PENDIENTE',
@@ -613,33 +606,31 @@ function AdminDashboard() {
   return (
     <div className={styles.grid}>
       <Panel
-        title="Prestadoras pendientes"
+        title={t("Prestadoras pendientes")}
         action={
           <Link className={styles.panelLink} to="/app/usuarios">
-            Panel de usuarios
-          </Link>
+            {t("Panel de usuarios")}</Link>
         }
       >
         <Loadable
           state={pending}
-          errorTitle="No se pudieron cargar las prestadoras pendientes"
+          errorTitle={t("No se pudieron cargar las prestadoras pendientes")}
           skeleton="table"
           skeletonCount={3}
         >
           {(page) => (
             <>
               <div className={styles.stats}>
-                <Stat label="Por aprobar" value={page.totalElements} />
+                <Stat label={t("Por aprobar")} value={page.totalElements} />
               </div>
 
               {page.content.length === 0 ? (
                 <StateMessage
-                  title="No hay prestadoras pendientes"
-                  description="Todas las solicitudes de registro están revisadas."
+                  title={t("No hay prestadoras pendientes")}
+                  description={t("Todas las solicitudes de registro están revisadas.")}
                   action={
                     <Link className={styles.action} to="/app/usuarios">
-                      Ir a usuarios
-                    </Link>
+                      {t("Ir a usuarios")}</Link>
                   }
                 />
               ) : (
@@ -654,10 +645,10 @@ function AdminDashboard() {
                           {user.fullName}
                         </Link>
                         <p className={styles.itemMeta}>
-                          Registro: {formatDate(user.signedUpAt)}
+                          {t("Registro:")}{" "}{formatDate(user.signedUpAt)}
                         </p>
                       </div>
-                      <StatusBadge tone="warning">Pendiente</StatusBadge>
+                      <StatusBadge tone="warning">{t("Pendiente")}</StatusBadge>
                     </li>
                   ))}
                 </ul>
@@ -672,42 +663,40 @@ function AdminDashboard() {
               className={styles.action}
               to={`/app/usuarios/prestadoras/${pending.data.content[0].id}`}
             >
-              Revisar prestadora más antigua
-            </Link>
+              {t("Revisar prestadora más antigua")}</Link>
           </div>
         )}
       </Panel>
 
       <Panel
-        title="Cuentas"
+        title={t("Cuentas")}
         action={
           <Link className={styles.panelLink} to="/app/usuarios">
-            Ver listado
-          </Link>
+            {t("Ver listado")}</Link>
         }
       >
         <Loadable
           state={accounts}
-          errorTitle="No se pudo cargar el total de cuentas"
+          errorTitle={t("No se pudo cargar el total de cuentas")}
           skeleton="text"
           skeletonCount={1}
         >
           {(page) => (
             <div className={styles.stats}>
-              <Stat label="Cuentas registradas" value={page.totalElements} />
+              <Stat label={t("Cuentas registradas")} value={page.totalElements} />
             </div>
           )}
         </Loadable>
 
         <p className={styles.note}>
-          Consulta el desglose por rol con los filtros del panel de usuarios.
-        </p>
+          {t("Consulta el desglose por rol con los filtros del panel de usuarios.")}</p>
       </Panel>
     </div>
   )
 }
 
 export default function DashboardPage() {
+  useLanguage()
   const { user } = useAuth()
 
   if (user === null) {
@@ -717,7 +706,7 @@ export default function DashboardPage() {
   return (
     <section className={styles.page}>
       <header className={styles.header}>
-        <h1 className={styles.title}>Hola, {user.fullName}</h1>
+        <h1 className={styles.title}>{t("Hola,")}{" "}{user.fullName}</h1>
         <p className={styles.subtitle}>{ROLE_SUBTITLES[user.role]}</p>
       </header>
 

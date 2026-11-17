@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { translate as t } from '@/i18n/language'
 import { parseResponse } from './validate'
 
 /**
@@ -65,6 +66,8 @@ export type ImageUploadErrorCode =
 export class ImageUploadError extends Error {
   readonly code: ImageUploadErrorCode
   readonly status: number | undefined
+  /** Archivo original, sin traducir; permite regenerar el mensaje al cambiar de idioma. */
+  readonly fileName: string | undefined
   /** Mensaje técnico de Cloudinary; no se muestra al usuario. */
   readonly detail: string | undefined
 
@@ -73,12 +76,14 @@ export class ImageUploadError extends Error {
     message: string,
     status?: number,
     detail?: string,
+    fileName?: string,
   ) {
     super(message)
     this.name = 'ImageUploadError'
     this.code = code
     this.status = status
     this.detail = detail
+    this.fileName = fileName
   }
 }
 
@@ -116,15 +121,15 @@ export function validateImageFile(file: File): string | null {
   if (!CLOUDINARY_ACCEPTED_TYPES.includes(
     file.type as (typeof CLOUDINARY_ACCEPTED_TYPES)[number],
   )) {
-    return `«${file.name}» no es una imagen compatible. Usa JPG, PNG o WebP.`
+    return t("«{0}» no es una imagen compatible. Usa JPG, PNG o WebP.", [file.name])
   }
 
   if (file.size === 0) {
-    return `«${file.name}» está vacía.`
+    return t("«{0}» está vacía.", [file.name])
   }
 
   if (file.size > CLOUDINARY_MAX_IMAGE_BYTES) {
-    return `«${file.name}» supera el máximo de ${maxMegabytes()} MB.`
+    return t("«{0}» supera el máximo de {1} MB.", [file.name, maxMegabytes()])
   }
 
   return null
@@ -132,22 +137,22 @@ export function validateImageFile(file: File): string | null {
 
 function describeRejection(status: number): string {
   if (status === 400) {
-    return 'Cloudinary rechazó la imagen. Revisa el formato o la configuración del preset de carga.'
+    return t("Cloudinary rechazó la imagen. Revisa el formato o la configuración del preset de carga.")
   }
   if (status === 401 || status === 403) {
-    return 'Cloudinary rechazó la carga. Revisa la configuración del preset.'
+    return t("Cloudinary rechazó la carga. Revisa la configuración del preset.")
   }
   if (status === 413) {
-    return 'La imagen supera el tamaño máximo permitido por Cloudinary.'
+    return t("La imagen supera el tamaño máximo permitido por Cloudinary.")
   }
   if (status === 420 || status === 429) {
-    return 'Se alcanzó el límite de cargas de Cloudinary. Espera un momento e inténtalo de nuevo.'
+    return t("Se alcanzó el límite de cargas de Cloudinary. Espera un momento e inténtalo de nuevo.")
   }
   if (status >= 500) {
-    return 'Cloudinary no está disponible en este momento. Inténtalo de nuevo más tarde.'
+    return t("Cloudinary no está disponible en este momento. Inténtalo de nuevo más tarde.")
   }
 
-  return 'No se pudo subir la imagen a Cloudinary. Inténtalo de nuevo.'
+  return t("No se pudo subir la imagen a Cloudinary. Inténtalo de nuevo.")
 }
 
 /**
@@ -165,7 +170,7 @@ export async function uploadImage(
   if (config === null) {
     throw new ImageUploadError(
       'NOT_CONFIGURED',
-      'La carga de imágenes no está configurada. Define VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET.',
+      t("La carga de imágenes no está configurada. Define VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET."),
     )
   }
 
@@ -178,7 +183,7 @@ export async function uploadImage(
           ? 'TOO_LARGE'
           : 'INVALID_TYPE'
 
-    throw new ImageUploadError(code, validationError)
+    throw new ImageUploadError(code, validationError, undefined, undefined, file.name)
   }
 
   const formData = new FormData()
@@ -222,15 +227,15 @@ export async function uploadImage(
       if (timedOut) {
         throw new ImageUploadError(
           'TIMEOUT',
-          'La carga tardó demasiado. Comprueba tu conexión e inténtalo de nuevo.',
+          t("La carga tardó demasiado. Comprueba tu conexión e inténtalo de nuevo."),
         )
       }
       if (callerSignal?.aborted === true) {
-        throw new ImageUploadError('ABORTED', 'La carga se canceló.')
+        throw new ImageUploadError('ABORTED', t("La carga se canceló."))
       }
       throw new ImageUploadError(
         'NETWORK',
-        'No pudimos conectar con Cloudinary. Revisa tu conexión e inténtalo de nuevo.',
+        t("No pudimos conectar con Cloudinary. Revisa tu conexión e inténtalo de nuevo."),
       )
     }
 
@@ -261,7 +266,7 @@ export async function uploadImage(
     } catch {
       throw new ImageUploadError(
         'INVALID_RESPONSE',
-        'Cloudinary devolvió una respuesta inesperada. Inténtalo de nuevo.',
+        t("Cloudinary devolvió una respuesta inesperada. Inténtalo de nuevo."),
       )
     }
 
@@ -280,8 +285,27 @@ export async function uploadImage(
 /** Mensaje legible para cualquier error de la carga de imágenes. */
 export function describeImageUploadError(error: unknown): string {
   if (error instanceof ImageUploadError) {
-    return error.message
+    switch (error.code) {
+      case 'NOT_CONFIGURED':
+        return t("La carga de imágenes no está configurada. Define VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET.")
+      case 'INVALID_TYPE':
+        return t("«{0}» no es una imagen compatible. Usa JPG, PNG o WebP.", [error.fileName ?? '—'])
+      case 'EMPTY_FILE':
+        return t("«{0}» está vacía.", [error.fileName ?? '—'])
+      case 'TOO_LARGE':
+        return t("«{0}» supera el máximo de {1} MB.", [error.fileName ?? '—', maxMegabytes()])
+      case 'NETWORK':
+        return t("No pudimos conectar con Cloudinary. Revisa tu conexión e inténtalo de nuevo.")
+      case 'TIMEOUT':
+        return t("La carga tardó demasiado. Comprueba tu conexión e inténtalo de nuevo.")
+      case 'ABORTED':
+        return t("La carga se canceló.")
+      case 'REJECTED':
+        return describeRejection(error.status ?? 0)
+      case 'INVALID_RESPONSE':
+        return t("Cloudinary devolvió una respuesta inesperada. Inténtalo de nuevo.")
+    }
   }
 
-  return 'Ocurrió un error inesperado al subir la imagen. Inténtalo de nuevo.'
+  return t("Ocurrió un error inesperado al subir la imagen. Inténtalo de nuevo.")
 }

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -19,12 +22,13 @@ import type { ServiceResponse } from '@/types'
 import styles from './catalog.module.css'
 
 export default function ServiceDetailPage() {
+  useLanguage()
   const { serviceId } = useParams<{ serviceId: string }>()
   useTrackView('SERVICE', serviceId)
 
   const [service, setService] = useState<ServiceResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -46,7 +50,7 @@ export default function ServiceDetailPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -60,7 +64,7 @@ export default function ServiceDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [serviceId, reloadToken])
+  }, [serviceId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -71,7 +75,7 @@ export default function ServiceDetailPage() {
   if (isLoading) {
     return (
       <div className={styles.page}>
-        <Skeleton variant="text" count={6} label="Cargando servicio…" />
+        <Skeleton variant="text" count={6} label={t("Cargando servicio…")} />
       </div>
     )
   }
@@ -80,16 +84,14 @@ export default function ServiceDetailPage() {
     return (
       <div className={styles.page}>
         <Link to="/servicios" className={styles.state}>
-          ← Volver al catálogo
-        </Link>
+          {t("← Volver al catálogo")}</Link>
         <StateMessage
           tone="error"
-          title="No pudimos cargar el servicio"
-          description={error ?? 'No se encontró el servicio.'}
+          title={t("No pudimos cargar el servicio")}
+          description={error ?? t("No se encontró el servicio.")}
           action={
             <Button variant="accent" onClick={retry}>
-              Reintentar
-            </Button>
+              {t("Reintentar")}</Button>
           }
         />
       </div>
@@ -103,8 +105,8 @@ export default function ServiceDetailPage() {
       <PageHeader
         serif
         breadcrumb={[
-          { label: 'Inicio', to: '/explorar' },
-          { label: 'Servicios', to: '/servicios' },
+          { label: t("Inicio"), to: '/explorar' },
+          { label: t("Servicios"), to: '/servicios' },
           { label: service.name },
         ]}
         title={service.name}
@@ -126,16 +128,15 @@ export default function ServiceDetailPage() {
                 alt={service.name}
               />
             ) : (
-              'Sin fotos: la prestadora no cargó imágenes'
+              t("Sin fotos: la prestadora no cargó imágenes")
             )}
           </div>
 
           <section>
-            <h2 className={styles.sectionTitle}>Descripción</h2>
+            <h2 className={styles.sectionTitle}>{t("Descripción")}</h2>
             {service.description === '' ? (
               <p className={styles.paragraphMuted}>
-                La prestadora no escribió una descripción.
-              </p>
+                {t("La prestadora no escribió una descripción.")}</p>
             ) : (
               <p className={styles.paragraph}>{service.description}</p>
             )}
@@ -143,23 +144,22 @@ export default function ServiceDetailPage() {
 
           <div className={styles.tiles}>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Tipo</span>
+              <span className={styles.tileLabel}>{t("Tipo")}</span>
               <span className={styles.tileValue}>
                 {serviceTypeLabel(service.type)}
               </span>
             </div>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Prestadora</span>
+              <span className={styles.tileLabel}>{t("Prestadora")}</span>
               <span className={styles.tileValue}>{service.providerName}</span>
             </div>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Capacidad</span>
+              <span className={styles.tileLabel}>{t("Capacidad")}</span>
               <span className={styles.tileValue}>
-                {service.maxCapacity} personas
-              </span>
+                {service.maxCapacity} {" "}{t("personas")}</span>
             </div>
             <div className={styles.tile}>
-              <span className={styles.tileLabel}>Publicado</span>
+              <span className={styles.tileLabel}>{t("Publicado")}</span>
               <span className={styles.tileValue}>
                 {formatDate(service.createdAt)}
               </span>
@@ -167,7 +167,7 @@ export default function ServiceDetailPage() {
           </div>
 
           <section>
-            <h2 className={styles.sectionTitle}>Ubicación</h2>
+            <h2 className={styles.sectionTitle}>{t("Ubicación")}</h2>
             <MapPreview
               label={service.name}
               latitude={service.latitude}
@@ -178,34 +178,30 @@ export default function ServiceDetailPage() {
 
         <div className={styles.column}>
           <article className={styles.booking}>
-            <p className={styles.bookingLabel}>Desde</p>
+            <p className={styles.bookingLabel}>{t("Desde")}</p>
             <div className={styles.priceRow}>
               <span className={styles.priceBig}>
                 {formatCurrency(service.price)}
               </span>
-              <span className={styles.priceUnit}>COP / persona</span>
+              <span className={styles.priceUnit}>{t("COP / persona")}</span>
             </div>
             <p className={styles.paragraphMuted}>
-              El API de reservas solo acepta actividades y eventos: los servicios
-              se contratan directamente con la prestadora.
-            </p>
+              {t("El API de reservas solo acepta actividades y eventos: los servicios se contratan directamente con la prestadora.")}</p>
           </article>
 
           <article className={styles.booking}>
-            <h2 className={styles.sectionTitle}>Prestadora</h2>
+            <h2 className={styles.sectionTitle}>{t("Prestadora")}</h2>
             <p className={styles.paragraph}>{service.providerName}</p>
             <Link to={`/prestadoras/${service.providerId}`}>
               <Button variant="outline" block>
-                Ver perfil de la prestadora
-              </Button>
+                {t("Ver perfil de la prestadora")}</Button>
             </Link>
           </article>
 
           <article className={styles.booking}>
-            <h2 className={styles.sectionTitle}>Reseñas</h2>
+            <h2 className={styles.sectionTitle}>{t("Reseñas")}</h2>
             <p className={styles.paragraphMuted}>
-              Todavía no hay reseñas de este servicio.
-            </p>
+              {t("Todavía no hay reseñas de este servicio.")}</p>
           </article>
         </div>
       </div>

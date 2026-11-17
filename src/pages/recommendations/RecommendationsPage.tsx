@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
@@ -25,39 +28,39 @@ const TYPE_META: Record<
   RecommendationItemType,
   { label: string; to: string; action: string }
 > = {
-  SITE: { label: 'Atractivo', to: '/atractivos', action: 'Ver atractivos' },
-  ACTIVITY: { label: 'Actividad', to: '/explorar', action: 'Ver actividades' },
-  EVENT: { label: 'Evento', to: '/eventos', action: 'Ver eventos' },
-  SERVICE: { label: 'Servicio', to: '/servicios', action: 'Ver servicios' },
+  SITE: { get label() { return t("Atractivo") }, to: '/atractivos', get action() { return t("Ver atractivos") } },
+  ACTIVITY: { get label() { return t("Actividad") }, to: '/explorar', get action() { return t("Ver actividades") } },
+  EVENT: { get label() { return t("Evento") }, to: '/eventos', get action() { return t("Ver eventos") } },
+  SERVICE: { get label() { return t("Servicio") }, to: '/servicios', get action() { return t("Ver servicios") } },
 }
 
 const SOURCE_LABEL: Record<RecommendationSource, string> = {
-  AFFINITY: 'Afinidad',
-  QUALITY: 'Valoración',
-  NEARBY: 'Cercanía',
-  FALLBACK: 'Catálogo',
-  MIXED: 'Mezcla',
+  get AFFINITY() { return t("Afinidad") },
+  get QUALITY() { return t("Valoración") },
+  get NEARBY() { return t("Cercanía") },
+  get FALLBACK() { return t("Catálogo") },
+  get MIXED() { return t("Mezcla") },
 }
 
 const SOURCE_NOTE: Record<RecommendationSource, string> = {
-  FALLBACK:
-    'Todavía no tenemos suficientes señales tuyas, así que mostramos lo mejor valorado del catálogo. Abre fichas y volveremos a ordenarlas para ti.',
-  AFFINITY: 'Ordenado por afinidad con las categorías que has visitado.',
-  QUALITY: 'Ordenado por la valoración del catálogo.',
-  NEARBY: 'Ordenado por cercanía a la ubicación consultada.',
-  MIXED: 'Mezcla de afinidad, valoración y cercanía.',
+  get FALLBACK() { return t("Todavía no tenemos suficientes señales tuyas, así que mostramos lo mejor valorado del catálogo. Abre fichas y volveremos a ordenarlas para ti.") },
+  get AFFINITY() { return t("Ordenado por afinidad con las categorías que has visitado.") },
+  get QUALITY() { return t("Ordenado por la valoración del catálogo.") },
+  get NEARBY() { return t("Ordenado por cercanía a la ubicación consultada.") },
+  get MIXED() { return t("Mezcla de afinidad, valoración y cercanía.") },
 }
 
 export default function RecommendationsPage() {
+  useLanguage()
   const [data, setData] = useState<RecommendationResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   // Fallo de una recarga o de «ver más» con tarjetas ya en pantalla: no borra la lista.
-  const [inlineError, setInlineError] = useState<string | null>(null)
+  const [inlineError, setInlineError] = useMessageState<string | null>(null)
   // Corte con el que llegó `data`: es el que se puede volver a pedir sin fallar.
   const [loadedLimit, setLoadedLimit] = useState(RECOMMENDATION_INITIAL_LIMIT)
-  const [statusMessage, setStatusMessage] = useState('')
+  const [statusMessage, setStatusMessage] = useMessageState('')
   const [reloadToken, setReloadToken] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState('')
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
@@ -102,13 +105,12 @@ export default function RecommendationsPage() {
 
         // Sin esta traza el mensaje «revisa la consola» apunta a una consola vacía.
         logApiError(cause, 'recomendaciones')
-        const message = describeApiError(cause)
 
         if (dataRef.current === null) {
-          setError(message)
+          setError(() => describeApiError(cause))
         } else {
           // Había tarjetas en pantalla: se quedan y el aviso es inline.
-          setInlineError(message)
+          setInlineError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -122,7 +124,7 @@ export default function RecommendationsPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken])
+  }, [reloadToken, setError, setInlineError])
 
   function retry() {
     // El reintento vuelve al corte inicial: repetir el mismo limit que el backend
@@ -172,7 +174,7 @@ export default function RecommendationsPage() {
       loadedLimitRef.current = nextLimit
       setLoadedLimit(nextLimit)
       setStatusMessage(
-        `${result.items.length} ${result.items.length === 1 ? 'sugerencia' : 'sugerencias'} en pantalla.`,
+        () => t("{0} {1} en pantalla.", [result.items.length, result.items.length === 1 ? t('sugerencia') : t('sugerencias')]),
       )
 
       const stillHasMore =
@@ -188,8 +190,8 @@ export default function RecommendationsPage() {
       }
 
       // La lista que ya estaba en pantalla se queda; solo se avisa y no se sube el corte.
-      logApiError(cause, 'recomendaciones: ver más')
-      setInlineError(describeApiError(cause))
+      logApiError(cause, t("recomendaciones: ver más"))
+      setInlineError(() => describeApiError(cause))
     } finally {
       setIsLoadingMore(false)
     }
@@ -231,25 +233,22 @@ export default function RecommendationsPage() {
     <div className={styles.page}>
       <PageHeader
         serif
-        title="Recomendado para ti"
-        description="Sugerencias del catálogo según lo que has visto y su valoración."
+        title={t("Recomendado para ti")}
+        description={t("Sugerencias del catálogo según lo que has visto y su valoración.")}
       />
 
       <section className={styles.prefs} aria-labelledby="prefs-title">
         <div className={styles.prefsHead}>
           <h2 id="prefs-title" className={styles.prefsTitle}>
-            Tus intereses
-          </h2>
+            {t("Tus intereses")}</h2>
           <p className={styles.prefsHint}>
-            Marca las categorías que te gustan y afinamos las sugerencias. También
-            puedes editarlas desde tu perfil.
-          </p>
+            {t("Marca las categorías que te gustan y afinamos las sugerencias. También puedes editarlas desde tu perfil.")}</p>
         </div>
 
         {preferences.length > 0 && (
           <ul className={styles.prefsList}>
             {preferences.map((preference) => {
-              const name = categoryNames.get(preference.categoryId) ?? 'Categoría'
+              const name = categoryNames.get(preference.categoryId) ?? t("Categoría")
 
               return (
                 <li key={preference.categoryId}>
@@ -258,7 +257,7 @@ export default function RecommendationsPage() {
                     className={styles.prefChip}
                     onClick={() => void removePreference(preference.categoryId)}
                     disabled={savingCategory === preference.categoryId}
-                    aria-label={`Quitar ${name}`}
+                    aria-label={t("Quitar {0}", [name])}
                   >
                     {name}
                     <span aria-hidden="true">×</span>
@@ -273,8 +272,8 @@ export default function RecommendationsPage() {
           <div className={styles.prefsForm}>
             <SelectField
               id="pref-category"
-              label="Añadir categoría"
-              placeholder="Selecciona una categoría…"
+              label={t("Añadir categoría")}
+              placeholder={t("Selecciona una categoría…")}
               options={availableCategories.map((category) => ({
                 value: category.id,
                 label: category.name,
@@ -287,8 +286,7 @@ export default function RecommendationsPage() {
               disabled={selectedCategory === '' || savingCategory !== null}
               onClick={() => void addPreference()}
             >
-              Añadir
-            </Button>
+              {t("Añadir")}</Button>
           </div>
         )}
 
@@ -301,11 +299,10 @@ export default function RecommendationsPage() {
 
       {error !== null && (
         <div className={styles.state} role="alert">
-          <p className={styles.stateTitle}>No pudimos cargar tus recomendaciones</p>
+          <p className={styles.stateTitle}>{t("No pudimos cargar tus recomendaciones")}</p>
           <p>{error}</p>
           <Button variant="accent" onClick={retry}>
-            Reintentar
-          </Button>
+            {t("Reintentar")}</Button>
         </div>
       )}
 
@@ -313,22 +310,20 @@ export default function RecommendationsPage() {
         <div className={styles.inlineError} role="alert">
           <p className={styles.inlineErrorText}>{inlineError}</p>
           <Button variant="outline" size="sm" onClick={retryInline}>
-            Reintentar
-          </Button>
+            {t("Reintentar")}</Button>
         </div>
       )}
 
       {isLoading && (
-        <Skeleton variant="card" count={4} label="Cargando recomendaciones" />
+        <Skeleton variant="card" count={4} label={t("Cargando recomendaciones")} />
       )}
 
       {!isLoading && error === null && data !== null && data.items.length === 0 && (
         <div className={styles.state}>
-          <p className={styles.stateTitle}>Aún no hay recomendaciones</p>
-          <p>Explora el catálogo y vuelve: con tus primeras visitas podremos ordenarlo.</p>
+          <p className={styles.stateTitle}>{t("Aún no hay recomendaciones")}</p>
+          <p>{t("Explora el catálogo y vuelve: con tus primeras visitas podremos ordenarlo.")}</p>
           <Link className={styles.stateLink} to="/explorar">
-            Explorar actividades
-          </Link>
+            {t("Explorar actividades")}</Link>
         </div>
       )}
 
@@ -341,16 +336,15 @@ export default function RecommendationsPage() {
             tabIndex={-1}
             className={styles.resultsTitle}
           >
-            Sugerencias
-          </h2>
+            {t("Sugerencias")}</h2>
 
           <p className={styles.summary}>
             <span className={styles.summarySource}>
-              Fuente: {SOURCE_LABEL[data.source]}
+              {t("Fuente:")}{" "}{SOURCE_LABEL[data.source]}
             </span>
             <span>
               {`${data.items.length} ${
-                data.items.length === 1 ? 'sugerencia' : 'sugerencias'
+                data.items.length === 1 ? t("sugerencia") : t("sugerencias")
               }`}
             </span>
           </p>
@@ -384,29 +378,23 @@ export default function RecommendationsPage() {
                   onClick={() => void loadMore()}
                   aria-busy={isLoadingMore}
                 >
-                  {isLoadingMore ? 'Cargando…' : 'Ver más sugerencias'}
+                  {isLoadingMore ? t("Cargando…") : t("Ver más sugerencias")}
                 </Button>
                 <p className={styles.moreNote}>
-                  El servicio no pagina ni informa un total: «Ver más» vuelve a pedir
-                  el mismo ranking con un corte más amplio, hasta el máximo de{' '}
-                  {RECOMMENDATION_MAX_LIMIT} sugerencias.
-                </p>
+                  {t("El servicio no pagina ni informa un total: «Ver más» vuelve a pedir el mismo ranking con un corte más amplio, hasta el máximo de")}{' '}
+                  {RECOMMENDATION_MAX_LIMIT} {" "}{t("sugerencias.")}</p>
               </>
             )}
 
             {!hasMore && isAtMaxLimit && (
               <p className={styles.moreNote}>
-                Estás viendo el máximo de {RECOMMENDATION_MAX_LIMIT} sugerencias que
-                acepta el servicio. El servicio no informa cuántas más podría haber.
-              </p>
+                {t("Estás viendo el máximo de")}{" "}{RECOMMENDATION_MAX_LIMIT} {" "}{t("sugerencias que acepta el servicio. El servicio no informa cuántas más podría haber.")}</p>
             )}
 
             {!hasMore && !isAtMaxLimit && (
               <p className={styles.moreNote}>
-                El servicio no informa un total. Devolvió {data.items.length} de las{' '}
-                {loadedLimit} pedidas: no quedan más candidatas para tu perfil por
-                ahora.
-              </p>
+                {t("El servicio no informa un total. Devolvió")}{" "}{data.items.length} {" "}{t("de las")}{' '}
+                {loadedLimit} {" "}{t("pedidas: no quedan más candidatas para tu perfil por ahora.")}</p>
             )}
           </div>
         </>

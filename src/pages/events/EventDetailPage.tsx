@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { getLocale, translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
@@ -30,17 +33,17 @@ import type {
 import styles from './events.module.css'
 
 function formatTime(value: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(getLocale(), {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
 }
 
-const PAYMENT_OPTIONS = Object.entries(PAYMENT_METHOD_LABELS).map(
-  ([value, label]) => ({ value, label }),
-)
-
 export default function EventDetailPage() {
+  useLanguage()
+  const paymentOptions = Object.entries(PAYMENT_METHOD_LABELS).map(
+    ([value, label]) => ({ value, label }),
+  )
   const { eventId } = useParams<{ eventId: string }>()
   useTrackView('EVENT', eventId)
   const { user, isAuthenticated } = useAuth()
@@ -56,14 +59,14 @@ export default function EventDetailPage() {
     'missing' | 'unavailable' | null
   >(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
 
   const [people, setPeople] = useState(2)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('CARD')
   const [isBooking, setIsBooking] = useState(false)
-  const [bookingError, setBookingError] = useState<string | null>(null)
+  const [bookingError, setBookingError] = useMessageState<string | null>(null)
   const [confirmation, setConfirmation] = useState<ReservationResponse | null>(
     null,
   )
@@ -111,7 +114,7 @@ export default function EventDetailPage() {
           )
         }
       } catch (cause) {
-        if (!cancelled) setError(describeApiError(cause))
+        if (!cancelled) setError(() => describeApiError(cause))
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -122,7 +125,7 @@ export default function EventDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [eventId, reloadToken])
+  }, [eventId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -133,7 +136,7 @@ export default function EventDetailPage() {
   if (isLoading) {
     return (
       <div className={styles.page}>
-        <Skeleton variant="text" count={6} label="Cargando evento…" />
+        <Skeleton variant="text" count={6} label={t("Cargando evento…")} />
       </div>
     )
   }
@@ -142,16 +145,14 @@ export default function EventDetailPage() {
     return (
       <div className={styles.page}>
         <Link to="/eventos" className={styles.back}>
-          ← Volver a eventos
-        </Link>
+          {t("← Volver a eventos")}</Link>
         <StateMessage
           tone="error"
-          title="No pudimos cargar el evento"
-          description={error ?? 'No se encontró el evento.'}
+          title={t("No pudimos cargar el evento")}
+          description={error ?? t("No se encontró el evento.")}
           action={
             <Button variant="accent" onClick={retry}>
-              Reintentar
-            </Button>
+              {t("Reintentar")}</Button>
           }
         />
       </div>
@@ -165,17 +166,17 @@ export default function EventDetailPage() {
   )
 
   const infoItems: DefItem[] = [
-    { label: 'Fecha', value: formatDateTime(event.startsAt) },
-    { label: 'Finaliza', value: formatDateTime(event.endsAt) },
-    { label: 'Categoría', value: event.category },
-    ...(site !== null ? [{ label: 'Lugar', value: site.name }] : []),
-    ...(zone !== null ? [{ label: 'Zona', value: zone.name }] : []),
-    { label: 'Aforo', value: `${event.maxCapacity} personas` },
+    { label: t("Fecha"), value: formatDateTime(event.startsAt) },
+    { label: t("Finaliza"), value: formatDateTime(event.endsAt) },
+    { label: t("Categoría"), value: event.category },
+    ...(site !== null ? [{ label: t("Lugar"), value: site.name }] : []),
+    ...(zone !== null ? [{ label: t("Zona"), value: zone.name }] : []),
+    { label: t("Aforo"), value: t('{0} personas', [event.maxCapacity]) },
     {
-      label: 'Afluencia esperada',
-      value: `${event.expectedAttendance} personas`,
+      label: t("Afluencia esperada"),
+      value: t('{0} personas', [event.expectedAttendance]),
     },
-    { label: 'Precio', value: event.price === 0 ? 'Gratis' : formatCurrency(event.price) },
+    { label: t("Precio"), value: event.price === 0 ? t('Gratis') : formatCurrency(event.price) },
   ]
 
   function toggleItinerary() {
@@ -192,7 +193,6 @@ export default function EventDetailPage() {
       itemId: event.id,
       type: 'EVENT',
       name: event.name,
-      meta: `Evento · ${formatDate(event.startsAt)}`,
       startsAt: event.startsAt,
       price: event.price,
     })
@@ -219,7 +219,7 @@ export default function EventDetailPage() {
 
       setConfirmation(reservation)
     } catch (cause) {
-      setBookingError(describeApiError(cause))
+      setBookingError(() => describeApiError(cause))
     } finally {
       setIsBooking(false)
     }
@@ -228,14 +228,13 @@ export default function EventDetailPage() {
   return (
     <div className={styles.page}>
       <Link to="/eventos" className={styles.back}>
-        ← Volver a eventos
-      </Link>
+        {t("← Volver a eventos")}</Link>
 
       <PageHeader
         serif
         breadcrumb={[
-          { label: 'Inicio', to: '/explorar' },
-          { label: 'Eventos', to: '/eventos' },
+          { label: t("Inicio"), to: '/explorar' },
+          { label: t("Eventos"), to: '/eventos' },
           { label: event.name },
         ]}
         title={event.name}
@@ -250,30 +249,29 @@ export default function EventDetailPage() {
       <div className={styles.detailLayout}>
         <div className={styles.column}>
           <div className={styles.thumb} style={{ width: '100%', aspectRatio: '16 / 9' }}>
-            Sin fotos disponibles
-          </div>
+            {t("Sin fotos disponibles")}</div>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Descripción</h2>
+            <h2 className={styles.cardTitle}>{t("Descripción")}</h2>
             {event.description !== null && event.description !== '' ? (
               <p className={styles.meta}>{event.description}</p>
             ) : (
-              <p className={styles.meta}>Este evento no tiene descripción.</p>
+              <p className={styles.meta}>{t("Este evento no tiene descripción.")}</p>
             )}
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Información del evento</h2>
+            <h2 className={styles.cardTitle}>{t("Información del evento")}</h2>
             <DefList items={infoItems} />
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Ubicación</h2>
+            <h2 className={styles.cardTitle}>{t("Ubicación")}</h2>
             {site === null ? (
               <p className={styles.meta}>
                 {siteProblem === 'unavailable'
-                  ? 'No pudimos cargar la ubicación del evento. Vuelve a intentarlo en un momento.'
-                  : 'Este evento no tiene un lugar publicado asociado.'}
+                  ? t("No pudimos cargar la ubicación del evento. Vuelve a intentarlo en un momento.")
+                  : t("Este evento no tiene un lugar publicado asociado.")}
               </p>
             ) : (
               <MapPreview
@@ -290,10 +288,10 @@ export default function EventDetailPage() {
             {confirmation !== null ? (
               <>
                 <p className={`${styles.feedback} ${styles.success}`}>
-                  ¡Reserva creada! Estado: {confirmation.status}.
+                  {t("¡Reserva creada! Estado:")}{" "}{confirmation.status}.
                 </p>
                 <div className={styles.line}>
-                  <span>Personas</span>
+                  <span>{t("Personas")}</span>
                   <span>{confirmation.numberOfPeople}</span>
                 </div>
                 <div className={styles.totalLine}>
@@ -302,35 +300,34 @@ export default function EventDetailPage() {
                 </div>
                 <Link to="/mis-reservas">
                   <Button variant="outline" block>
-                    Ir a mis reservas
-                  </Button>
+                    {t("Ir a mis reservas")}</Button>
                 </Link>
               </>
             ) : (
               <>
                 <div>
-                  <span className={styles.fieldLabel}>Precio por persona</span>
+                  <span className={styles.fieldLabel}>{t("Precio por persona")}</span>
                   <p className={styles.priceBig}>
-                    {event.price === 0 ? 'Gratis' : formatCurrency(event.price)}
+                    {event.price === 0 ? t("Gratis") : formatCurrency(event.price)}
                   </p>
                 </div>
 
                 <div>
-                  <span className={styles.fieldLabel}>Fecha y hora</span>
+                  <span className={styles.fieldLabel}>{t("Fecha y hora")}</span>
                   <p className={styles.meta}>
                     {formatDate(event.startsAt)} · {formatTime(event.startsAt)}
                   </p>
                 </div>
 
                 <div>
-                  <span className={styles.fieldLabel}>Personas</span>
+                  <span className={styles.fieldLabel}>{t("Personas")}</span>
                   <div className={styles.stepper}>
                     <button
                       type="button"
                       className={styles.stepperButton}
                       onClick={() => setPeople((current) => current - 1)}
                       disabled={people <= 1}
-                      aria-label="Quitar persona"
+                      aria-label={t("Quitar persona")}
                     >
                       −
                     </button>
@@ -340,7 +337,7 @@ export default function EventDetailPage() {
                       className={styles.stepperButton}
                       onClick={() => setPeople((current) => current + 1)}
                       disabled={people >= event.maxCapacity}
-                      aria-label="Agregar persona"
+                      aria-label={t("Agregar persona")}
                     >
                       +
                     </button>
@@ -348,9 +345,9 @@ export default function EventDetailPage() {
                 </div>
 
                 <SelectField
-                  label="Método de pago"
+                  label={t("Método de pago")}
                   className={styles.control}
-                  options={PAYMENT_OPTIONS}
+                  options={paymentOptions}
                   value={paymentMethod}
                   onChange={(changeEvent) =>
                     setPaymentMethod(changeEvent.target.value as PaymentMethod)
@@ -361,7 +358,7 @@ export default function EventDetailPage() {
                   <div className={styles.line}>
                     <span>
                       {people} ×{' '}
-                      {event.price === 0 ? 'Gratis' : formatCurrency(event.price)}
+                      {event.price === 0 ? t("Gratis") : formatCurrency(event.price)}
                     </span>
                     <span>{formatCurrency(total)}</span>
                   </div>
@@ -388,16 +385,16 @@ export default function EventDetailPage() {
                   onClick={() => void handleBook()}
                 >
                   {isBooking
-                    ? 'Reservando…'
+                    ? t("Reservando…")
                     : isAuthenticated
-                      ? 'Reservar'
-                      : 'Inicia sesión para reservar'}
+                      ? t("Reservar")
+                      : t("Inicia sesión para reservar")}
                 </Button>
 
                 <Button variant="outline" block onClick={toggleItinerary}>
                   {inItinerary
-                    ? 'Quitar del itinerario'
-                    : 'Agregar al itinerario'}
+                    ? t("Quitar del itinerario")
+                    : t("Agregar al itinerario")}
                 </Button>
               </>
             )}

@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { getLocale, translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -23,21 +26,21 @@ import styles from './reservations.module.css'
 const PAGE_SIZE = 12
 
 const FILTERS: Array<{ label: string; statuses?: ReservationStatus[] }> = [
-  { label: 'Todas' },
-  { label: 'Confirmadas', statuses: ['CONFIRMED'] },
-  { label: 'Canceladas', statuses: ['CANCELLED'] },
-  { label: 'No asistió', statuses: ['NO_SHOW'] },
-  { label: 'Asistió', statuses: ['COMPLETED'] },
+  { get label() { return t("Todas") } },
+  { get label() { return t("Confirmadas") }, statuses: ['CONFIRMED'] },
+  { get label() { return t("Canceladas") }, statuses: ['CANCELLED'] },
+  { get label() { return t("No asistió") }, statuses: ['NO_SHOW'] },
+  { get label() { return t("Asistió") }, statuses: ['COMPLETED'] },
 ]
 
 function dateParts(value: string) {
   const date = new Date(value)
   return {
-    day: new Intl.DateTimeFormat('es-CO', { day: 'numeric' }).format(date),
-    month: new Intl.DateTimeFormat('es-CO', { month: 'short' })
+    day: new Intl.DateTimeFormat(getLocale(), { day: 'numeric' }).format(date),
+    month: new Intl.DateTimeFormat(getLocale(), { month: 'short' })
       .format(date)
       .replace('.', ''),
-    time: new Intl.DateTimeFormat('es-CO', {
+    time: new Intl.DateTimeFormat(getLocale(), {
       hour: 'numeric',
       minute: '2-digit',
     }).format(date),
@@ -45,6 +48,7 @@ function dateParts(value: string) {
 }
 
 export default function MyReservationsPage() {
+  useLanguage()
   const { user } = useAuth()
 
   const [reservations, setReservations] = useState<
@@ -52,7 +56,7 @@ export default function MyReservationsPage() {
   >([])
   const [lookup, setLookup] = useState<Map<string, CatalogEntry>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [page, setPage] = useState(1)
   const [reloadToken, setReloadToken] = useState(0)
@@ -86,7 +90,7 @@ export default function MyReservationsPage() {
       } catch (cause) {
         if (!cancelled) {
           setReservations([])
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -100,7 +104,7 @@ export default function MyReservationsPage() {
     return () => {
       cancelled = true
     }
-  }, [touristId, reloadToken])
+  }, [touristId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -127,14 +131,14 @@ export default function MyReservationsPage() {
 
   return (
     <div className={styles.page}>
-      <PageHeader title="Mis reservas" />
+      <PageHeader title={t("Mis reservas")} />
 
       {error !== null && (
         <StateMessage
-          title="No se pudieron cargar tus reservas"
+          title={t("No se pudieron cargar tus reservas")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       )}
 
@@ -156,16 +160,16 @@ export default function MyReservationsPage() {
       )}
 
       {isLoading && (
-        <Skeleton variant="table" count={4} label="Cargando reservas…" />
+        <Skeleton variant="table" count={4} label={t("Cargando reservas…")} />
       )}
 
       {!isLoading && !hasAny && error === null && (
         <StateMessage
-          title="Aún no tienes reservas"
-          description="Explora actividades, servicios y eventos para empezar."
+          title={t("Aún no tienes reservas")}
+          description={t("Explora actividades, servicios y eventos para empezar.")}
           action={
             <Link to="/explorar">
-              <Button variant="outline">Explorar</Button>
+              <Button variant="outline">{t("Explorar")}</Button>
             </Link>
           }
         />
@@ -173,7 +177,7 @@ export default function MyReservationsPage() {
 
       {!isLoading && hasAny && filtered.length === 0 && (
         <StateMessage
-          title="No tienes reservas en este estado."
+          title={t("No tienes reservas en este estado.")}
           action={
             <Button
               variant="outline"
@@ -182,8 +186,7 @@ export default function MyReservationsPage() {
                 setPage(1)
               }}
             >
-              Ver todas
-            </Button>
+              {t("Ver todas")}</Button>
           }
         />
       )}
@@ -205,14 +208,14 @@ export default function MyReservationsPage() {
 
                 <div className={styles.rowBody}>
                   <h2 className={styles.rowTitle}>
-                    {entry?.name ?? 'Ítem reservado'}
+                    {entry?.name ?? t("Ítem reservado")}
                   </h2>
                   <p className={styles.rowMeta}>
                     {itemLabel(type)} · {time} ·{' '}
                     {reservation.numberOfPeople}{' '}
                     {reservation.numberOfPeople === 1
-                      ? 'persona'
-                      : 'personas'}{' '}
+                      ? t("persona")
+                      : t("personas")}{' '}
                     · {formatCurrency(reservation.total)}
                   </p>
                 </div>
@@ -225,8 +228,7 @@ export default function MyReservationsPage() {
                   </StatusBadge>
                   <Link to={`/mis-reservas/${reservation.id}`}>
                     <Button variant="outline" size="sm">
-                      Ver detalle
-                    </Button>
+                      {t("Ver detalle")}</Button>
                   </Link>
                 </div>
               </article>

@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useMessageState } from '@/hooks/useMessageState'
+import { getLocale, translate as t } from '@/i18n/language'
+import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
@@ -21,13 +24,14 @@ import type { ReservationItemResponse, ReservationResponse } from '@/types'
 import styles from './reservations.module.css'
 
 function formatTime(value: string): string {
-  return new Intl.DateTimeFormat('es-CO', {
+  return new Intl.DateTimeFormat(getLocale(), {
     hour: 'numeric',
     minute: '2-digit',
   }).format(new Date(value))
 }
 
 export default function ReservationDetailPage() {
+  useLanguage()
   const { reservationId } = useParams<{ reservationId: string }>()
 
   const [reservation, setReservation] = useState<ReservationResponse | null>(
@@ -37,8 +41,8 @@ export default function ReservationDetailPage() {
   const [lookup, setLookup] = useState<Map<string, CatalogEntry>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [error, setError] = useMessageState<string | null>(null)
+  const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -65,7 +69,7 @@ export default function ReservationDetailPage() {
         setError(null)
       } catch (cause) {
         if (!cancelled) {
-          setError(describeApiError(cause))
+          setError(() => describeApiError(cause))
         }
       } finally {
         if (!cancelled) {
@@ -79,7 +83,7 @@ export default function ReservationDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [reservationId, reloadToken])
+  }, [reservationId, reloadToken, setError])
 
   function retry() {
     setIsLoading(true)
@@ -90,7 +94,7 @@ export default function ReservationDetailPage() {
   if (isLoading) {
     return (
       <div className={styles.page}>
-        <Skeleton variant="text" count={6} label="Cargando reserva…" />
+        <Skeleton variant="text" count={6} label={t("Cargando reserva…")} />
       </div>
     )
   }
@@ -99,13 +103,12 @@ export default function ReservationDetailPage() {
     return (
       <div className={styles.page}>
         <Link to="/mis-reservas" className={styles.back}>
-          ← Volver a mis reservas
-        </Link>
+          {t("← Volver a mis reservas")}</Link>
         <StateMessage
-          title="No se pudo cargar la reserva"
-          description={error ?? 'No se encontró la reserva.'}
+          title={t("No se pudo cargar la reserva")}
+          description={error ?? t("No se encontró la reserva.")}
           tone="error"
-          action={<Button onClick={retry}>Reintentar</Button>}
+          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
         />
       </div>
     )
@@ -119,14 +122,14 @@ export default function ReservationDetailPage() {
 
   const infoItems: DefItem[] = [
     {
-      label: 'Fecha y hora',
+      label: t("Fecha y hora"),
       value: `${formatDate(reservation.bookedFor)} · ${formatTime(reservation.bookedFor)}`,
     },
-    { label: 'Personas', value: String(reservation.numberOfPeople) },
-    { label: 'Método de pago', value: PAYMENT_METHOD_LABELS[reservation.paymentMethod] },
-    { label: 'Punto de encuentro', value: '—' },
-    { label: 'Itinerario', value: '—' },
-    { label: 'Notas', value: reservation.notes ?? 'Sin notas' },
+    { label: t("Personas"), value: String(reservation.numberOfPeople) },
+    { label: t("Método de pago"), value: PAYMENT_METHOD_LABELS[reservation.paymentMethod] },
+    { label: t("Punto de encuentro"), value: '—' },
+    { label: t("Itinerario"), value: '—' },
+    { label: t("Notas"), value: reservation.notes ?? t('Sin notas') },
   ]
 
   async function handleRequestCancellation() {
@@ -137,9 +140,9 @@ export default function ReservationDetailPage() {
     try {
       const updated = await reservationsApi.cancel(reservation!.id)
       setReservation(updated)
-      setFeedback('Reserva cancelada.')
+      setFeedback(() => t("Reserva cancelada."))
     } catch (cause) {
-      setError(describeApiError(cause))
+      setError(() => describeApiError(cause))
     } finally {
       setIsWorking(false)
     }
@@ -148,17 +151,16 @@ export default function ReservationDetailPage() {
   return (
     <div className={styles.page}>
       <Link to="/mis-reservas" className={styles.back}>
-        ← Volver a mis reservas
-      </Link>
+        {t("← Volver a mis reservas")}</Link>
 
       <PageHeader
         breadcrumb={[
-          { label: 'Inicio', to: '/explorar' },
-          { label: 'Mis reservas', to: '/mis-reservas' },
+          { label: t("Inicio"), to: '/explorar' },
+          { label: t("Mis reservas"), to: '/mis-reservas' },
           { label: `#${code}` },
         ]}
-        title={`Reserva ${code}`}
-        description={`Creada el ${formatDate(reservation.bookedAt)}`}
+        title={t("Reserva {0}", [code])}
+        description={t("Creada el {0}", [formatDate(reservation.bookedAt)])}
         actions={
           <StatusBadge tone={RESERVATION_STATUS_TONES[reservation.status]}>
             {RESERVATION_STATUS_LABELS[reservation.status]}
@@ -180,11 +182,10 @@ export default function ReservationDetailPage() {
           <article className={styles.card}>
             <div className={styles.itemRow}>
               <span className={styles.itemThumb} aria-hidden="true">
-                Sin foto
-              </span>
+                {t("Sin foto")}</span>
               <div>
                 <h2 className={styles.itemName}>
-                  {entry?.name ?? 'Ítem reservado'}
+                  {entry?.name ?? t("Ítem reservado")}
                 </h2>
                 <p className={styles.itemMeta}>
                   {itemLabel(entry?.type ?? first?.type ?? 'ACTIVITY')}
@@ -194,18 +195,16 @@ export default function ReservationDetailPage() {
           </article>
 
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Información de la reserva</h2>
+            <h2 className={styles.cardTitle}>{t("Información de la reserva")}</h2>
             <DefList items={infoItems} />
             <p className={styles.notice}>
-              El punto de encuentro y el itinerario se confirman con el guía o
-              la prestadora.
-            </p>
+              {t("El punto de encuentro y el itinerario se confirman con el guía o la prestadora.")}</p>
           </article>
         </div>
 
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>Pago y acciones</h2>
+            <h2 className={styles.cardTitle}>{t("Pago y acciones")}</h2>
 
             <div className={styles.lines}>
               <div className={styles.line}>
@@ -213,7 +212,7 @@ export default function ReservationDetailPage() {
                 <span>{formatCurrency(subtotal)}</span>
               </div>
               <div className={styles.line}>
-                <span>Cargo de servicio</span>
+                <span>{t("Cargo de servicio")}</span>
                 <span>—</span>
               </div>
               <div className={styles.totalLine}>
@@ -224,19 +223,18 @@ export default function ReservationDetailPage() {
 
             <div className={styles.actions}>
               <Button variant="primary" disabled>
-                Modificar reserva
-              </Button>
+                {t("Modificar reserva")}</Button>
               <Button
                 variant="outline"
                 disabled={!canRequestCancellation || isWorking}
                 onClick={() => void handleRequestCancellation()}
               >
-                {isWorking ? 'Enviando…' : 'Cancelar reserva'}
+                {isWorking ? t("Enviando…") : t("Cancelar reserva")}
               </Button>
               <p className={styles.actionsNote}>
                 {canRequestCancellation
-                  ? 'La reserva nace confirmada: solo puedes cancelarla, y el guía o la prestadora ven el cambio en su panel.'
-                  : 'Con el estado actual ya no se puede cancelar.'}
+                  ? t("La reserva nace confirmada: solo puedes cancelarla, y el guía o la prestadora ven el cambio en su panel.")
+                  : t("Con el estado actual ya no se puede cancelar.")}
               </p>
             </div>
           </article>
