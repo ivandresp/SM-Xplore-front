@@ -240,3 +240,36 @@
   color: var(--color-danger-text);
   font-size: var(--text-note);
 }
+
+.prefAddIcon {
+  display: none;
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+@media (max-width: 767px) {
+  .prefsForm {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+  }
+
+  .prefsForm > :first-child {
+    min-width: 0;
+  }
+
+  .prefAddButton.prefAddButton {
+    width: var(--control-h-md);
+    min-width: var(--control-h-md);
+    height: var(--control-h-md);
+    padding: 0;
+  }
+
+  .prefAddText {
+    display: none;
+  }
+
+  .prefAddIcon {
+    display: block;
+  }
+}

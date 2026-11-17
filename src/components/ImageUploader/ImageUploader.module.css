@@ -142,16 +142,15 @@
   top: 0.25rem;
   right: 0.25rem;
   display: grid;
-  place-items: center;
+  place-items: start end;
   /* Objetivo táctil de 44x44 CSS px (WCAG 2.5.5 / HIG). */
   width: 2.75rem;
   height: var(--control-h-md);
   padding: 0;
-  border: 1px solid var(--color-on-action);
+  border: 0;
   border-radius: var(--radius-pill);
-  background-color: var(--color-ink);
+  background: transparent;
   color: var(--color-on-action);
-  font-size: var(--text-lead);
   line-height: 1;
   cursor: pointer;
   transition:
@@ -159,7 +158,20 @@
     transform 0.15s ease;
 }
 
-.remove:hover:not(:disabled) {
+.removeIcon {
+  display: grid;
+  place-items: center;
+  width: 60%;
+  height: 60%;
+  box-sizing: border-box;
+  border: 1px solid var(--color-on-action);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-ink);
+  font-size: calc(var(--text-lead) * 0.6);
+  pointer-events: none;
+}
+
+.remove:hover:not(:disabled) .removeIcon {
   background-color: var(--color-danger-border);
 }
 

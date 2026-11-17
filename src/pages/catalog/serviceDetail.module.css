@@ -1,0 +1,125 @@
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'hero' 'details' 'location' 'contact' 'reviews';
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.hero {
+  grid-area: hero;
+  min-width: 0;
+  align-self: stretch;
+}
+
+.details {
+  grid-area: details;
+  min-width: 0;
+}
+
+.rail {
+  display: contents;
+}
+
+.location {
+  grid-area: location;
+  min-width: 0;
+}
+
+.contact {
+  grid-area: contact;
+  min-width: 0;
+  align-content: start;
+}
+
+.reviews {
+  grid-area: reviews;
+  min-width: 0;
+}
+
+.contactLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-h-md);
+  padding: 0.65rem var(--space-4);
+  border: 1px solid var(--color-field-border);
+  border-radius: var(--radius-data);
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+
+.contactLink:hover {
+  background: var(--color-surface-alt);
+}
+
+.contactLink:active {
+  background: var(--color-surface);
+  border-color: var(--color-text);
+}
+
+.contactLink:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  .layout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: 'hero hero' 'details details' 'contact location' 'reviews reviews';
+  }
+
+  .location {
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+  }
+
+  .contact {
+    align-self: stretch;
+  }
+
+  .mapSlot {
+    position: relative;
+    flex: 1;
+    min-height: 15rem;
+  }
+
+  .mapContent {
+    position: absolute;
+    inset: 0;
+  }
+}
+
+@media (min-width: 1000px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
+    grid-template-areas: 'hero rail' 'details reviews';
+  }
+
+  .rail {
+    grid-area: rail;
+    display: flex;
+    flex-direction: column;
+    align-self: stretch;
+    min-width: 0;
+    gap: 1.25rem;
+  }
+
+  .contact {
+    order: -1;
+    flex: none;
+  }
+
+  .location {
+    flex: 1;
+  }
+
+  .mapSlot {
+    min-height: 8rem;
+  }
+}

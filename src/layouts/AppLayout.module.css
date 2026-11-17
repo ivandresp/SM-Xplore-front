@@ -108,36 +108,21 @@
   white-space: nowrap;
 }
 
-.logout {
-  height: var(--control-h-sm);
-  padding: 0 0.85rem;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: var(--radius-control);
-  background-color: transparent;
-  color: var(--color-on-bar);
-  font-family: var(--font-heading);
-  font-size: var(--text-small);
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.logout:hover {
-  background-color: rgba(255, 255, 255, 0.12);
-}
-
-.logout:active {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.logout:focus-visible {
-  outline: 2px solid var(--color-on-bar-muted);
-  outline-offset: 2px;
-}
-
 /* Objetivo táctil de 44 px para las acciones de la barra en móvil. */
+.providerShort {
+  display: none;
+}
+
 @media (max-width: 899px) {
-  .role,
-  .logout {
+  .providerFull {
+    display: none;
+  }
+
+  .providerShort {
+    display: inline;
+  }
+
+  .role {
     display: inline-flex;
     align-items: center;
     min-height: var(--control-h-md);

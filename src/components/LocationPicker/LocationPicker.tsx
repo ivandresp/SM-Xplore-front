@@ -19,6 +19,8 @@ export interface LocationPickerProps {
   onChange: (point: MapPoint | null) => void
   disabled?: boolean
   defaultCenter?: MapPoint
+  label?: string
+  error?: string
 }
 
 const SANTA_MARTA: MapPoint = { latitude: 11.2404, longitude: -74.199 }
@@ -51,6 +53,8 @@ export function LocationPicker({
   onChange,
   disabled = false,
   defaultCenter,
+  label = t('Ubicación del sitio'),
+  error,
 }: LocationPickerProps) {
   useLanguage()
   const [camera, setCamera] = useState<MapPoint>(() =>
@@ -65,6 +69,7 @@ export function LocationPicker({
   const gestureRef = useRef<Gesture | null>(null)
   const suppressClickRef = useRef(false)
   const helpId = useId()
+  const errorId = useId()
   const selected = validPoint(value)
   const canSelect = !disabled && loadState === 'ready'
 
@@ -206,8 +211,8 @@ export function LocationPicker({
   }
 
   return (
-    <div className={styles.picker} role="group" aria-label={t('Ubicación del sitio')}>
-      <p className={styles.label}>{t('Ubicación del sitio')}</p>
+    <div className={styles.picker} role="group" aria-label={label}>
+      <p className={styles.label}>{label}</p>
       <p id={helpId} className={styles.help}>
         {t('Haz clic o toca para elegir un punto. Arrastra o usa las flechas para mover el mapa; Enter o Espacio eligen el centro.')}
       </p>
@@ -216,7 +221,7 @@ export function LocationPicker({
           key={attempt}
           latitude={camera.latitude}
           longitude={camera.longitude}
-          label={t('Ubicación del sitio')}
+          label={label}
           zoom={zoom}
           size={size}
           zoomControls={false}
@@ -231,7 +236,8 @@ export function LocationPicker({
           disabled={disabled}
           aria-disabled={!canSelect}
           aria-label={t('Elegir punto en el mapa')}
-          aria-describedby={helpId}
+          aria-describedby={error === undefined ? helpId : `${helpId} ${errorId}`}
+          aria-invalid={error === undefined ? undefined : true}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
@@ -271,6 +277,7 @@ export function LocationPicker({
               ? t('Todavía no has elegido una ubicación.')
               : t('Punto seleccionado: {0}, {1}', [selected.latitude.toFixed(6), selected.longitude.toFixed(6)])}
       </p>
+      {error !== undefined && <p id={errorId} className={styles.error} aria-live="polite">{error}</p>}
       <div className={styles.actions}>
         {loadState === 'error' && (
           <button type="button" className={styles.action} onClick={retry} disabled={disabled}>

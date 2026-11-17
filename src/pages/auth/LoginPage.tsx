@@ -6,6 +6,7 @@ import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
+import { TOURIST_HOME } from '@/config/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { useFormValidation } from '@/hooks/useFormValidation'
 import { authApi } from '@/services/authApi'
@@ -105,9 +106,9 @@ export default function LoginPage() {
   })
 
   function enter(user: AuthUser) {
-    // El turista vive en el catálogo público; los demás roles, en el panel.
+    // El turista entra a Para ti; los demás roles, en el panel.
     navigate(
-      state?.from?.pathname ?? (user.role === 'TOURIST' ? '/explorar' : '/app'),
+      state?.from?.pathname ?? (user.role === 'TOURIST' ? TOURIST_HOME : '/app'),
       { replace: true },
     )
   }

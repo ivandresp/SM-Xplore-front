@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Skeleton } from '@/components/Skeleton'
+import { LogoutButton } from '@/components/LogoutButton'
 import { TopBar } from '@/components/TopBar'
 import { navItemsFor } from '@/config/navigation'
 import { ACCOUNT_STATUS_LABELS, ROLE_LABELS } from '@/config/roles'
@@ -42,13 +43,15 @@ export function AppLayout() {
         menuLinks={sections}
         right={
           <>
-            <span className={styles.role}>{ROLE_LABELS[user.role]}</span>
-            <button
-              type="button"
-              className={styles.logout}
-              onClick={logout}
-            >
-              {t("Salir")}</button>
+            <span className={styles.role}>
+              {user.role === 'SERVICE_PROVIDER' ? (
+                <>
+                  <span className={styles.providerFull}>{ROLE_LABELS[user.role]}</span>
+                  <span className={styles.providerShort}>{t("Prestadora")}</span>
+                </>
+              ) : ROLE_LABELS[user.role]}
+            </span>
+            <LogoutButton onClick={logout} tone="dark" />
           </>
         }
       />

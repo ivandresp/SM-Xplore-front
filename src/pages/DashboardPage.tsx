@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
@@ -13,12 +13,10 @@ import {
   ACTIVITY_STATUS_TONES,
   CONTENT_STATUS_LABELS,
   CONTENT_STATUS_TONES,
-  RESERVATION_STATUS_LABELS,
-  RESERVATION_STATUS_TONES,
 } from '@/config/roles'
+import { TOURIST_HOME } from '@/config/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import { activitiesApi } from '@/services/activitiesApi'
-import { recommendationsApi } from '@/services/recommendationsApi'
 import { reservationsApi } from '@/services/reservationsApi'
 import { securityReportsApi } from '@/services/securityReportsApi'
 import { servicesApi } from '@/services/servicesApi'
@@ -26,12 +24,10 @@ import { sitesApi } from '@/services/sitesApi'
 import { usersApi } from '@/services/usersApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
-import { formatCurrency, formatDate, formatDateTime } from '@/utils/format'
+import { formatCurrency, formatDate } from '@/utils/format'
 import { MAX_PAGE_SIZE } from '@/types/common'
 import type {
   AuthUser,
-  RecommendationItemType,
-  ReservationItemType,
   ReservationSummaryResponse,
   UserRole,
 } from '@/types'
@@ -46,21 +42,6 @@ const ROLE_SUBTITLES: Record<UserRole, string> = {
   get SERVICE_PROVIDER() { return t("Tus servicios publicados y su estado.") },
   get DESTINATION_MANAGER() { return t("Reportes de seguridad abiertos y el catálogo de zonas y atractivos.") },
   get ADMIN() { return t("Prestadoras pendientes de aprobación y el estado de las cuentas.") },
-}
-
-const RESERVATION_ITEM_LABELS: Record<ReservationItemType, string> = {
-  get ACTIVITY() { return t("Actividad") },
-  get EVENT() { return t("Evento") },
-}
-
-const RECOMMENDATION_LINKS: Record<
-  RecommendationItemType,
-  { label: string; to: string; action: string }
-> = {
-  SITE: { get label() { return t("Atractivo") }, to: '/atractivos', get action() { return t("Ver atractivos") } },
-  ACTIVITY: { get label() { return t("Actividad") }, to: '/explorar', get action() { return t("Ver actividades") } },
-  EVENT: { get label() { return t("Evento") }, to: '/eventos', get action() { return t("Ver eventos") } },
-  SERVICE: { get label() { return t("Servicio") }, to: '/servicios', get action() { return t("Ver servicios") } },
 }
 
 interface LoadState<T> {
@@ -210,146 +191,8 @@ function receivedReservationsLabel(
   return `${total} ${total === 1 ? t("reserva") : t("reservas")}`
 }
 
-type TouristUser = Extract<AuthUser, { role: 'TOURIST' }>
 type GuideUser = Extract<AuthUser, { role: 'GUIDE' }>
 type ProviderUser = Extract<AuthUser, { role: 'SERVICE_PROVIDER' }>
-
-function TouristDashboard({ user }: { user: TouristUser }) {
-  useLanguage()
-  const reservations = useLoad('tourist-reservations', () =>
-    reservationsApi.listByTourist(user.id, 50),
-  )
-  const recommendations = useLoad('tourist-recommendations', () =>
-    recommendationsApi.list({ limit: 4 }),
-  )
-
-  return (
-    <div className={styles.grid}>
-      <Panel title={t("Próximas reservas")}>
-        <Loadable
-          state={reservations}
-          errorTitle={t("No se pudieron cargar tus reservas")}
-          skeleton="table"
-          skeletonCount={3}
-        >
-          {(items) => {
-            const upcoming = items
-              .filter(
-                (reservation) =>
-                  reservation.status === 'CONFIRMED' &&
-                  new Date(reservation.itemStartsAt).getTime() >= Date.now(),
-              )
-              .sort(
-                (a, b) =>
-                  new Date(a.itemStartsAt).getTime() -
-                  new Date(b.itemStartsAt).getTime(),
-              )
-              .slice(0, 4)
-
-            if (upcoming.length === 0) {
-              return (
-                <StateMessage
-                  title={t("Sin reservas próximas")}
-                  description={t("Cuando reserves una actividad o un evento aparecerá aquí.")}
-                  action={
-                    <Link className={styles.action} to="/explorar">
-                      {t("Explorar actividades")}</Link>
-                  }
-                />
-              )
-            }
-
-            return (
-              <ul className={styles.list}>
-                {upcoming.map((reservation) => (
-                  <li key={reservation.id} className={styles.item}>
-                    <div className={styles.itemMain}>
-                      <Link
-                        className={styles.itemLink}
-                        to={`/mis-reservas/${reservation.id}`}
-                      >
-                        {reservation.code} ·{' '}
-                        {RESERVATION_ITEM_LABELS[reservation.itemType]}
-                      </Link>
-                      <p className={styles.itemMeta}>
-                        {formatDateTime(reservation.itemStartsAt)} ·{' '}
-                        {reservation.numberOfPeople}{' '}
-                        {reservation.numberOfPeople === 1 ? t("persona") : t("personas")}
-                      </p>
-                    </div>
-                    <StatusBadge
-                      tone={RESERVATION_STATUS_TONES[reservation.status]}
-                    >
-                      {RESERVATION_STATUS_LABELS[reservation.status]}
-                    </StatusBadge>
-                  </li>
-                ))}
-              </ul>
-            )
-          }}
-        </Loadable>
-
-        <div className={styles.actions}>
-          <Link className={styles.action} to="/mis-reservas">
-            {t("Ver todas mis reservas")}</Link>
-          <Link className={styles.action} to="/explorar">
-            {t("Explorar")}</Link>
-        </div>
-      </Panel>
-
-      <Panel
-        title={t("Recomendado para ti")}
-        action={
-          <Link className={styles.panelLink} to="/recomendaciones">
-            {t("Ver todas")}</Link>
-        }
-      >
-        <Loadable
-          state={recommendations}
-          errorTitle={t("No se pudieron cargar tus recomendaciones")}
-          skeleton="card"
-          skeletonCount={4}
-        >
-          {(data) => {
-            const items = data.items.slice(0, 4)
-
-            if (items.length === 0) {
-              return (
-                <StateMessage
-                  title={t("Aún no hay sugerencias")}
-                  description={t("Explora el catálogo y vuelve: con tus primeras visitas podremos ordenarlo.")}
-                  action={
-                    <Link className={styles.action} to="/explorar">
-                      {t("Explorar")}</Link>
-                  }
-                />
-              )
-            }
-
-            return (
-              <ul className={styles.recList}>
-                {items.map((item) => {
-                  const meta = RECOMMENDATION_LINKS[item.itemType]
-
-                  return (
-                    <li key={`${item.itemType}-${item.itemId}`} className={styles.rec}>
-                      <p className={styles.recKind}>{meta.label}</p>
-                      <p className={styles.recName}>{item.name}</p>
-                      <p className={styles.itemMeta}>{item.reason}</p>
-                      <Link className={styles.itemLink} to={meta.to}>
-                        {meta.action}
-                      </Link>
-                    </li>
-                  )
-                })}
-              </ul>
-            )
-          }}
-        </Loadable>
-      </Panel>
-    </div>
-  )
-}
 
 function GuideDashboard({ user }: { user: GuideUser }) {
   useLanguage()
@@ -703,6 +546,8 @@ export default function DashboardPage() {
     return null
   }
 
+  if (user.role === 'TOURIST') return <Navigate to={TOURIST_HOME} replace />
+
   return (
     <section className={styles.page}>
       <header className={styles.header}>
@@ -710,7 +555,6 @@ export default function DashboardPage() {
         <p className={styles.subtitle}>{ROLE_SUBTITLES[user.role]}</p>
       </header>
 
-      {user.role === 'TOURIST' && <TouristDashboard user={user} />}
       {user.role === 'GUIDE' && <GuideDashboard user={user} />}
       {user.role === 'SERVICE_PROVIDER' && <ProviderDashboard user={user} />}
       {user.role === 'DESTINATION_MANAGER' && <ManagerDashboard />}

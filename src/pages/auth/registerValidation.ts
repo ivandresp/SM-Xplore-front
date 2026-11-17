@@ -66,10 +66,10 @@ export const FIELD_ORDER: readonly RegisterFieldKey[] = [
   'birthDate',
   'nit',
   'businessType',
+  'startOperationDate',
   'latitude',
   'longitude',
   'websiteUrl',
-  'startOperationDate',
 ]
 
 const FIELD_LABELS: Record<RegisterFieldKey, string> = {

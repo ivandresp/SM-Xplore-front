@@ -6,6 +6,7 @@ import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field, SelectField } from '@/components/FormField'
+import { LocationPicker } from '@/components/LocationPicker'
 import { useAuth } from '@/hooks/useAuth'
 import { isApiError } from '@/services/httpClient'
 import type {
@@ -63,6 +64,12 @@ const DNI_TYPE_OPTIONS = [
   { value: 'CE', get label() { return t("Cédula de extranjería") } },
   { value: 'PA', get label() { return t("Pasaporte") } },
   { value: 'NIT', label: 'NIT' },
+]
+
+const BUSINESS_TYPE_OPTIONS = [
+  { value: 'Alojamiento', get label() { return t('Alojamiento') } },
+  { value: 'Transporte', get label() { return t('Transporte') } },
+  { value: 'Alimentacion', get label() { return t('Alimentacion') } },
 ]
 
 const LANGUAGE_OPTIONS = [
@@ -216,6 +223,10 @@ export default function RegisterPage({
 
   useEffect(() => {
     if (focusRequest === null) {
+      return
+    }
+    if (focusRequest.key === 'latitude' || focusRequest.key === 'longitude') {
+      formRef.current?.querySelector<HTMLElement>('[data-provider-location] button')?.focus()
       return
     }
     const field = formRef.current?.querySelector<HTMLElement>(
@@ -583,33 +594,39 @@ export default function RegisterPage({
               onChange={(event) => update('nit', event.target.value)}
               onBlur={() => markTouched('nit')}
             />
-            <Field
-              label={t("Tipo de negocio")}
-              name="businessType"
-              hint={t("Alojamiento, transporte, alimentación…")}
-              value={values.businessType}
-              error={errorFor('businessType')}
-              onChange={(event) => update('businessType', event.target.value)}
-              onBlur={() => markTouched('businessType')}
-            />
             <div className={styles.grid}>
-              <Field
-                label={t("Latitud")}
-                name="latitude"
-                inputMode="decimal"
-                value={values.latitude}
-                error={errorFor('latitude')}
-                onChange={(event) => update('latitude', event.target.value)}
-                onBlur={() => markTouched('latitude')}
+              <SelectField
+                label={t("Tipo de negocio")}
+                name="businessType"
+                placeholder={t("Sin especificar")}
+                options={BUSINESS_TYPE_OPTIONS}
+                value={values.businessType}
+                error={errorFor('businessType')}
+                onChange={(event) => update('businessType', event.target.value)}
+                onBlur={() => markTouched('businessType')}
               />
               <Field
-                label={t("Longitud")}
-                name="longitude"
-                inputMode="decimal"
-                value={values.longitude}
-                error={errorFor('longitude')}
-                onChange={(event) => update('longitude', event.target.value)}
-                onBlur={() => markTouched('longitude')}
+                label={t("Fecha de inicio de operación")}
+                type="date"
+                name="startOperationDate"
+                value={values.startOperationDate}
+                error={errorFor('startOperationDate')}
+                onChange={(event) => update('startOperationDate', event.target.value)}
+                onBlur={() => markTouched('startOperationDate')}
+              />
+            </div>
+            <div data-provider-location>
+              <LocationPicker
+                label={t("Ubicación del negocio")}
+                value={values.latitude !== '' && values.longitude !== ''
+                  ? { latitude: Number(values.latitude), longitude: Number(values.longitude) }
+                  : null}
+                onChange={(point) => {
+                  update('latitude', point === null ? '' : String(point.latitude))
+                  update('longitude', point === null ? '' : String(point.longitude))
+                }}
+                disabled={isSubmitting}
+                error={errorFor('latitude') ?? errorFor('longitude')}
               />
             </div>
             <Field
@@ -620,17 +637,6 @@ export default function RegisterPage({
               error={errorFor('websiteUrl')}
               onChange={(event) => update('websiteUrl', event.target.value)}
               onBlur={() => markTouched('websiteUrl')}
-            />
-            <Field
-              label={t("Fecha de inicio de operación")}
-              type="date"
-              name="startOperationDate"
-              value={values.startOperationDate}
-              error={errorFor('startOperationDate')}
-              onChange={(event) =>
-                update('startOperationDate', event.target.value)
-              }
-              onBlur={() => markTouched('startOperationDate')}
             />
           </>
         )}

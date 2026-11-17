@@ -5,10 +5,8 @@ import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
-import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
-import { usePreferences } from '@/pages/profile/usePreferences'
 import { recommendationsApi } from '@/services/recommendationsApi'
 import { describeApiError, logApiError } from '@/utils/errors'
 // `@/types` solo reexporta tipos (`export type *`): las constantes van por su módulo.
@@ -62,24 +60,13 @@ export default function RecommendationsPage() {
   const [loadedLimit, setLoadedLimit] = useState(RECOMMENDATION_INITIAL_LIMIT)
   const [statusMessage, setStatusMessage] = useMessageState('')
   const [reloadToken, setReloadToken] = useState(0)
-  const [selectedCategory, setSelectedCategory] = useState('')
   const resultsHeadingRef = useRef<HTMLHeadingElement>(null)
-  // El corte vigente se lee por ref: una recarga por preferencia lo conserva y, al no
-  // estar en las deps del efecto, no dispara un segundo fetch.
+  // El corte vigente se conserva en los reintentos sin provocar otra carga al cambiarlo.
   const loadedLimitRef = useRef(RECOMMENDATION_INITIAL_LIMIT)
   const dataRef = useRef<RecommendationResponse | null>(null)
   // Solo la última petición escribe en pantalla: una respuesta vieja de «ver más» no
   // puede pisar la recarga que la sustituyó.
   const requestSeqRef = useRef(0)
-
-  const {
-    preferences,
-    categories,
-    error: preferencesError,
-    savingCategory,
-    add,
-    remove,
-  } = usePreferences({ enabled: true })
 
   useEffect(() => {
     let cancelled = false
@@ -197,32 +184,6 @@ export default function RecommendationsPage() {
     }
   }
 
-  async function addPreference() {
-    if (selectedCategory === '') {
-      return
-    }
-
-    if (await add(selectedCategory)) {
-      // Sin limpiar el select, «Añadir» quedaba habilitado con una opción ya inexistente.
-      setSelectedCategory('')
-      setReloadToken((current) => current + 1)
-    }
-  }
-
-  async function removePreference(categoryId: string) {
-    if (await remove(categoryId)) {
-      setReloadToken((current) => current + 1)
-    }
-  }
-
-  const categoryNames = new Map(
-    categories.map((category) => [category.id, category.name]),
-  )
-  const availableCategories = categories.filter(
-    (category) =>
-      !preferences.some((preference) => preference.categoryId === category.id),
-  )
-
   const hasMore =
     data !== null &&
     data.items.length >= loadedLimit &&
@@ -236,66 +197,6 @@ export default function RecommendationsPage() {
         title={t("Recomendado para ti")}
         description={t("Sugerencias del catálogo según lo que has visto y su valoración.")}
       />
-
-      <section className={styles.prefs} aria-labelledby="prefs-title">
-        <div className={styles.prefsHead}>
-          <h2 id="prefs-title" className={styles.prefsTitle}>
-            {t("Tus intereses")}</h2>
-          <p className={styles.prefsHint}>
-            {t("Marca las categorías que te gustan y afinamos las sugerencias. También puedes editarlas desde tu perfil.")}</p>
-        </div>
-
-        {preferences.length > 0 && (
-          <ul className={styles.prefsList}>
-            {preferences.map((preference) => {
-              const name = categoryNames.get(preference.categoryId) ?? t("Categoría")
-
-              return (
-                <li key={preference.categoryId}>
-                  <button
-                    type="button"
-                    className={styles.prefChip}
-                    onClick={() => void removePreference(preference.categoryId)}
-                    disabled={savingCategory === preference.categoryId}
-                    aria-label={t("Quitar {0}", [name])}
-                  >
-                    {name}
-                    <span aria-hidden="true">×</span>
-                  </button>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-
-        {availableCategories.length > 0 && (
-          <div className={styles.prefsForm}>
-            <SelectField
-              id="pref-category"
-              label={t("Añadir categoría")}
-              placeholder={t("Selecciona una categoría…")}
-              options={availableCategories.map((category) => ({
-                value: category.id,
-                label: category.name,
-              }))}
-              value={selectedCategory}
-              onChange={(event) => setSelectedCategory(event.target.value)}
-            />
-            <Button
-              size="sm"
-              disabled={selectedCategory === '' || savingCategory !== null}
-              onClick={() => void addPreference()}
-            >
-              {t("Añadir")}</Button>
-          </div>
-        )}
-
-        {preferencesError !== null && (
-          <p className={styles.prefsError} role="alert">
-            {preferencesError}
-          </p>
-        )}
-      </section>
 
       {error !== null && (
         <div className={styles.state} role="alert">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
@@ -20,6 +20,55 @@ import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
 import type { ServiceResponse } from '@/types'
 import styles from './catalog.module.css'
+import serviceStyles from './serviceDetail.module.css'
+
+/** Ajusta el viewport sin deformar los tiles y reserva espacio para atribución. */
+function ServiceLocationMap({ service }: { service: ServiceResponse }) {
+  const { language } = useLanguage()
+  const container = useRef<HTMLDivElement>(null)
+  const [dimensions, setDimensions] = useState({ width: 256, height: 256 })
+
+  useEffect(() => {
+    const element = container.current
+    if (element === null) return
+    const media = window.matchMedia?.('(min-width: 768px)')
+    const measure = () => {
+      const attribution = element.querySelector('a[href="https://www.openstreetmap.org/copyright"]')?.parentElement
+      const attributionWrapper = attribution?.parentElement
+      let width = 256
+      let height = 256
+      if (media?.matches ?? window.innerWidth >= 768) {
+        const bounds = element.getBoundingClientRect()
+        if (bounds.width <= 0 || bounds.height <= 0) return
+        const gap = attributionWrapper
+          ? Number.parseFloat(getComputedStyle(attributionWrapper).rowGap) || 8 : 8
+        width = Math.max(1, Math.min(1024, Math.floor(bounds.width)))
+        height = Math.max(1, Math.min(1024, Math.floor(bounds.height - (attribution?.getBoundingClientRect().height ?? 0) - gap)))
+      }
+      setDimensions((previous) => previous.width === width && previous.height === height ? previous : { width, height })
+    }
+    measure()
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure)
+    observer?.observe(element)
+    const attribution = element.querySelector('a[href="https://www.openstreetmap.org/copyright"]')?.parentElement
+    if (attribution !== undefined && attribution !== null) observer?.observe(attribution)
+    window.addEventListener('resize', measure)
+    media?.addEventListener('change', measure)
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('resize', measure)
+      media?.removeEventListener('change', measure)
+    }
+  }, [language, dimensions.width, dimensions.height])
+
+  return (
+    <div ref={container} className={serviceStyles.mapSlot}>
+      <div className={serviceStyles.mapContent}>
+        <MapPreview label={service.name} latitude={service.latitude} longitude={service.longitude} width={dimensions.width} height={dimensions.height} />
+      </div>
+    </div>
+  )
+}
 
 export default function ServiceDetailPage() {
   useLanguage()
@@ -110,7 +159,6 @@ export default function ServiceDetailPage() {
           { label: service.name },
         ]}
         title={service.name}
-        description={`${serviceTypeLabel(service.type)} · ${service.providerName}`}
         actions={
           <StatusBadge tone={CONTENT_STATUS_TONES[service.status]}>
             {CONTENT_STATUS_LABELS[service.status]}
@@ -118,20 +166,20 @@ export default function ServiceDetailPage() {
         }
       />
 
-      <div className={styles.detailLayout}>
-        <div className={styles.column}>
-          <div className={styles.hero}>
-            {heroPhoto !== undefined ? (
-              <img
-                className={styles.photo}
-                src={heroPhoto}
-                alt={service.name}
-              />
-            ) : (
-              t("Sin fotos: la prestadora no cargó imágenes")
-            )}
-          </div>
+      <div className={serviceStyles.layout}>
+        <div className={`${styles.hero} ${serviceStyles.hero}`}>
+          {heroPhoto !== undefined ? (
+            <img
+              className={styles.photo}
+              src={heroPhoto}
+              alt={service.name}
+            />
+          ) : (
+            t("Sin fotos: la prestadora no cargó imágenes")
+          )}
+        </div>
 
+        <div className={`${styles.column} ${serviceStyles.details}`}>
           <section>
             <h2 className={styles.sectionTitle}>{t("Descripción")}</h2>
             {service.description === '' ? (
@@ -166,44 +214,37 @@ export default function ServiceDetailPage() {
             </div>
           </div>
 
-          <section>
-            <h2 className={styles.sectionTitle}>{t("Ubicación")}</h2>
-            <MapPreview
-              label={service.name}
-              latitude={service.latitude}
-              longitude={service.longitude}
-            />
-          </section>
         </div>
 
-        <div className={styles.column}>
-          <article className={styles.booking}>
-            <p className={styles.bookingLabel}>{t("Desde")}</p>
-            <div className={styles.priceRow}>
-              <span className={styles.priceBig}>
-                {formatCurrency(service.price)}
-              </span>
-              <span className={styles.priceUnit}>{t("COP / persona")}</span>
+        <div className={serviceStyles.rail}>
+          <section className={serviceStyles.location} aria-label={t("Ubicación")}>
+            <h2 className={styles.sectionTitle}>{t("Ubicación")}</h2>
+            <ServiceLocationMap key={service.id} service={service} />
+          </section>
+
+          <article className={`${styles.booking} ${serviceStyles.contact}`} aria-label={t("Contratar servicio")}>
+            <div>
+              <p className={styles.bookingLabel}>{t("Desde")}</p>
+              <div className={styles.priceRow}>
+                <span className={styles.priceBig}>{formatCurrency(service.price)}</span>
+                <span className={styles.priceUnit}>{t("COP / persona")}</span>
+              </div>
             </div>
             <p className={styles.paragraphMuted}>
-              {t("El API de reservas solo acepta actividades y eventos: los servicios se contratan directamente con la prestadora.")}</p>
-          </article>
-
-          <article className={styles.booking}>
-            <h2 className={styles.sectionTitle}>{t("Prestadora")}</h2>
-            <p className={styles.paragraph}>{service.providerName}</p>
-            <Link to={`/prestadoras/${service.providerId}`}>
-              <Button variant="outline" block>
-                {t("Ver perfil de la prestadora")}</Button>
+              {t("Los servicios se contratan directamente con la prestadora.")}
+            </p>
+            <Link className={serviceStyles.contactLink} to={`/prestadoras/${service.providerId}`}>
+              {t("Contactar a la prestadora")}
             </Link>
           </article>
-
-          <article className={styles.booking}>
-            <h2 className={styles.sectionTitle}>{t("Reseñas")}</h2>
-            <p className={styles.paragraphMuted}>
-              {t("Todavía no hay reseñas de este servicio.")}</p>
-          </article>
         </div>
+
+        <article className={`${styles.booking} ${serviceStyles.reviews}`}>
+          <h2 className={styles.sectionTitle}>{t("Reseñas")}</h2>
+          <p className={styles.paragraphMuted}>
+            {t("Todavía no hay reseñas de este servicio.")}
+          </p>
+        </article>
       </div>
     </div>
   )

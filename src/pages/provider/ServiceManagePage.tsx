@@ -10,6 +10,7 @@ import { Field } from '@/components/FormField'
 import { ImageUploader } from '@/components/ImageUploader'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
+import { SitePhotoGallery } from '@/components/SitePhotoGallery'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import {
@@ -217,17 +218,12 @@ export default function ServiceManagePage() {
             {current.photosUrls.length === 0 ? (
               <p className={styles.meta}>{t("Todavía no hay fotos.")}</p>
             ) : (
-              <ul className={styles.photoList}>
-                {current.photosUrls.map((url) => (
-                  <li key={url} className={styles.photo}>
-                    {url}
-                  </li>
-                ))}
-              </ul>
+              <SitePhotoGallery
+                key={current.id}
+                name={current.name}
+                photos={current.photosUrls}
+              />
             )}
-
-            <p className={styles.notice}>
-              {t("No existe un endpoint para editar solo un campo: el precio y las fotos se guardan reescribiendo el servicio completo.")}</p>
           </article>
         </div>
 

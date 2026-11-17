@@ -52,7 +52,8 @@ import {
   RegistrationsQueuePage,
 } from './pages'
 import { RequireAuth, RequireRole } from './guards'
-import { GuideReportRedirect, PanelReportsPage } from './ReportRoutes'
+import { PanelReportRedirect, PanelReportsPage } from './ReportRoutes'
+import { HomeRedirect, TouristPanelRedirect } from './TouristRoutes'
 import { RouterFallback } from './RouterFallback'
 
 
@@ -88,7 +89,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <PublicLayout />,
     children: [
-      { index: true, element: <Navigate to="/explorar" replace /> },
+      { index: true, element: <HomeRedirect /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'registro', element: <RegisterPage /> },
       {
@@ -163,7 +164,7 @@ export const router = createBrowserRouter([
         path: 'reportes',
         element: (
           <RequireRole roles={['TOURIST', 'GUIDE', 'SERVICE_PROVIDER']}>
-            <GuideReportRedirect><MyReportsPage /></GuideReportRedirect>
+            <PanelReportRedirect><MyReportsPage /></PanelReportRedirect>
           </RequireRole>
         ),
       },
@@ -171,7 +172,7 @@ export const router = createBrowserRouter([
         path: 'reportes/nuevo',
         element: (
           <RequireRole roles={['TOURIST', 'GUIDE', 'SERVICE_PROVIDER']}>
-            <GuideReportRedirect><ReportFormPage /></GuideReportRedirect>
+            <PanelReportRedirect><ReportFormPage /></PanelReportRedirect>
           </RequireRole>
         ),
       },
@@ -179,7 +180,7 @@ export const router = createBrowserRouter([
         path: 'reportes/:reportId',
         element: (
           <RequireRole roles={['TOURIST', 'GUIDE', 'SERVICE_PROVIDER']}>
-            <GuideReportRedirect><ReportDetailPage /></GuideReportRedirect>
+            <PanelReportRedirect><ReportDetailPage /></PanelReportRedirect>
           </RequireRole>
         ),
       },
@@ -210,7 +211,7 @@ export const router = createBrowserRouter([
     path: '/app',
     element: (
       <RequireAuth>
-        <AppLayout />
+        <TouristPanelRedirect><AppLayout /></TouristPanelRedirect>
       </RequireAuth>
     ),
     children: [
@@ -357,11 +358,11 @@ export const router = createBrowserRouter([
           </RequireRole>
         ),
       },
-      /* Reportes de seguridad (guía en vista propia; gestora/admin en gestión) — wireframe 13-UC4 */
+      /* Reportes de seguridad (guía/prestadora en vista propia; gestora/admin en gestión) — wireframe 13-UC4 */
       {
         path: 'reportes',
         element: (
-          <RequireRole roles={['GUIDE', 'DESTINATION_MANAGER', 'ADMIN']}>
+          <RequireRole roles={['GUIDE', 'SERVICE_PROVIDER', 'DESTINATION_MANAGER', 'ADMIN']}>
             <PanelReportsPage />
           </RequireRole>
         ),
@@ -369,7 +370,7 @@ export const router = createBrowserRouter([
       {
         path: 'reportes/nuevo',
         element: (
-          <RequireRole roles={['GUIDE']}>
+          <RequireRole roles={['GUIDE', 'SERVICE_PROVIDER']}>
             <ReportFormPage />
           </RequireRole>
         ),
@@ -377,7 +378,7 @@ export const router = createBrowserRouter([
       {
         path: 'reportes/:reportId',
         element: (
-          <RequireRole roles={['GUIDE', 'DESTINATION_MANAGER', 'ADMIN']}>
+          <RequireRole roles={['GUIDE', 'SERVICE_PROVIDER', 'DESTINATION_MANAGER', 'ADMIN']}>
             <ReportDetailPage />
           </RequireRole>
         ),

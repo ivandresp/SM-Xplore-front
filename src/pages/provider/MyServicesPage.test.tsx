@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext } from '@/context/auth-context'
@@ -104,6 +104,15 @@ describe('MyServicesPage', () => {
     expect(await screen.findByText('Kayak en la bahía')).toBeTruthy()
     expect(screen.getByText(/Transporte/)).toBeTruthy()
     expect(screen.getByText('Publicado')).toBeTruthy()
+    expect(screen.getAllByRole('columnheader').map((header) => header.textContent)).toEqual([
+      'Servicio', 'Tipo de servicio', 'Precio por persona', 'Ubicación', 'Fotos', 'Capacidad', 'Estado', 'Acciones',
+    ])
+    const row = screen.getByText(SERVICE.name).closest('tr')!
+    const cells = within(row).getAllByRole('cell')
+    expect(cells[0].textContent).toBe(SERVICE.name)
+    expect(cells[1].textContent).toBe('Transporte')
+    expect(cells[2].textContent).toContain('80.000')
+
 
     const urls = fetchMock.mock.calls.map(([url]) => String(url))
     expect(urls.at(-1)).toContain('providerId=u-2')

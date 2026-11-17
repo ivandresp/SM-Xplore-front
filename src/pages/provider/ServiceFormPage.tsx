@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
@@ -7,10 +7,14 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { ImageUploader } from '@/components/ImageUploader'
+import { LocationPicker } from '@/components/LocationPicker'
+import { coordinatePoint } from '@/components/MapPreview/mercator'
+import type { MapPoint } from '@/components/MapPreview/mercator'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
+import { useAuth } from '@/hooks/useAuth'
 import { serviceTypeLabel } from '@/config/roles'
 import { categoriesApi } from '@/services/categoriesApi'
 import { servicesApi } from '@/services/servicesApi'
@@ -26,14 +30,22 @@ const SERVICE_TYPES = ['LODGING', 'TRANSPORT', 'FEEDING']
 export default function ServiceFormPage() {
   useLanguage()
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const profile = user?.role === 'SERVICE_PROVIDER' ? user.profile : null
+  const providerLocation = coordinatePoint(profile?.latitude, profile?.longitude)
+  const [locationMode, setLocationMode] = useState<'provider' | 'custom'>(() => providerLocation === null ? 'custom' : 'provider')
+  const [customLocation, setCustomLocation] = useState<MapPoint | null>(null)
+  const [locationError, setLocationError] = useMessageState<string | null>(null)
+  const locationRef = useRef<HTMLFieldSetElement>(null)
+  const locationHelpId = useId()
+  const useProviderLocation = locationMode === 'provider' && providerLocation !== null
+  const selectedLocation = useProviderLocation ? providerLocation : customLocation
 
   const [name, setName] = useState('')
   const [type, setType] = useState(SERVICE_TYPES[0])
   const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [maxCapacity, setMaxCapacity] = useState('')
-  const [latitude, setLatitude] = useState('')
-  const [longitude, setLongitude] = useState('')
   const [photoUrls, setPhotoUrls] = useState<string[]>([])
   const [photosUploading, setPhotosUploading] = useState(false)
   const [cancellationPolicy, setCancellationPolicy] = useState('')
@@ -61,13 +73,13 @@ export default function ServiceFormPage() {
 
       try {
         const [categoryList, zoneList, siteList] = await Promise.all([
-          categoriesApi.list(),
+          categoriesApi.list('SERVICE'),
           zonesApi.list(),
           sitesApi.list().then((page) => page.content),
         ])
 
         if (!cancelled) {
-          setCategories(categoryList)
+          setCategories(categoryList.filter((category) => category.scope === 'SERVICE'))
           setZones(zoneList)
           setSites(siteList)
         }
@@ -120,6 +132,12 @@ export default function ServiceFormPage() {
       return
     }
 
+    if (selectedLocation === null) {
+      setLocationError(() => t("Selecciona la ubicación del servicio en el mapa."))
+      locationRef.current?.querySelector<HTMLButtonElement>('button')?.focus()
+      return
+    }
+
     setIsSaving(true)
     setError(null)
 
@@ -131,8 +149,8 @@ export default function ServiceFormPage() {
         categoryId,
         siteId,
         zoneId,
-        latitude: Number(latitude),
-        longitude: Number(longitude),
+        latitude: selectedLocation.latitude,
+        longitude: selectedLocation.longitude,
         price: Number(price),
         maxCapacity: Number(maxCapacity),
         photosUrls: photoUrls.length > 0 ? photoUrls : undefined,
@@ -240,7 +258,7 @@ export default function ServiceFormPage() {
             />
 
             <SelectField
-              label={t("Atractivo")}
+              label={t("Atractivo mas cercano")}
               required
               hint={
                 zoneId === ''
@@ -276,32 +294,66 @@ export default function ServiceFormPage() {
               onChange={(changeEvent) => setMaxCapacity(changeEvent.target.value)}
             />
 
-            <Field
-              label={t("Latitud")}
-              inputMode="decimal"
-              placeholder="11.2404"
-              required
-              value={latitude}
-              onChange={(changeEvent) => setLatitude(changeEvent.target.value)}
-            />
+            <fieldset className={`${styles.full} ${styles.locationGroup}`} ref={locationRef} disabled={isSaving}>
+              <legend className={styles.names}>{t("Ubicación del servicio")}</legend>
+              <label className={styles.locationOption}>
+                <input
+                  type="radio"
+                  name="locationSource"
+                  value="provider"
+                  checked={useProviderLocation}
+                  disabled={providerLocation === null}
+                  aria-describedby={providerLocation === null ? locationHelpId : undefined}
+                  onChange={() => {
+                    setLocationMode('provider')
+                    setLocationError(null)
+                  }}
+                />
+                {t("Usar la misma ubicación de la prestadora")}
+              </label>
+              {providerLocation === null && (
+                <p id={locationHelpId} className={styles.meta}>
+                  {t("La prestadora no tiene una ubicación registrada. Escoge un punto en el mapa.")}
+                </p>
+              )}
+              <label className={styles.locationOption}>
+                <input
+                  type="radio"
+                  name="locationSource"
+                  value="custom"
+                  checked={!useProviderLocation}
+                  onChange={() => {
+                    setLocationMode('custom')
+                    setLocationError(null)
+                  }}
+                />
+                {t("Escoger una ubicación diferente")}
+              </label>
+              {!useProviderLocation && (
+                <LocationPicker
+                  label={t("Ubicación del servicio")}
+                  value={customLocation}
+                  defaultCenter={providerLocation ?? undefined}
+                  onChange={(point) => {
+                    setCustomLocation(point)
+                    setLocationError(null)
+                  }}
+                  disabled={isSaving}
+                  error={locationError ?? undefined}
+                />
+              )}
+            </fieldset>
 
-            <Field
-              label={t("Longitud")}
-              inputMode="decimal"
-              placeholder="-74.1990"
-              required
-              value={longitude}
-              onChange={(changeEvent) => setLongitude(changeEvent.target.value)}
-            />
-
-            <Field
-              label={t("Política de cancelación")}
-              placeholder={t("Cancelación gratuita hasta 24 h antes")}
-              value={cancellationPolicy}
-              onChange={(changeEvent) =>
-                setCancellationPolicy(changeEvent.target.value)
-              }
-            />
+            <div className={styles.cancellationPolicy}>
+              <Field
+                label={t("Política de cancelación")}
+                placeholder={t("Cancelación gratuita hasta 24 h antes")}
+                value={cancellationPolicy}
+                onChange={(changeEvent) =>
+                  setCancellationPolicy(changeEvent.target.value)
+                }
+              />
+            </div>
 
             <label className={styles.full}>
               <span className={styles.names}>{t("Descripción")}</span>
