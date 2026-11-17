@@ -1,6 +1,8 @@
 import { translate as t } from '@/i18n/language'
 import type { UserRole } from '@/types'
 
+export const TOURIST_HOME = '/recomendaciones'
+
 export interface NavItem {
   /** Ruta dentro del shell autenticado. */
   to: string
@@ -22,21 +24,15 @@ export interface NavItem {
  */
 export const NAV_ITEMS: NavItem[] = [
   {
-    to: '/explorar',
-    get label() { return t("Explorar") },
-    get description() { return t("Catálogo público: eventos, actividades y servicios turísticos disponibles, con búsqueda y filtros.") },
-    roles: ['TOURIST'],
-  },
-  {
-    to: '/recomendaciones',
+    to: TOURIST_HOME,
     get label() { return t("Para ti") },
     get description() { return t("Recomendaciones personalizadas según los intereses del turista y lo que ha visitado.") },
     roles: ['TOURIST'],
   },
   {
-    to: '/mis-reservas',
-    get label() { return t("Mis reservas") },
-    get description() { return t("Reservas del turista con su estado, total, ítems y acciones (cancelar, solicitar cancelación).") },
+    to: '/explorar',
+    get label() { return t("Explorar") },
+    get description() { return t("Catálogo público: eventos, actividades y servicios turísticos disponibles, con búsqueda y filtros.") },
     roles: ['TOURIST'],
   },
   {

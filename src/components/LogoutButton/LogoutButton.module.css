@@ -1,0 +1,41 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--control-h-md);
+  height: var(--control-h-md);
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--color-text-soft);
+  cursor: pointer;
+}
+
+.button:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.button:active {
+  background: color-mix(in srgb, currentColor 20%, transparent);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: 2px;
+}
+
+.dark {
+  border-color: color-mix(in srgb, currentColor 35%, transparent);
+  color: var(--color-on-bar);
+}
+
+.dark:focus-visible {
+  outline-color: var(--color-on-bar-muted);
+}
+
+.icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}

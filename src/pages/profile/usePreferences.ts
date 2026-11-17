@@ -26,9 +26,7 @@ export interface UsePreferencesResult {
 }
 
 /**
- * Preferencias de categoría del turista (ms-05). Lo usan /perfil y /recomendaciones:
- * la lógica vive aquí una sola vez. Pendiente moverlo a `src/hooks/` cuando ese
- * directorio se abra a este bloque.
+ * Edición de preferencias de categoría del turista desde /perfil (ms-05).
  */
 export function usePreferences({
   enabled,

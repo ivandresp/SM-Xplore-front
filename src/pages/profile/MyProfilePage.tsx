@@ -336,13 +336,20 @@ export default function MyProfilePage() {
                       }
                     />
                     <Button
+                      className={styles.prefAddButton}
                       size="sm"
+                      aria-label={t("Añadir")}
+                      title={t("Añadir")}
                       disabled={
                         selectedCategory === '' || savingCategory !== null
                       }
                       onClick={() => void handleAddPreference()}
                     >
-                      {t("Añadir")}</Button>
+                      <span className={styles.prefAddText}>{t("Añadir")}</span>
+                      <svg className={styles.prefAddIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
+                    </Button>
                   </div>
                 )}
 

@@ -4,9 +4,10 @@ import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { Footer } from '@/components/Footer'
+import { LogoutButton } from '@/components/LogoutButton'
 import { Skeleton } from '@/components/Skeleton'
 import { TopBar } from '@/components/TopBar'
-import { PUBLIC_NAV } from '@/config/navigation'
+import { navItemsFor, PUBLIC_NAV, TOURIST_HOME } from '@/config/navigation'
 import { useAuth } from '@/hooks/useAuth'
 import styles from './PublicLayout.module.css'
 
@@ -25,11 +26,15 @@ const CATALOG_PREFIXES = [
  */
 export function PublicLayout() {
   useLanguage()
-  const { isAuthenticated, user } = useAuth()
+  const { isAuthenticated, user, logout } = useAuth()
+  const isTourist = isAuthenticated && user?.role === 'TOURIST'
   const { pathname } = useLocation()
 
   const isCatalog = CATALOG_PREFIXES.some((prefix) =>
     pathname.startsWith(prefix),
+  )
+  const isExploreSection = isCatalog || ['/itinerario', '/mis-reservas'].some(
+    (base) => pathname === base || pathname.startsWith(`${base}/`),
   )
 
   // El buscador aparece en todo el catálogo público, salvo en login y registro.
@@ -38,12 +43,15 @@ export function PublicLayout() {
   // `/actividades/:id` es el detalle del catálogo de actividades, que vive en
   // `/explorar`: sin el alias el header perdería la ruta activa en el detalle.
   const links = (
-    isAuthenticated && user?.role === 'TOURIST'
-      ? [
-          ...PUBLIC_NAV,
-          { to: '/itinerario', label: t("Mis viajes") },
-          { to: '/mis-reservas', label: t("Mis reservas") },
-        ]
+    isTourist
+      ? isExploreSection
+        ? [
+            { to: TOURIST_HOME, label: t('Home') },
+            ...PUBLIC_NAV,
+            { to: '/itinerario', label: t('Mis viajes') },
+            { to: '/mis-reservas', label: t('Mis reservas') },
+          ]
+        : navItemsFor('TOURIST').map(({ to, label }) => ({ to, label }))
       : PUBLIC_NAV
   ).map((link) =>
     link.to === '/explorar' ? { ...link, aliases: ['/actividades'] } : link,
@@ -59,7 +67,7 @@ export function PublicLayout() {
         right={
           isAuthenticated ? (
             <>
-              {!isCatalog && (
+              {!isCatalog && !isTourist && (
                 <Link to="/app">
                   <Button variant="outline" size="sm">
                     {t("Ir al panel")}</Button>
@@ -74,6 +82,7 @@ export function PublicLayout() {
                   {user?.fullName.charAt(0).toUpperCase() ?? '?'}
                 </span>
               </Link>
+              {isTourist && <LogoutButton onClick={logout} tone={isCatalog ? 'dark' : 'light'} />}
             </>
           ) : isCatalog ? (
             <Link to="/login" className={styles.sessionLink}>

@@ -53,6 +53,7 @@ import {
 } from './pages'
 import { RequireAuth, RequireRole } from './guards'
 import { PanelReportRedirect, PanelReportsPage } from './ReportRoutes'
+import { HomeRedirect, TouristPanelRedirect } from './TouristRoutes'
 import { RouterFallback } from './RouterFallback'
 
 
@@ -88,7 +89,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <PublicLayout />,
     children: [
-      { index: true, element: <Navigate to="/explorar" replace /> },
+      { index: true, element: <HomeRedirect /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'registro', element: <RegisterPage /> },
       {
@@ -210,7 +211,7 @@ export const router = createBrowserRouter([
     path: '/app',
     element: (
       <RequireAuth>
-        <AppLayout />
+        <TouristPanelRedirect><AppLayout /></TouristPanelRedirect>
       </RequireAuth>
     ),
     children: [

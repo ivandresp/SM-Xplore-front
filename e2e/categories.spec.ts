@@ -105,7 +105,7 @@ for (const role of ['GUIDE', 'TOURIST', null]) {
   test(`category route rejects ${role ?? 'anonymous'}`, async ({ page }) => {
     const api = await setup(page, role, 'es')
     await page.goto('/app/categorias')
-    await expect(page).toHaveURL(role ? /\/app$/ : /\/login$/)
+    await expect(page).toHaveURL(role === 'TOURIST' ? /\/recomendaciones$/ : role ? /\/app$/ : /\/login$/)
     expect(api.posts).toHaveLength(0)
     await expect(page.getByRole('link', { name: 'Categorías', exact: true })).toHaveCount(0)
   })

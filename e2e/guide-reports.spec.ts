@@ -132,7 +132,8 @@ for (const role of ['TOURIST']) {
     await expect(page.getByRole('heading', { level: 1, name: 'Mis reportes de seguridad' })).toBeVisible()
     await expect(page).toHaveURL(/\/reportes$/)
     await page.goto('/app/reportes')
-    await expect(page).toHaveURL(/\/app$/)
+    await expect(page).toHaveURL(/\/reportes$/)
+    await expect(page.getByRole('complementary')).toHaveCount(0)
   })
 }
 

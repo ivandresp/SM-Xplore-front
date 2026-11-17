@@ -11,3 +11,12 @@ describe('navegación de reportes', () => {
     expect(reportsLink(role)).toBe('/reportes')
   })
 })
+
+
+describe('menú principal turista', () => {
+  it('solo ofrece Para ti, Explorar, reportes y perfil en ese orden', () => {
+    expect(navItemsFor('TOURIST').map(({ to }) => to)).toEqual([
+      '/recomendaciones', '/explorar', '/reportes', '/perfil',
+    ])
+  })
+})

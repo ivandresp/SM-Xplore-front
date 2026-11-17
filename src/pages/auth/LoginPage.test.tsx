@@ -31,6 +31,7 @@ function renderLogin() {
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/explorar" element={<p>Catálogo de actividades</p>} />
+          <Route path="/recomendaciones" element={<p>Para ti</p>} />
           <Route path="/app" element={<p>Panel</p>} />
         </Routes>
       </MemoryRouter>
@@ -44,7 +45,7 @@ describe('LoginPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('pide el código de MFA y entra al catálogo al verificarlo', async () => {
+  it('pide el código de MFA y entra a Para ti al verificarlo', async () => {
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         void init
@@ -97,7 +98,7 @@ describe('LoginPage', () => {
     )
     await user.click(screen.getByRole('button', { name: 'Verificar' }))
 
-    expect(await screen.findByText('Catálogo de actividades')).toBeTruthy()
+    expect(await screen.findByText('Para ti')).toBeTruthy()
 
     const verifyCall = fetchMock.mock.calls.find(([url]) =>
       String(url).endsWith('/auth/mfa/verify'),
