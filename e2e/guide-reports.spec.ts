@@ -50,13 +50,14 @@ async function setup(page: Page, role: string | null, language = 'es') {
   return { ownRequests, globalRequests, posts }
 }
 
+for (const role of ['GUIDE', 'SERVICE_PROVIDER']) {
 for (const width of [1280, 1920]) {
   for (const language of ['es', 'en']) {
-    test(`guide report flow stays in panel ${width}px ${language}`, async ({ page }) => {
+    test(`${role} report flow stays in panel ${width}px ${language}`, async ({ page }) => {
       const es = language === 'es'
       await page.setViewportSize({ width, height: 950 })
       await page.emulateMedia({ colorScheme: width === 1920 ? 'dark' : 'light' })
-      const api = await setup(page, 'GUIDE', language)
+      const api = await setup(page, role, language)
       await page.goto('/app')
       const sidebar = page.getByRole('complementary')
       await expect(sidebar).toBeVisible()
@@ -96,19 +97,21 @@ for (const width of [1280, 1920]) {
       expect(api.ownRequests.every((path) => path.endsWith('/by-user/user-1'))).toBe(true)
       expect(api.globalRequests).toHaveLength(0)
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-      if (es) await page.screenshot({ path: `docs/diseno/035-guide-reports-${width}.png`, fullPage: true })
+      if (es) await page.screenshot({ path: `/tmp/${role.toLowerCase()}-reports-${width}.png`, fullPage: true })
     })
   }
 }
 
 for (const path of ['/reportes', '/reportes/r-1', '/reportes/nuevo']) {
-  test(`guide legacy ${path} preserves query and hash`, async ({ page }) => {
+  test(`${role} legacy ${path} preserves query and hash`, async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 950 })
-    await setup(page, 'GUIDE')
+    await setup(page, role)
     await page.goto(`${path}?origen=legacy#contenido`)
     await expect(page).toHaveURL(new RegExp(`/app${path}\\?origen=legacy#contenido$`))
     await expect(page.getByRole('complementary')).toBeVisible()
   })
+}
+
 }
 
 for (const role of ['ADMIN', 'DESTINATION_MANAGER']) {
@@ -122,7 +125,7 @@ for (const role of ['ADMIN', 'DESTINATION_MANAGER']) {
   })
 }
 
-for (const role of ['TOURIST', 'SERVICE_PROVIDER']) {
+for (const role of ['TOURIST']) {
   test(`${role} keeps public report screen and cannot enter guide reports`, async ({ page }) => {
     await setup(page, role)
     await page.goto('/reportes')
@@ -139,11 +142,14 @@ test('guide report routes still require a session', async ({ page }) => {
   await expect(page).toHaveURL(/\/login$/)
 })
 
-test('guide mobile retains responsive panel navigation', async ({ page }) => {
+for (const role of ['GUIDE', 'SERVICE_PROVIDER']) {
+test(`${role} mobile retains responsive panel navigation`, async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 950 })
-  await setup(page, 'GUIDE')
+  await setup(page, role)
   await page.goto('/app/reportes')
   await expect(page.getByRole('heading', { level: 1, name: 'Mis reportes de seguridad' })).toBeVisible()
   await expect(page.getByRole('complementary')).not.toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
 })
+
+}

@@ -1,9 +1,19 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider } from '@/context/AuthProvider'
 import RegisterPage from './RegisterPage'
+
+const mapState = vi.hoisted(() => ({ value: 'ready' as 'ready' | 'error' }))
+
+vi.mock('@/components/MapPreview', async () => {
+  const { useEffect } = await import('react')
+  return { MapPreview: ({ onLoadStateChange }: { onLoadStateChange?: (state: 'ready' | 'error') => void }) => {
+    useEffect(() => { onLoadStateChange?.(mapState.value) }, [onLoadStateChange])
+    return <a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>
+  } }
+})
 
 const TOURIST_USER = {
   id: 'u-1',
@@ -99,6 +109,7 @@ function registerCall(fetchMock: ReturnType<typeof vi.fn>) {
 
 describe('RegisterPage', () => {
   afterEach(() => {
+    mapState.value = 'ready'
     window.sessionStorage.clear()
     vi.unstubAllGlobals()
   })
@@ -300,7 +311,7 @@ describe('RegisterPage', () => {
     expect(serverAlerts).toMatch(/revisa los datos/i)
   })
 
-  it('registra la prestadora y avisa de que queda pendiente de revisión', async () => {
+  it.each(['sin ubicación', 'seleccionada', 'borrada', 'mapa no disponible'] as const)('registra la prestadora con ubicación %s y avisa de revisión', async (location) => {
     const fetchMock = vi.fn(
       async (input: RequestInfo | URL, init?: RequestInit) => {
         void init
@@ -313,6 +324,7 @@ describe('RegisterPage', () => {
     )
     vi.stubGlobal('fetch', fetchMock)
 
+    if (location === 'mapa no disponible') mapState.value = 'error'
     const user = userEvent.setup()
     renderRegister()
 
@@ -325,6 +337,26 @@ describe('RegisterPage', () => {
     await user.type(screen.getByLabelText('Teléfono'), '3001234567')
     await user.type(screen.getByLabelText('Contraseña'), 'ContraseñaSegura1!')
     await user.type(screen.getByLabelText('NIT'), '900123456-7')
+    const business = screen.getByRole('combobox', { name: 'Tipo de negocio' })
+    expect(screen.queryByText('Alojamiento, transporte, alimentación…')).toBeNull()
+    expect(screen.queryByLabelText('Latitud')).toBeNull()
+    expect(screen.queryByLabelText('Longitud')).toBeNull()
+    await user.click(business)
+    for (const name of ['Alojamiento', 'Transporte', 'Alimentacion']) {
+      expect(screen.getByRole('option', { name })).toBeTruthy()
+    }
+    await user.click(screen.getByRole('option', { name: 'Transporte' }))
+    const date = screen.getByLabelText('Fecha de inicio de operación')
+    expect(business.parentElement?.parentElement?.contains(date)).toBe(true)
+    const map = screen.getByRole('group', { name: 'Ubicación del negocio' })
+    expect(date.compareDocumentPosition(map) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    fireEvent.change(date, { target: { value: '2020-01-01' } })
+    if (location === 'seleccionada' || location === 'borrada') {
+      screen.getByRole('button', { name: 'Elegir punto en el mapa' }).focus()
+      await user.keyboard('{Enter}')
+      if (location === 'borrada') await user.click(screen.getByRole('button', { name: 'Quitar punto seleccionado' }))
+    }
+
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     expect(
@@ -344,7 +376,40 @@ describe('RegisterPage', () => {
     expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({
       nit: '900123456-7',
       phone: '3001234567',
+      businessType: 'Transporte',
+      startOperationDate: '2020-01-01',
     })
+    const payload = JSON.parse(String(call?.[1]?.body))
+    if (location === 'seleccionada') {
+      expect(payload.latitude).toBeCloseTo(11.2404, 4)
+      expect(payload.longitude).toBeCloseTo(-74.199, 4)
+    } else {
+      expect(payload.latitude).toBeUndefined()
+      expect(payload.longitude).toBeUndefined()
+    }
+
+  })
+
+  it('asocia errores de coordenadas del servidor al mapa y permite corregirlos', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({
+      code: 'VALIDATION_ERROR', errors: { latitude: 'invalid' },
+    }, 400)))
+    const user = userEvent.setup()
+    renderRegister()
+    await user.click(screen.getByRole('combobox', { name: 'Tipo de cuenta' }))
+    await user.click(screen.getByRole('option', { name: 'Prestadora de servicios' }))
+    for (const [label, value] of [
+      ['Nombre completo', 'Hotel Tayrona'], ['Correo electrónico', 'hotel@correo.com'],
+      ['Teléfono', '3001234567'], ['Contraseña', 'ContraseñaSegura1!'], ['NIT', '900123456-7'],
+    ]) await user.type(screen.getByLabelText(label), value)
+    await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    const picker = screen.getByRole('button', { name: 'Elegir punto en el mapa' })
+    await waitFor(() => expect(document.activeElement).toBe(picker))
+    expect(picker.getAttribute('aria-invalid')).toBe('true')
+    const ids = picker.getAttribute('aria-describedby')?.split(' ') ?? []
+    expect(ids.some((id) => document.getElementById(id)?.textContent === 'Este dato no es válido según el servidor.')).toBe(true)
+    await user.keyboard('{Enter}')
+    expect(picker.hasAttribute('aria-invalid')).toBe(false)
   })
 
   it('acepta un teléfono internacional distinto de +57 (gate = DTO)', async () => {
