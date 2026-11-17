@@ -1,27 +1,22 @@
 .logo {
-  font-family: var(--font-heading);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  white-space: nowrap;
+  display: block;
+  flex: none;
+  width: auto;
+  object-fit: contain;
+  padding: 0.125rem 0.25rem;
+  border-radius: var(--radius-sm);
 }
 
 .md {
-  font-size: var(--text-sub);
+  height: 2.75rem;
 }
 
 .lg {
-  font-size: var(--text-hero);
+  height: 4rem;
 }
 
-.mark {
-  color: var(--color-text);
-}
-
-.accent {
-  color: var(--color-link);
-}
-
-.inverse .mark,
-.inverse .accent {
-  color: var(--color-on-bar);
+@media (min-width: 900px) {
+  .md {
+    height: 3rem;
+  }
 }

@@ -78,9 +78,13 @@ function authValue(role: 'TOURIST' | 'GUIDE'): AuthContextValue {
   }
 }
 
-function renderProfile(role: 'TOURIST' | 'GUIDE') {
+function renderProfile(role: 'TOURIST' | 'GUIDE', nationality: string | null = null) {
+  const auth = authValue(role)
+  if (auth.user?.role === 'TOURIST') {
+    auth.user.profile = { dniType: null, dniNumber: null, preferredLanguage: null, birthDate: null, nationality }
+  }
   return render(
-    <AuthContext.Provider value={authValue(role)}>
+    <AuthContext.Provider value={auth}>
       <MemoryRouter initialEntries={['/app/perfil']}>
         <MyProfilePage />
       </MemoryRouter>
@@ -150,11 +154,15 @@ describe('MyProfilePage · preferencias', () => {
       return jsonResponse(CATEGORIES)
     })
 
-    renderProfile('TOURIST')
+    renderProfile('TOURIST', 'Colombia')
 
     expect(await screen.findByText('Playas')).toBeTruthy()
-    expect(screen.getByText(/Elegida por ti/)).toBeTruthy()
-    expect(screen.getByText(/Deducida de tus visitas/)).toBeTruthy()
+    expect(screen.getByText('País').parentElement?.textContent).toContain('Colombia')
+    expect(screen.queryByText('Ciudad')).toBeNull()
+    expect(screen.queryByText(/Elegida por ti/)).toBeNull()
+    expect(screen.getByRole('button', { name: 'Quitar Playas' }).textContent).toContain('Playas')
+    expect(screen.getByRole('button', { name: 'Quitar Playas' }).textContent).toContain('×')
+    expect(screen.getByText(/Las deducidas salen de tus visitas/)).toBeTruthy()
 
     const select = screen.getByRole('combobox', { name: 'Añadir categoría' })
     expect(document.querySelector('select')).toBeNull()

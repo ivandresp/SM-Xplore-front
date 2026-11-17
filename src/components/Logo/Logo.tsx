@@ -3,19 +3,19 @@ import styles from './Logo.module.css'
 
 export interface LogoProps {
   size?: 'md' | 'lg'
-  /** `inverse` para barras oscuras (todo el logo en blanco). */
-  tone?: 'default' | 'inverse'
 }
 
-/** Logotipo de dos tonos: "SM-" en navy y "Xplore" en teal. */
-export function Logo({ size = 'md', tone = 'default' }: LogoProps) {
+/** Marca gráfica original, con proporción reservada antes de cargar. */
+export function Logo({ size = 'md' }: LogoProps) {
   return (
-    <span
-      className={classNames(styles.logo, styles[size], styles[tone])}
-      aria-label="SM-Xplore"
-    >
-      <span className={styles.mark}>SM-</span>
-      <span className={styles.accent}>Xplore</span>
-    </span>
+    <img
+      className={classNames(styles.logo, styles[size])}
+      src={`${import.meta.env.BASE_URL}SM-Xplore-Icon.png`}
+      alt="SM-Xplore"
+      width={1447}
+      height={1087}
+      decoding="async"
+      fetchPriority="high"
+    />
   )
 }
