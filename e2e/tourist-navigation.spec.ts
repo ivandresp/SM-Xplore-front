@@ -215,3 +215,90 @@ for (const width of [375, 768, 1280]) {
     await expect(page.getByRole('button', { name: 'Guardar itinerario' })).toBeEnabled()
   })
 }
+
+for (const width of [375, 768, 1280]) {
+  test(`tourist report response button ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 950 })
+    await setup(page)
+    const report = { id: 'r-1', user: { id: USER.id, name: USER.fullName }, title: 'Reporte de prueba',
+      description: 'Descripción del incidente. '.repeat(45), location: { latitude: 11.24, longitude: -74.19 },
+      photosUrls: [], status: 'ONGOING', createdAt: '2026-11-17T12:00:00Z', updatedAt: null }
+    await page.route('**/api/**/security-reports/**', async route => {
+      const path = new URL(route.request().url()).pathname
+      const comments = [1, 2].map(id => ({ id: `c-${id}`, reportId: report.id, user: report.user, content: `Respuesta ${id}`, createdAt: report.createdAt }))
+      await route.fulfill({ json: path.endsWith('/comments') ? { content: comments, nextCursor: null, hasNext: false }
+        : path.includes('/by-user/') ? { content: [report], nextCursor: null, hasNext: false } : report })
+    })
+    await page.goto('/reportes')
+    const button = page.getByRole('button', { name: 'Ver 2 respuestas', exact: true })
+    await expect(button).toBeVisible()
+    await expect(button).toHaveText('2')
+    await expect(button.locator('svg')).toBeVisible()
+    const card = page.getByRole('article').filter({ has: button })
+    await expect(card).not.toContainText('11.24')
+    await expect(card).not.toContainText('Ver detalle y responder')
+    await expect(card.getByText('En curso', { exact: true })).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.screenshot({ path: `/tmp/report-response-${width}.png`, fullPage: true })
+    await button.click()
+    await expect(page).toHaveURL(/\/reportes\/r-1#comentarios$/)
+    const section = page.locator('#comentarios')
+    await expect(section).toBeFocused()
+    await expect(page.getByRole('heading', { name: 'Comentarios (2)', exact: true })).toBeInViewport()
+  })
+}
+
+for (const width of [375, 768, 1280]) {
+  test(`tourist bounded collapsible comments ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 950 })
+    await setup(page)
+    const report = { id: 'r-1', user: { id: USER.id, name: USER.fullName }, title: 'Reporte de prueba', description: 'Descripción que se retira.', location: null, photosUrls: [], status: 'ONGOING', createdAt: '2026-11-17T12:00:00Z', updatedAt: null }
+    const comments = Array.from({ length: 20 }, (_, i) => ({ id: `c${i}`, reportId: report.id, user: report.user, content: `Comentario ${i}: ` + 'Texto del comentario. '.repeat(4), createdAt: report.createdAt }))
+    let posted = false
+    await page.route('**/api/**/security-reports/**', async route => {
+      const url = new URL(route.request().url())
+      if (!url.pathname.endsWith('/comments')) { await route.fulfill({ json: report }); return }
+      if (route.request().method() === 'POST') { posted = true; await route.fulfill({ json: { ...comments[0], id: 'new', content: route.request().postDataJSON().content } }); return }
+      await route.fulfill({ json: { content: url.searchParams.has('cursor') ? comments.slice(10) : comments.slice(0, 10), nextCursor: url.searchParams.has('cursor') ? null : 'next', hasNext: !url.searchParams.has('cursor') } })
+    })
+    await page.goto('/reportes/r-1#comentarios')
+    const panel = page.locator('#comentarios')
+    const scroll = page.getByRole('region', { name: 'Lista de comentarios' })
+    const input = page.getByLabel('Añadir un comentario')
+    await expect(scroll).toBeVisible()
+    await expect(page.getByText('Descripción que se retira.')).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'Ficha del reporte' })).toBeVisible()
+    const height = await scroll.evaluate(el => el.clientHeight)
+    expect(await scroll.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true)
+    expect(await scroll.evaluate(el => el.contains(document.querySelector('textarea')))).toBe(false)
+    await scroll.evaluate(el => { el.scrollTop = el.scrollHeight })
+    await page.getByRole('button', { name: 'Ver más comentarios' }).click()
+    await expect(panel.getByRole('listitem')).toHaveCount(20)
+    expect(await scroll.evaluate(el => el.clientHeight)).toBe(height)
+    expect(await panel.locator('li').first().evaluate(el => getComputedStyle(el).borderBottomWidth)).toBe('0px')
+    const initialHeight = await input.evaluate(el => el.clientHeight)
+    await input.fill('Comentario de varias líneas. '.repeat(20))
+    expect(await input.evaluate(el => el.clientHeight)).toBeGreaterThan(initialHeight)
+    expect(await input.evaluate(el => el.getBoundingClientRect().height)).toBeLessThanOrEqual(162)
+    await panel.locator('summary').click()
+    await expect(input).toBeHidden()
+    await page.setViewportSize({ width: width + 1, height: 950 })
+    await page.setViewportSize({ width, height: 950 })
+    await panel.locator('summary').click()
+    await expect(input).toBeVisible()
+    expect(await input.evaluate(el => el.clientHeight)).toBeGreaterThan(initialHeight)
+    const send = page.getByRole('button', { name: 'Publicar comentario', exact: true })
+    await expect(send.locator('svg')).toBeVisible()
+    await send.click()
+    await expect(input).toHaveValue('')
+    expect(posted).toBe(true)
+    expect(await input.evaluate(el => el.clientHeight)).toBe(initialHeight)
+    await panel.locator('summary').click()
+    await expect(scroll).toBeHidden()
+    await expect(input).toBeHidden()
+    await panel.locator('summary').click()
+    await expect(scroll).toBeVisible()
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.screenshot({ path: `/tmp/comments-panel-${width}.png`, fullPage: true })
+  })
+}

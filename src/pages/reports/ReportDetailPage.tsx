@@ -1,6 +1,6 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -37,11 +37,21 @@ const ACTION_COPY: Record<
   },
 }
 
+function resizeCommentInput(input: HTMLTextAreaElement | null) {
+  if (!input || input.getClientRects().length === 0) return
+  input.style.height = '0px'
+  input.style.height = `${input.scrollHeight + 2}px`
+}
+
 export default function ReportDetailPage() {
   useLanguage()
   const { reportId } = useParams<{ reportId: string }>()
   const { user } = useAuth()
   const commentFieldId = useId()
+  const { hash } = useLocation()
+  const commentsSection = useRef<HTMLElement>(null)
+  const commentInput = useRef<HTMLTextAreaElement>(null)
+  const commentsPanel = useRef<HTMLDetailsElement>(null)
 
   const canManage =
     user?.role === 'ADMIN' || user?.role === 'DESTINATION_MANAGER'
@@ -118,6 +128,22 @@ export default function ReportDetailPage() {
       cancelled = true
     }
   }, [reportId, reloadToken, setError, setCommentsError])
+
+  useEffect(() => {
+    if (hash !== '#comentarios' || isLoading || report === null) return
+    if (commentsPanel.current) commentsPanel.current.open = true
+    commentsSection.current?.focus({ preventScroll: true })
+    commentsSection.current?.scrollIntoView?.({ block: 'start' })
+  }, [hash, isLoading, report?.id])
+
+  useLayoutEffect(() => {
+    const input = commentInput.current
+    if (!input) return
+    const resize = () => resizeCommentInput(input)
+    resize()
+    window.addEventListener('resize', resize)
+    return () => window.removeEventListener('resize', resize)
+  }, [commentDraft, isLoading])
 
   function retry() {
     setIsLoading(true)
@@ -205,7 +231,7 @@ export default function ReportDetailPage() {
     event.preventDefault()
 
     const content = commentDraft.trim()
-    if (content === '') return
+    if (content === '' || isSubmittingComment) return
 
     setIsSubmittingComment(true)
     setCommentsError(null)
@@ -256,16 +282,44 @@ export default function ReportDetailPage() {
         </p>
       )}
 
-      <div className={styles.layout}>
+      <div className={`${styles.layout} ${styles.reportDetailLayout}`}>
         <div className={styles.column}>
           <article className={styles.card}>
-            <h2 className={styles.cardTitle}>{t("Descripción")}</h2>
-            {current.description.trim() === '' ? (
-              <p className={styles.helper}>
-                {t("El reporte no incluye una descripción.")}</p>
-            ) : (
-              <p className={styles.text}>{current.description}</p>
-            )}
+            <h2 className={styles.cardTitle}>{t("Ficha del reporte")}</h2>
+            <dl className={styles.details}>
+              <div className={styles.detailRow}>
+                <dt>{t("Autor")}</dt>
+                <dd className={styles.authorMeta}>
+                  <span>{current.user.name}</span>
+                  <time
+                    className={styles.authorDate}
+                    dateTime={current.createdAt}
+                    aria-label={`${t('Creado')}: ${formatDateTime(current.createdAt)}`}
+                  >
+                    {formatDateTime(current.createdAt)}
+                  </time>
+                </dd>
+              </div>
+              <div className={styles.detailRow}>
+                <dt>{t("Ubicación")}</dt>
+                <dd>
+                  {current.location === null ? t('Sin ubicación registrada') : (
+                    <MapPreview
+                      latitude={current.location.latitude}
+                      longitude={current.location.longitude}
+                      label={current.title}
+                      zoomControls
+                    />
+                  )}
+                </dd>
+              </div>
+              {current.updatedAt !== current.createdAt && (
+                <div className={styles.detailRow}>
+                  <dt>{t("Última actualización")}</dt>
+                  <dd>{formatDateTime(current.updatedAt)}</dd>
+                </div>
+              )}
+            </dl>
           </article>
 
           {current.photosUrls.length > 0 && (
@@ -294,18 +348,26 @@ export default function ReportDetailPage() {
               </ul>
             </article>
           )}
+        </div>
 
-          <article className={styles.card}>
-            <h2 className={styles.cardTitle}>
+        <div className={styles.column}>
+          <article id="comentarios" ref={commentsSection} tabIndex={-1}
+            aria-labelledby="comments-title" className={`${styles.card} ${styles.commentsSection}`}>
+            <details ref={commentsPanel} open className={styles.commentsPanel}
+              onToggle={event => {
+                if (event.currentTarget.open) resizeCommentInput(commentInput.current)
+              }}>
+            <summary className={styles.commentsSummary}>
+            <h2 id="comments-title" className={styles.commentsTitle}>
               {t("Comentarios (")}{comments.length}
               {hasMoreComments ? '+' : ''})
             </h2>
+            <svg className={styles.commentsChevron} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </summary>
+            <div className={styles.commentsBody}>
+            <div className={styles.commentsScroll} role="region" aria-label={t("Lista de comentarios")} tabIndex={0}>
 
-            {commentsError !== null && (
-              <p className={`${styles.feedback} ${styles.error}`} role="alert">
-                {commentsError}
-              </p>
-            )}
+
 
             {comments.length === 0 && commentsError === null && (
               <p className={styles.helper}>
@@ -344,69 +406,41 @@ export default function ReportDetailPage() {
               </div>
             )}
 
+            </div>
+            {commentsError !== null && (
+              <p className={`${styles.feedback} ${styles.error}`} role="alert">
+                {commentsError}
+              </p>
+            )}
             <form className={styles.commentForm} onSubmit={submitComment}>
               <label className={styles.fieldLabel} htmlFor={commentFieldId}>
                 {t("Añadir un comentario")}</label>
+              <div className={styles.commentComposer}>
               <textarea
+                ref={commentInput}
+                rows={1}
                 id={commentFieldId}
-                className={styles.textarea}
+                className={`${styles.textarea} ${styles.commentInput}`}
                 value={commentDraft}
                 maxLength={2000}
-                placeholder={t("Describe lo que verificaste o el avance del caso…")}
+                placeholder={t("Escribe un comentario…")}
                 onChange={(changeEvent) =>
                   setCommentDraft(changeEvent.target.value)
                 }
               />
-              <div className={styles.actions}>
-                <Button
-                  type="submit"
-                  variant="accent"
-                  disabled={isSubmittingComment || commentDraft.trim() === ''}
-                >
-                  {isSubmittingComment ? t("Publicando…") : t("Publicar comentario")}
+                <Button type="submit" variant="accent" className={styles.commentSend}
+                  aria-label={isSubmittingComment ? t("Publicando…") : t("Publicar comentario")}
+                  title={t("Publicar comentario")}
+                  aria-busy={isSubmittingComment}
+                  disabled={isSubmittingComment || commentDraft.trim() === ''}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                    <path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13" />
+                  </svg>
                 </Button>
               </div>
             </form>
-          </article>
-        </div>
-
-        <div className={styles.column}>
-          <article className={styles.card}>
-            <h2 className={styles.cardTitle}>{t("Ficha del reporte")}</h2>
-            <dl className={styles.details}>
-              <div className={styles.detailRow}>
-                <dt>{t("Autor")}</dt>
-                <dd className={styles.authorMeta}>
-                  <span>{current.user.name}</span>
-                  <time
-                    className={styles.authorDate}
-                    dateTime={current.createdAt}
-                    aria-label={`${t('Creado')}: ${formatDateTime(current.createdAt)}`}
-                  >
-                    {formatDateTime(current.createdAt)}
-                  </time>
-                </dd>
-              </div>
-              <div className={styles.detailRow}>
-                <dt>{t("Ubicación")}</dt>
-                <dd>
-                  {current.location === null ? t('Sin ubicación registrada') : (
-                    <MapPreview
-                      latitude={current.location.latitude}
-                      longitude={current.location.longitude}
-                      label={current.title}
-                      zoomControls
-                    />
-                  )}
-                </dd>
-              </div>
-              {current.updatedAt !== current.createdAt && (
-                <div className={styles.detailRow}>
-                  <dt>{t("Última actualización")}</dt>
-                  <dd>{formatDateTime(current.updatedAt)}</dd>
-                </div>
-              )}
-            </dl>
+            </div>
+            </details>
           </article>
 
           {canManage && (

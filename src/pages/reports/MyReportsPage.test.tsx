@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext } from '@/context/auth-context'
 import type { AuthContextValue } from '@/context/auth-context'
@@ -54,6 +54,11 @@ const AUTH: AuthContextValue = {
   updateSessionUser: vi.fn(),
 }
 
+function DetailTarget() {
+  const { hash } = useLocation()
+  return <p>Detalle{hash}</p>
+}
+
 function renderReports() {
   return render(
     <AuthContext.Provider value={AUTH}>
@@ -61,7 +66,7 @@ function renderReports() {
         <Routes>
           <Route path="/reportes" element={<MyReportsPage />} />
           <Route path="/reportes/nuevo" element={<p>Nuevo reporte</p>} />
-          <Route path="/reportes/:reportId" element={<p>Detalle</p>} />
+          <Route path="/reportes/:reportId" element={<DetailTarget />} />
         </Routes>
       </MemoryRouter>
     </AuthContext.Provider>,
@@ -89,6 +94,24 @@ describe('MyReportsPage', () => {
     const card = screen.getByText('Robo en la playa').closest('article')
     expect(within(card as HTMLElement).getByText('En curso')).toBeTruthy()
     expect(screen.getByText('1 reporte')).toBeTruthy()
+  })
+
+  it('offers a message button linked to comments, without coordinates or duplicate count', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).includes('/comments')) return jsonResponse(cursorPage([]))
+      return jsonResponse(cursorPage([{ ...REPORT, location: { latitude: 11.24, longitude: -74.19 } }]))
+    }))
+    const user = userEvent.setup()
+    renderReports()
+    const button = await screen.findByRole('button', { name: 'Ver 0 respuestas' })
+    expect(button.textContent).toBe('0')
+    expect(button.querySelector('svg')).toBeTruthy()
+    expect(screen.queryByText('Ver detalle y responder')).toBeNull()
+    expect(screen.queryByText(/11\.24/)).toBeNull()
+    const badge = within(button.closest('article')!).getByText('En curso')
+    expect(badge.parentElement?.textContent).not.toBe('En curso')
+    await user.click(button)
+    expect(await screen.findByText('Detalle#comentarios')).toBeTruthy()
   })
 
   it('muestra el error y reintenta la carga', async () => {

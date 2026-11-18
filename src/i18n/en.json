@@ -1256,5 +1256,9 @@
   "Busca atractivos, actividades o eventos en el catálogo y pulsa \"Agregar al itinerario\".": "Find attractions, activities or events in the catalog and click \"Add to itinerary\".",
   "+ Agregar atractivo, actividad o evento": "+ Add attraction, activity or event",
   "Revisa las fechas de visita": "Review visit dates",
-  "Hay atractivos con fecha fuera del viaje. Ajusta sus fechas o el rango del viaje antes de guardar.": "Some attractions have visit dates outside the trip. Adjust their dates or the trip dates before saving."
+  "Hay atractivos con fecha fuera del viaje. Ajusta sus fechas o el rango del viaje antes de guardar.": "Some attractions have visit dates outside the trip. Adjust their dates or the trip dates before saving.",
+  "Ver {0} respuesta": "View {0} reply",
+  "Ver {0} respuestas": "View {0} replies",
+  "Lista de comentarios": "Comments list",
+  "Escribe un comentario…": "Write a comment…"
 }
