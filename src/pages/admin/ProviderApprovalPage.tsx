@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -17,7 +20,6 @@ import {
   PROVIDER_STATUS_TONES,
 } from '@/config/roles'
 import { usersApi } from '@/services/usersApi'
-import { describeApiError } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
 import type { AdminUserDetail, ProviderRegistrationStatus } from '@/types'
 import styles from './admin.module.css'
@@ -36,7 +38,7 @@ export default function ProviderApprovalPage() {
   const [reason, setReason] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -58,7 +60,7 @@ export default function ProviderApprovalPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) {
@@ -72,7 +74,7 @@ export default function ProviderApprovalPage() {
     return () => {
       cancelled = true
     }
-  }, [providerId, reloadToken, setError])
+  }, [providerId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -103,7 +105,7 @@ export default function ProviderApprovalPage() {
           : t("Registro rechazado: se notificó por correo."),
       )
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -116,13 +118,12 @@ export default function ProviderApprovalPage() {
   if (provider === null) {
     return (
       <section>
-        <Link to="/app/usuarios" className={styles.back}>
-          {t("← Volver al listado")}</Link>
+        <BackButton to="/app/usuarios" />
         <StateMessage
           title={t("No se pudo cargar la solicitud")}
           description={error ?? t("No se encontró la solicitud.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       </section>
     )
@@ -131,8 +132,7 @@ export default function ProviderApprovalPage() {
   if (provider.role !== 'SERVICE_PROVIDER') {
     return (
       <section>
-        <Link to={`/app/usuarios/${provider.id}`} className={styles.back}>
-          {t("← Volver al detalle")}</Link>
+        <BackButton to={`/app/usuarios/${provider.id}`} />
         <p className={`${styles.feedback} ${styles.warning}`} role="alert">
           {t("La cuenta no es una prestadora de servicios. Solo las prestadoras tienen registro que aprobar o rechazar.")}</p>
       </section>
@@ -145,8 +145,7 @@ export default function ProviderApprovalPage() {
 
   return (
     <section>
-      <Link to="/app/usuarios" className={styles.back}>
-        {t("← Volver al listado")}</Link>
+      <BackButton to="/app/usuarios" />
 
       <PageHeader
         breadcrumb={[

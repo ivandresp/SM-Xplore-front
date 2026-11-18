@@ -1,0 +1,9 @@
+# Desbordamiento móvil de Nuevo reporte
+
+Usuario confirma Nuevo reporte. Reproducir320/360 además375/768/1280 con geometría y nodos fuera de viewport antes y después seleccionar. Hipótesis a medir: grid con columnas automáticas no permite encoger contenido intrínseco de mapa/inputs en ancho estrecho. Corregir tamaño intrínseco en layout de formulario, sin ocultar overflow/cortar contenido ni afectar datos. Prueba de navegador debe fallar antes del fix. Sin test unitario de CSS redundante; gates/auditoría. Skills systematic-debugging/ui/verification normativas ausentes, ninguna cargada; se sigue reproducción→causa→fix→medición.
+
+Reproducción: carga directa móvil pasa, pero desktop1280→320/360/375/414 conserva inputs/mapa384px y documento433px (4fallos/2pass). Medido enE2EJSON offenders: inputs/textarea/section superficie384px desdeleft49hastaright433. Causa: mínimo intrínseco de columnaauto se retroalimenta del tamaño384guardado en picker, impidiendo ResizeObserver encogerlo. Fix grid-template-columns:minmax(0,1fr), min-width0 enrejilla yitems.full. Sin overflow:hidden ni tocar LocationPicker/MapPreview ni payload.
+
+Validación final navegador6/6 en15,9s. Cada caso carga1280, pasa al ancho objetivo y repite1024→objetivo con punto elegido; documento dentro del viewport y payload correcto. Antes433px de documento a320; después320. Captura /tmp/report-location-map-320.png revisada. Auditor audit_table PASA. Typecheck/lint/build exit0. Sin overflow:hidden ni cambios de datos. No probado zoom200%, Safari/iOS ni tiles reales (fixture como otras pruebas de mapa).
+
+Suite general590/593,3fallos registrados en /tmp/report-overflow-tests.log; no se modifican esas pruebas ni se afirma suite verde. La primera ejecución amplia de navegador37casos mostró36pass y1timeout de menú no relacionado; los6casos de carga directa del formulario pasaron, lo que motivó probar explícitamente el cambio desktop→móvil y reproducir los4fallos de ancho.

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Avatar } from '@/components/Avatar/Avatar'
@@ -12,7 +14,6 @@ import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { servicesApi } from '@/services/servicesApi'
 import { usersApi } from '@/services/usersApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatMonthYear } from '@/utils/format'
 import type { PublicProfile, ServiceResponse } from '@/types'
 import styles from './profile.module.css'
@@ -24,7 +25,7 @@ export default function ProviderProfilePage() {
   const [provider, setProvider] = useState<PublicProfile | null>(null)
   const [services, setServices] = useState<ServiceResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -56,7 +57,7 @@ export default function ProviderProfilePage() {
           if (!cancelled) setServices([])
         }
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -67,7 +68,7 @@ export default function ProviderProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [providerId, reloadToken, setError])
+  }, [providerId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -86,13 +87,12 @@ export default function ProviderProfilePage() {
   if (provider === null) {
     return (
       <section className={styles.page}>
-        <Link to="/explorar" className={styles.back}>
-          {t("← Volver al catálogo")}</Link>
+        <BackButton to="/explorar" />
         <StateMessage
           title={t("No se pudo cargar el perfil")}
           description={error ?? t("No se encontró la prestadora.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       </section>
     )

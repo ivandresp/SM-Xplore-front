@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Avatar } from '@/components/Avatar/Avatar'
@@ -23,7 +24,6 @@ import {
 } from '@/config/roles'
 import { isSearchReady } from '@/config/search'
 import { usersApi } from '@/services/usersApi'
-import { describeApiError } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
 import type {
   AdminUserSummary,
@@ -85,7 +85,7 @@ export default function UsersPage() {
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [page, setPage] = useState(1)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -126,7 +126,7 @@ export default function UsersPage() {
         if (!cancelled) {
           setUsers([])
           setTotal(0)
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) {
@@ -140,7 +140,7 @@ export default function UsersPage() {
     return () => {
       cancelled = true
     }
-  }, [role, status, providerStatus, sort, debouncedTerm, page, reloadToken, setError])
+  }, [role, status, providerStatus, sort, debouncedTerm, page, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -281,7 +281,7 @@ export default function UsersPage() {
           title={t("No se pudieron cargar los usuarios")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       ) : (
         <DataTable

@@ -68,14 +68,14 @@
 }
 
 .dayTitle {
-  margin: 1.25rem 0 0.5rem;
+  margin: 0 0 0.75rem;
   font-family: var(--font-heading);
   font-size: var(--text-base);
   font-weight: 700;
 }
 
-.dayTitle:first-of-type {
-  margin-top: 0;
+.dayGroup + .dayGroup {
+  margin-top: 1.5rem;
 }
 
 .entry {
@@ -89,7 +89,7 @@
 }
 
 .entry + .entry {
-  margin-top: 0.6rem;
+  margin-top: 1rem;
 }
 
 .entryTime {

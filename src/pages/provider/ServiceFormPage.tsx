@@ -1,6 +1,9 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -59,7 +62,7 @@ export default function ServiceFormPage() {
 
   const [isSaving, setIsSaving] = useState(false)
   const [isLoadingCatalogs, setIsLoadingCatalogs] = useState(true)
-  const [catalogError, setCatalogError] = useMessageState<string | null>(null)
+  const [catalogError, setCatalogError, catalogErrorCause, setCatalogErrorFromApi] = useApiErrorState()
   const [error, setError] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -85,7 +88,7 @@ export default function ServiceFormPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setCatalogError(() => describeApiError(cause))
+          setCatalogErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) setIsLoadingCatalogs(false)
@@ -97,7 +100,7 @@ export default function ServiceFormPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken, setCatalogError])
+  }, [reloadToken, setCatalogError, setCatalogErrorFromApi])
 
   function retryCatalogs() {
     setIsLoadingCatalogs(true)
@@ -174,13 +177,12 @@ export default function ServiceFormPage() {
   if (catalogError !== null) {
     return (
       <section>
-        <Link to="/app/mis-servicios" className={styles.back}>
-          {t("← Volver a mis servicios")}</Link>
+        <BackButton to="/app/mis-servicios" />
         <StateMessage
           title={t("No se pudieron cargar los catálogos")}
           description={catalogError}
           tone="error"
-          action={<Button onClick={retryCatalogs}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={catalogErrorCause} onRetry={retryCatalogs} />}
         />
       </section>
     )
@@ -188,8 +190,7 @@ export default function ServiceFormPage() {
 
   return (
     <section>
-      <Link to="/app/mis-servicios" className={styles.back}>
-        {t("← Volver a mis servicios")}</Link>
+      <BackButton to="/app/mis-servicios" />
 
       <PageHeader
         breadcrumb={[

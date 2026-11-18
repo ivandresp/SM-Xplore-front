@@ -91,7 +91,7 @@ test.describe('flujos de la ola 3', () => {
     await expect(page).toHaveURL(/\/reportes$/, FUTURE)
     await expect(page.getByText(title).first()).toBeVisible(FUTURE)
 
-    await page.getByRole('link', { name: 'Ver detalle y responder' }).first().click()
+    await page.getByRole('button', { name: /Ver \d+ respuestas?/ }).first().click()
     await expect(page).toHaveURL(/\/reportes\/[0-9a-f-]+/, FUTURE)
     const reportId = page.url().split('/').pop()
     expect(reportId).toBeTruthy()

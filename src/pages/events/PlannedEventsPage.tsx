@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
@@ -15,7 +16,6 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { eventsApi } from '@/services/eventsApi'
 import { reservationsApi } from '@/services/reservationsApi'
-import { describeApiError } from '@/utils/errors'
 import { formatDate } from '@/utils/format'
 import type { EventResponse, ReservationSummaryResponse } from '@/types'
 import styles from './events.module.css'
@@ -32,7 +32,7 @@ export default function PlannedEventsPage() {
 
   const [planned, setPlanned] = useState<PlannedEvent[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -77,7 +77,7 @@ export default function PlannedEventsPage() {
         )
         setError(null)
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -88,7 +88,7 @@ export default function PlannedEventsPage() {
     return () => {
       cancelled = true
     }
-  }, [touristId, reloadToken, setError])
+  }, [touristId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -114,8 +114,7 @@ export default function PlannedEventsPage() {
           title={t("No pudimos cargar tus eventos")}
           description={error}
           action={
-            <Button variant="accent" onClick={retry}>
-              {t("Reintentar")}</Button>
+            <ApiErrorAction error={errorCause} variant="accent" onRetry={retry} />
           }
         />
       )}

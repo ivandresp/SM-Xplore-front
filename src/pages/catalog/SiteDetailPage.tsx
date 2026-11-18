@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { getLocale, translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { ActivityCard } from '@/components/ActivityCard/ActivityCard'
 import { Button } from '@/components/Button'
+import { Field } from '@/components/FormField'
 import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SitePhotoGallery } from '@/components/SitePhotoGallery'
@@ -13,9 +16,9 @@ import { StateMessage } from '@/components/StateMessage'
 import { activitiesApi } from '@/services/activitiesApi'
 import { eventsApi } from '@/services/eventsApi'
 import { sitesApi } from '@/services/sitesApi'
+import { useItinerary } from '@/hooks/useItinerary'
 import { useTrackView } from '@/hooks/useTrackView'
 import { zonesApi } from '@/services/zonesApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
 import type { ActivityResponse, EventResponse, Site, Zone } from '@/types'
 import styles from './catalog.module.css'
@@ -56,12 +59,15 @@ export default function SiteDetailPage() {
   const { siteId } = useParams<{ siteId: string }>()
   useTrackView('SITE', siteId)
 
+  const { itinerary, addEntry, removeEntry } = useItinerary()
+  const [visitDate, setVisitDate] = useState('')
+
   const [site, setSite] = useState<Site | null>(null)
   const [zone, setZone] = useState<Zone | null>(null)
   const [activities, setActivities] = useState<ActivityResponse[]>([])
   const [events, setEvents] = useState<EventResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -111,7 +117,7 @@ export default function SiteDetailPage() {
           )
         }
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -122,7 +128,7 @@ export default function SiteDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [siteId, reloadToken, setError])
+  }, [siteId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -141,15 +147,13 @@ export default function SiteDetailPage() {
   if (site === null) {
     return (
       <div className={styles.page}>
-        <Link to="/atractivos" className={styles.state}>
-          {t("← Volver a atractivos")}</Link>
+        <BackButton to="/atractivos" />
         <StateMessage
           tone="error"
           title={t("No pudimos cargar el atractivo")}
           description={error ?? t("No se encontró el atractivo.")}
           action={
-            <Button variant="accent" onClick={retry}>
-              {t("Reintentar")}</Button>
+            <ApiErrorAction error={errorCause} variant="accent" onRetry={retry} />
           }
         />
       </div>
@@ -201,6 +205,25 @@ export default function SiteDetailPage() {
             <h2 className={styles.sectionTitle}>{t("Ubicación")}</h2>
             <SiteLocationMap site={site} />
           </section>
+          <article className={styles.booking}>
+            <h2 className={styles.sectionTitle}>{t("Planificar visita")}</h2>
+            {itinerary.entries.some(entry => entry.type === 'SITE' && entry.itemId === site.id) ? (
+              <>
+                <Link to="/itinerario">{t("Ver itinerario")}</Link>
+                <Button variant="outline" block onClick={() => removeEntry(site.id)}>{t("Quitar del itinerario")}</Button>
+              </>
+            ) : (
+              <form className={siteStyles.visitForm} onSubmit={event => {
+                event.preventDefault()
+                addEntry({ itemId: site.id, type: 'SITE', name: site.name, startsAt: `${visitDate}T12:00:00`, price: 0 })
+              }}>
+                <Field label={t("Fecha de visita")} type="date" required value={visitDate}
+                  min={itinerary.from || undefined} max={itinerary.to || undefined}
+                  onChange={event => setVisitDate(event.target.value)} />
+                <Button type="submit" block>{t("Agregar al itinerario")}</Button>
+              </form>
+            )}
+          </article>
           <article className={styles.booking}>
             <h2 className={styles.sectionTitle}>{t("¿Cómo llegar?")}</h2>
             <dl className={siteStyles.coordinates}>

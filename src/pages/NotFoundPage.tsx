@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom'
+import { BackButton } from '@/components/BackButton'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { AuthShell } from './auth/AuthShell'
@@ -11,7 +11,7 @@ export default function NotFoundPage() {
       subtitle={t("La ruta que buscas no existe o no tienes acceso a ella.")}
       footer={
         <p>
-          <Link to="/app">{t("Volver al inicio")}</Link>
+          <BackButton to="/app" />
         </p>
       }
     >

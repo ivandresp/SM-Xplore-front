@@ -1,0 +1,5 @@
+# Seleccionar ubicación del reporte en mapa
+
+Reemplazar geolocalización por LocationPicker existente (OSM) sin nuevas dependencias ni decisión de proveedor. value inicialnull: centrar Santa Marta no adjunta punto hasta selección explícita. Ubicación sigue opcional por SecurityReportRequest.java:14; enviar mismo objeto latitude/longitude y omitirlo sin selección. Se puede cambiar/quitar; conservar al cambiar texto/errorenvío. Deshabilitar picker al guardar; fallo/carga de mapa no bloquea envío sin ubicación. Sin prompts geolocalización ni inputs coordenadas. Fotos/validaciones/rutas intactas.
+
+Tests primero: selección real con teclado, ausencia petición GPS, quitar, fallo mapa, conservación/edición/reintento; mantener tests fotos/título. Eliminar tests de GPS del formulario ya obsoletos y hookGPS sin consumidores con sus tests. Gate typecheck/lint/test/build y auditor adversario. Navegador375/768/1280 con tiles simulados para seleccionar punto y enviarpayload. No backend nuevo; DTO verificado en repo sololectura. Skills normativas ausentes, ninguna cargada. La elección OSM/picker ya fue autorizada y usada en proyecto, no se abre decisión nueva.

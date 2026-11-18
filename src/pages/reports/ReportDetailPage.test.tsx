@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext } from '@/context/auth-context'
 import type { AuthContextValue } from '@/context/auth-context'
+import { securityReportsApi } from '@/services/securityReportsApi'
 import ReportDetailPage from './ReportDetailPage'
 
 const PHOTOS = [
@@ -57,7 +58,7 @@ function report(overrides: Record<string, unknown> = {}) {
   }
 }
 
-function renderDetail(payload: Record<string, unknown>) {
+function renderDetail(payload: Record<string, unknown>, path = '/reportes/r-1') {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (input: RequestInfo | URL) => {
@@ -71,7 +72,7 @@ function renderDetail(payload: Record<string, unknown>) {
 
   return render(
     <AuthContext.Provider value={AUTH}>
-      <MemoryRouter initialEntries={['/reportes/r-1']}>
+      <MemoryRouter initialEntries={[path]}>
         <Routes>
           <Route path="/reportes/:reportId" element={<ReportDetailPage />} />
         </Routes>
@@ -83,6 +84,48 @@ function renderDetail(payload: Record<string, unknown>) {
 describe('ReportDetailPage', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it('scrolls and focuses comments after the report loads when opened with its hash', async () => {
+    const scroll = vi.fn()
+    const original = HTMLElement.prototype.scrollIntoView
+    HTMLElement.prototype.scrollIntoView = scroll
+    try {
+      renderDetail(report(), '/reportes/r-1#comentarios')
+      const section = await screen.findByRole('article', { name: 'Comentarios (0)' })
+      await waitFor(() => expect(document.activeElement).toBe(section))
+      expect(scroll).toHaveBeenCalledWith({ block: 'start' })
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original
+    }
+  })
+
+  it('replaces description with the report sheet and opens a collapsible comments panel', async () => {
+    renderDetail(report())
+    await screen.findByText('Ficha del reporte')
+    expect(screen.queryByRole('heading', { name: 'Descripción' })).toBeNull()
+    expect(screen.queryByText('Me quitaron la mochila.')).toBeNull()
+    const summary = screen.getByText('Comentarios (0)').closest('summary')!
+    expect(summary).toBeTruthy()
+    expect(summary.closest('details')?.open).toBe(true)
+    expect((screen.getByLabelText('Añadir un comentario') as HTMLTextAreaElement).rows).toBe(1)
+    expect(screen.getByRole('button', { name: 'Publicar comentario' }).querySelector('svg')).toBeTruthy()
+  })
+
+  it('publishes from the icon button, clears on success and preserves the draft on failure', async () => {
+    const post = vi.spyOn(securityReportsApi, 'addComment').mockResolvedValue({ id: 'c1', reportId: 'r-1', user: { id: 'u-1', name: 'Ana' }, content: 'Mensaje', createdAt: '2026-11-12T10:00:00Z' })
+    renderDetail(report())
+    const input = await screen.findByLabelText('Añadir un comentario') as HTMLTextAreaElement
+    fireEvent.change(input, { target: { value: '  Mensaje  ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar comentario' }))
+    await waitFor(() => expect(input.value).toBe(''))
+    expect(post).toHaveBeenCalledWith('r-1', { content: 'Mensaje' })
+    post.mockRejectedValueOnce(new Error('offline'))
+    fireEvent.change(input, { target: { value: 'Conservar borrador' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Publicar comentario' }))
+    await screen.findByRole('alert')
+    expect(input.value).toBe('Conservar borrador')
   })
 
   it('muestra las fotos que se adjuntaron al reporte', async () => {

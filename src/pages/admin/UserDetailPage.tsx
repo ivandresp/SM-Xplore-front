@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -20,7 +23,6 @@ import {
   ROLE_LABELS,
 } from '@/config/roles'
 import { usersApi } from '@/services/usersApi'
-import { describeApiError } from '@/utils/errors'
 import { formatDate, formatDateTime } from '@/utils/format'
 import type {
   AdminUserDetail,
@@ -122,7 +124,7 @@ export default function UserDetailPage() {
   const [user, setUser] = useState<AdminUserDetail | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -157,7 +159,7 @@ export default function UserDetailPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) {
@@ -171,7 +173,7 @@ export default function UserDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [userId, reloadToken, setError])
+  }, [userId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -202,7 +204,7 @@ export default function UserDetailPage() {
       setFeedback(message)
       await refresh()
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -215,13 +217,12 @@ export default function UserDetailPage() {
   if (user === null) {
     return (
       <section>
-        <Link to="/app/usuarios" className={styles.back}>
-          {t("← Volver al listado")}</Link>
+        <BackButton to="/app/usuarios" />
         <StateMessage
           title={t("No se pudo cargar el usuario")}
           description={error ?? t("No se encontró el usuario.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       </section>
     )
@@ -244,8 +245,7 @@ export default function UserDetailPage() {
 
   return (
     <section>
-      <Link to="/app/usuarios" className={styles.back}>
-        {t("← Volver al listado")}</Link>
+      <BackButton to="/app/usuarios" />
 
       <PageHeader
         breadcrumb={[{ label: t("Usuarios"), to: '/app/usuarios' }, { label: t("Detalle") }]}

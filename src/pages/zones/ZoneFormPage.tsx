@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -49,7 +52,7 @@ export default function ZoneFormPage() {
   const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(zoneId !== undefined)
   const [isSavingZone, setIsSavingZone] = useState(false)
-  const [zoneError, setZoneError] = useMessageState<string | null>(null)
+  const [zoneError, setZoneError, zoneErrorCause, setZoneErrorFromApi] = useApiErrorState()
   const [zoneSuccess, setZoneSuccess] = useMessageState<string | null>(null)
 
   const [sites, setSites] = useState<Site[]>([])
@@ -104,7 +107,7 @@ export default function ZoneFormPage() {
           setZoneError(null)
         }
       } catch (cause) {
-        if (!cancelled) setZoneError(() => describeApiError(cause))
+        if (!cancelled) setZoneErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -115,7 +118,7 @@ export default function ZoneFormPage() {
     return () => {
       cancelled = true
     }
-  }, [zoneId, reloadToken, setZoneError])
+  }, [zoneId, reloadToken, setZoneError, setZoneErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -149,7 +152,7 @@ export default function ZoneFormPage() {
       setName(updated.name)
       setZoneSuccess(() => t("Nombre de la zona actualizado."))
     } catch (cause) {
-      setZoneError(() => describeApiError(cause))
+      setZoneErrorFromApi(cause)
     } finally {
       setIsSavingZone(false)
     }
@@ -309,13 +312,12 @@ export default function ZoneFormPage() {
   if (!isNew && zone === null) {
     return (
       <section>
-        <Link to="/app/zonas" className={styles.back}>
-          {t("← Volver a zonas")}</Link>
+        <BackButton to="/app/zonas" />
         <StateMessage
           title={t("No se pudo cargar la zona")}
           description={zoneError ?? t("No se encontró la zona.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={zoneErrorCause} onRetry={retry} />}
         />
       </section>
     )
@@ -323,8 +325,7 @@ export default function ZoneFormPage() {
 
   return (
     <section>
-      <Link to="/app/zonas" className={styles.back}>
-        {t("← Volver a zonas")}</Link>
+      <BackButton to="/app/zonas" />
 
       <PageHeader
         breadcrumb={[

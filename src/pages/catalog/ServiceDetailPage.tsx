@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
-import { Button } from '@/components/Button'
 import { MapPreview } from '@/components/MapPreview'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
@@ -16,7 +17,6 @@ import {
 } from '@/config/roles'
 import { servicesApi } from '@/services/servicesApi'
 import { useTrackView } from '@/hooks/useTrackView'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
 import type { ServiceResponse } from '@/types'
 import styles from './catalog.module.css'
@@ -77,7 +77,7 @@ export default function ServiceDetailPage() {
 
   const [service, setService] = useState<ServiceResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -99,7 +99,7 @@ export default function ServiceDetailPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) {
@@ -113,7 +113,7 @@ export default function ServiceDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [serviceId, reloadToken, setError])
+  }, [serviceId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -132,15 +132,13 @@ export default function ServiceDetailPage() {
   if (service === null) {
     return (
       <div className={styles.page}>
-        <Link to="/servicios" className={styles.state}>
-          {t("← Volver al catálogo")}</Link>
+        <BackButton to="/servicios" />
         <StateMessage
           tone="error"
           title={t("No pudimos cargar el servicio")}
           description={error ?? t("No se encontró el servicio.")}
           action={
-            <Button variant="accent" onClick={retry}>
-              {t("Reintentar")}</Button>
+            <ApiErrorAction error={errorCause} variant="accent" onRetry={retry} />
           }
         />
       </div>

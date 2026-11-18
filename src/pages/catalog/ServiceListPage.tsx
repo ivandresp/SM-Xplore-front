@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
@@ -23,7 +24,6 @@ import {
 import { useDelayedLoading } from '@/hooks/useDelayedLoading'
 import { servicesApi } from '@/services/servicesApi'
 import { zonesApi } from '@/services/zonesApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency } from '@/utils/format'
 import type { PageResponse, ServiceResponse, Zone } from '@/types'
 import styles from './catalog.module.css'
@@ -52,7 +52,7 @@ export default function ServiceListPage() {
   )
   const [zones, setZones] = useState<Zone[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [reloadToken, setReloadToken] = useState(0)
   const queryKey = params.toString()
   const isFirstLoad = result === null
@@ -108,7 +108,7 @@ export default function ServiceListPage() {
       .catch((cause: unknown) => {
         if (!cancelled) {
           setResult(null)
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       })
       .finally(() => {
@@ -118,7 +118,7 @@ export default function ServiceListPage() {
     return () => {
       cancelled = true
     }
-  }, [queryKey, reloadToken, setError])
+  }, [queryKey, reloadToken, setError, setErrorFromApi])
 
   const zoneOptions = useMemo(
     () => [...zones].sort((a, b) => a.name.localeCompare(b.name, 'es')),
@@ -281,8 +281,7 @@ export default function ServiceListPage() {
             title={t("No pudimos cargar los servicios")}
             description={error}
             action={
-              <Button variant="accent" onClick={retry} disabled={isLoading}>
-                {t("Reintentar")}</Button>
+              <ApiErrorAction error={errorCause} variant="accent" onRetry={retry} disabled={isLoading} />
             }
           />
         )}

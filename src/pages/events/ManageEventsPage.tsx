@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
@@ -12,7 +13,6 @@ import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { EVENT_STATUS_LABELS, EVENT_STATUS_TONES } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { eventsApi } from '@/services/eventsApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDateTime } from '@/utils/format'
 import type { EventResponse } from '@/types'
 import styles from './events.module.css'
@@ -23,7 +23,7 @@ export default function ManageEventsPage() {
   const managerId = user?.role === 'DESTINATION_MANAGER' ? user.id : undefined
   const [events, setEvents] = useState<EventResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -48,7 +48,7 @@ export default function ManageEventsPage() {
       } catch (cause) {
         if (!cancelled) {
           setEvents([])
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -60,7 +60,7 @@ export default function ManageEventsPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken, managerId, setError])
+  }, [reloadToken, managerId, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -130,7 +130,7 @@ export default function ManageEventsPage() {
           title={t("No se pudieron cargar los eventos")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       ) : (
         <DataTable

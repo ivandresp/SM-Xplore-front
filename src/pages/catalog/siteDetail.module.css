@@ -38,3 +38,9 @@
     grid-template-columns: minmax(0, 1.65fr) minmax(0, 1fr);
   }
 }
+
+.visitForm {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}

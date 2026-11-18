@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -68,53 +68,21 @@ function renderForm() {
   )
 }
 
-interface PendingLocation {
-  success: (position: GeolocationPosition) => void
-  failure: (error: GeolocationPositionError) => void
-}
-
-function stubGeolocation(): PendingLocation[] {
-  const calls: PendingLocation[] = []
-
-  Object.defineProperty(navigator, 'geolocation', {
-    configurable: true,
-    value: {
-      getCurrentPosition: (
-        success: (position: GeolocationPosition) => void,
-        failure: (error: GeolocationPositionError) => void,
-      ) => {
-        calls.push({ success, failure })
-      },
-    },
-  })
-
-  return calls
-}
-
-/** El callback del navegador llega fuera de un evento: se envuelve en `act`. */
-function denyLocation(calls: PendingLocation[]) {
-  act(() => {
-    calls.at(-1)?.failure({
-      code: 1,
-      message: 'denied',
-      PERMISSION_DENIED: 1,
-      POSITION_UNAVAILABLE: 2,
-      TIMEOUT: 3,
-    })
-  })
-}
-
-function acceptLocation(calls: PendingLocation[], latitude = 11.2404, longitude = -74.199) {
-  act(() => {
-    calls.at(-1)?.success({
-      coords: { latitude, longitude },
-      timestamp: 0,
-    } as GeolocationPosition)
-  })
+const map = vi.hoisted(() => ({ state: 'ready' as 'ready' | 'error' | 'loading' }))
+vi.mock('@/components/MapPreview', async () => {
+  const { useEffect } = await import('react')
+  return { MapPreview: ({ onLoadStateChange, latitude, longitude, zoom }: { latitude: number; longitude: number; zoom: number; onLoadStateChange: (state: 'ready' | 'error' | 'loading') => void }) => {
+    useEffect(() => onLoadStateChange(map.state), [onLoadStateChange, latitude, longitude, zoom])
+    return <div role="img" aria-label="Mapa de ubicación" />
+  } }
+})
+function chooseCenter() {
+  fireEvent.click(screen.getByRole('button', { name: 'Elegir punto en el mapa' }), { detail: 0 })
 }
 
 describe('ReportFormPage', () => {
   beforeEach(() => {
+    map.state = 'ready'
     vi.stubEnv('VITE_CLOUDINARY_CLOUD_NAME', 'demo')
     vi.stubEnv('VITE_CLOUDINARY_UPLOAD_PRESET', 'sm-xplore-unsigned')
   })
@@ -153,52 +121,70 @@ describe('ReportFormPage', () => {
     expect(body).not.toHaveProperty('location')
   })
 
-  it('adjunta la ubicación actual cuando la persona la acepta', async () => {
-    const calls = stubGeolocation()
+
+
+
+
+
+
+  it('selects a point on the map without requesting current location', async () => {
+    const gps = vi.fn()
+    Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: gps } })
     const fetchMock = stubFetch()
     const user = userEvent.setup()
     renderForm()
-
+    expect(screen.queryByRole('button', { name: 'Usar mi ubicación actual' })).toBeNull()
+    chooseCenter()
     await user.type(screen.getByLabelText('Título'), 'Incidente en el muelle')
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación actual' }))
-    expect(screen.getByText(/consultando ubicación/i)).toBeTruthy()
-
-    acceptLocation(calls)
-
-    expect(await screen.findByText(/11\.240400, -74\.199000/)).toBeTruthy()
+    expect(screen.getByText(/Punto seleccionado:/)).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
-
-    expect(await screen.findByText('Mis reportes')).toBeTruthy()
-    expect(submittedBody(fetchMock).location).toEqual({
-      latitude: 11.2404,
-      longitude: -74.199,
-    })
+    await screen.findByText('Mis reportes')
+    expect(submittedBody(fetchMock).location).toEqual({ latitude: 11.2404, longitude: -74.199 })
+    expect(gps).not.toHaveBeenCalled()
   })
 
-  it('explica el permiso denegado y permite reintentar sin bloquear el envío', async () => {
-    const calls = stubGeolocation()
-    stubFetch()
+  it('omits the selected location when the point is removed', async () => {
+    const fetchMock = stubFetch()
     const user = userEvent.setup()
     renderForm()
-
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación actual' }))
-    denyLocation(calls)
-
-    expect(await screen.findByText(/no diste permiso de ubicación/i)).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Enviar reporte' })).toBeTruthy()
-
-    await user.click(screen.getByRole('button', { name: 'Reintentar' }))
-    expect(calls).toHaveLength(2)
+    chooseCenter()
+    await user.click(screen.getByRole('button', { name: 'Quitar punto seleccionado' }))
+    await user.type(screen.getByLabelText('Título'), 'Incidente')
+    await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
+    await screen.findByText('Mis reportes')
+    expect(submittedBody(fetchMock)).not.toHaveProperty('location')
   })
 
-  it('avisa cuando el navegador no expone la ubicación', async () => {
-    stubFetch()
+  it('can submit without location when the map is unavailable', async () => {
+    map.state = 'error'
+    const fetchMock = stubFetch()
     const user = userEvent.setup()
     renderForm()
+    expect(screen.getByRole('button', { name: 'Elegir punto en el mapa' }).getAttribute('aria-disabled')).toBe('true')
+    await user.type(screen.getByLabelText('Título'), 'Incidente')
+    await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
+    await screen.findByText('Mis reportes')
+    expect(submittedBody(fetchMock)).not.toHaveProperty('location')
+  })
 
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación actual' }))
-
-    expect(await screen.findByText(/no expone la ubicación/i)).toBeTruthy()
+  it('preserves and edits the selected location after a failed submission', async () => {
+    let attempt = 0
+    const fetchMock = stubFetch({ create: () => ++attempt === 1 ? jsonResponse({}, 500) : jsonResponse(createdReport(), 201) })
+    const user = userEvent.setup()
+    renderForm()
+    chooseCenter()
+    await user.type(screen.getByLabelText('Título'), 'Incidente')
+    await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
+    await screen.findByRole('alert')
+    expect(screen.getByText(/Punto seleccionado: 11.240400, -74.199000/)).toBeTruthy()
+    fireEvent.keyDown(screen.getByRole('button', { name: 'Elegir punto en el mapa' }), { key: 'ArrowRight' })
+    chooseCenter()
+    await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
+    await screen.findByText('Mis reportes')
+    const calls = fetchMock.mock.calls as unknown as Array<[string, RequestInit]>
+    const body = JSON.parse(String(calls.at(-1)?.[1]?.body))
+    expect(body.location.longitude).toBeGreaterThan(-74.199)
+    expect(body.title).toBe('Incidente')
   })
 
   it('sube una foto de archivo, la previsualiza y la envía', async () => {
@@ -329,52 +315,9 @@ describe('ReportFormPage', () => {
     expect(submittedBody(fetchMock)).not.toHaveProperty('photosUrls')
   })
 
-  it('no deja enviar mientras se está consultando la ubicación', async () => {
-    const calls = stubGeolocation()
-    stubFetch()
-    const user = userEvent.setup()
-    renderForm()
 
-    await user.type(screen.getByLabelText('Título'), 'Incidente')
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación actual' }))
 
-    const submit = screen.getByRole('button', {
-      name: 'Enviar reporte',
-    }) as HTMLButtonElement
-    expect(submit.disabled).toBe(true)
 
-    acceptLocation(calls)
-    await screen.findByText(/11\.240400, -74\.199000/)
-
-    expect(submit.disabled).toBe(false)
-  })
-
-  it('conserva la ubicación anterior si la nueva consulta falla', async () => {
-    const calls = stubGeolocation()
-    const fetchMock = stubFetch()
-    const user = userEvent.setup()
-    renderForm()
-
-    await user.type(screen.getByLabelText('Título'), 'Incidente')
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación actual' }))
-    acceptLocation(calls)
-    await screen.findByText(/11\.240400, -74\.199000/)
-
-    await user.click(screen.getByRole('button', { name: 'Volver a consultar' }))
-    denyLocation(calls)
-
-    expect(
-      await screen.findByText(/mantendremos la ubicación anterior/i),
-    ).toBeTruthy()
-    expect(screen.getByText(/11\.240400, -74\.199000/)).toBeTruthy()
-
-    await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
-    await screen.findByText('Mis reportes')
-    expect(submittedBody(fetchMock).location).toEqual({
-      latitude: 11.2404,
-      longitude: -74.199,
-    })
-  })
 
   it('lleva el foco al título y muestra el error cuando falta', async () => {
     stubFetch()
@@ -390,24 +333,5 @@ describe('ReportFormPage', () => {
     )
   })
 
-  it('mantiene la ubicación elegida aunque el texto cambie', async () => {
-    const calls = stubGeolocation()
-    const fetchMock = stubFetch()
-    const user = userEvent.setup()
-    renderForm()
 
-    await user.click(screen.getByRole('button', { name: 'Usar mi ubicación actual' }))
-    acceptLocation(calls)
-    await screen.findByText(/11\.240400, -74\.199000/)
-
-    await user.type(screen.getByLabelText('Título'), 'Incidente')
-
-    expect(screen.getByText(/11\.240400, -74\.199000/)).toBeTruthy()
-    await user.click(screen.getByRole('button', { name: 'Enviar reporte' }))
-    await screen.findByText('Mis reportes')
-    expect(submittedBody(fetchMock).location).toEqual({
-      latitude: 11.2404,
-      longitude: -74.199,
-    })
-  })
 })

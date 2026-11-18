@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -13,7 +16,6 @@ import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { EVENT_STATUS_LABELS, EVENT_STATUS_TONES } from '@/config/roles'
 import { eventsApi } from '@/services/eventsApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDateTime } from '@/utils/format'
 import type { EventResponse, EventStatus } from '@/types'
 import styles from './events.module.css'
@@ -26,7 +28,7 @@ export default function EventManageDetailPage() {
   const [expected, setExpected] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -49,7 +51,7 @@ export default function EventManageDetailPage() {
           setError(null)
         }
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -60,7 +62,7 @@ export default function EventManageDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [eventId, reloadToken, setError])
+  }, [eventId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -75,13 +77,12 @@ export default function EventManageDetailPage() {
   if (event === null) {
     return (
       <section>
-        <Link to="/app/eventos" className={styles.back}>
-          {t("← Volver a gestión de eventos")}</Link>
+        <BackButton to="/app/eventos" />
         <StateMessage
           title={t("No se pudo cargar el evento")}
           description={error ?? t("No se encontró el evento.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       </section>
     )
@@ -119,7 +120,7 @@ export default function EventManageDetailPage() {
       setExpected(String(updated.expectedAttendance))
       setFeedback(message)
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -138,8 +139,7 @@ export default function EventManageDetailPage() {
 
   return (
     <section>
-      <Link to="/app/eventos" className={styles.back}>
-        {t("← Volver a gestión de eventos")}</Link>
+      <BackButton to="/app/eventos" />
 
       <PageHeader
         breadcrumb={[

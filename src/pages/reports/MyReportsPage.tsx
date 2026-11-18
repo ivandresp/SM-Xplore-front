@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { Link, useNavigate } from 'react-router-dom'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { useReportsPath } from '@/hooks/useReportsPath'
 import { Avatar } from '@/components/Avatar/Avatar'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
+import { FilterBar } from '@/components/FilterBar'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
@@ -23,7 +24,7 @@ import styles from './reports.module.css'
 type SortOrder = 'recent' | 'oldest'
 
 const FILTERS: Array<{ label: string; status?: SecurityReportStatus }> = [
-  { get label() { return t("Todos") } },
+  { get label() { return t("Ver todos") } },
   { get label() { return t("En curso") }, status: 'ONGOING' },
   { get label() { return t("Reportados") }, status: 'REPORTED' },
   { get label() { return t("Resueltos") }, status: 'SOLVED' },
@@ -33,12 +34,13 @@ const FILTERS: Array<{ label: string; status?: SecurityReportStatus }> = [
 export default function MyReportsPage() {
   useLanguage()
   const reportsPath = useReportsPath()
+  const navigate = useNavigate()
   const { user } = useAuth()
 
   const [reports, setReports] = useState<SecurityReportResponse[]>([])
   const [comments, setComments] = useState<Record<string, number>>({})
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [sort, setSort] = useState<SortOrder>('recent')
   const [reloadToken, setReloadToken] = useState(0)
@@ -76,7 +78,7 @@ export default function MyReportsPage() {
       } catch (cause) {
         if (!cancelled) {
           setReports([])
-          setError(() => describeApiError(cause))
+          setError(() => cause)
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -114,49 +116,50 @@ export default function MyReportsPage() {
         title={t("Mis reportes de seguridad")}
         meta={`${filtered.length} ${filtered.length === 1 ? 'reporte' : 'reportes'}`}
         description={t("Lo que has reportado a las autoridades de destino.")}
-        actions={
-          <Link to={`${reportsPath}/nuevo`}>
-            <Button variant="accent">{t("Nuevo reporte")}</Button>
-          </Link>
-        }
       />
 
       {error !== null && (
         <StateMessage
           title={t("No se pudieron cargar tus reportes")}
-          description={error}
+          description={describeApiError(error)}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={error} onRetry={retry} />}
         />
       )}
 
-      {reports.length > 0 && (
-        <div className={styles.filters}>
+      <div className={styles.reportFilters}>
+      <FilterBar
+        actions={
+          <Button variant="accent" className={styles.newReportButton}
+            aria-label={t("Nuevo reporte")} title={t("Nuevo reporte")}
+            onClick={() => navigate(`${reportsPath}/nuevo`)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </Button>
+        }
+        activeFilters={[
+          ...(filterIndex === 0 ? [] : [{ key: 'status', label: t("Estado"), value: FILTERS[filterIndex].label }]),
+          ...(sort === 'recent' ? [] : [{ key: 'sort', label: t("Ordenar por fecha"), value: t("Más antiguos") }]),
+        ]}
+        onRemoveFilter={key => key === 'status' ? setFilterIndex(0) : setSort('recent')}
+        onClearFilters={() => { setFilterIndex(0); setSort('recent') }}
+        resultSummary={isLoading ? t("Cargando reportes…") : `${filtered.length} ${filtered.length === 1 ? t("reporte") : t("reportes")}`}>
+        <div className={styles.reportStatusFilters} role="group" aria-label={t("Estado")}>
           {FILTERS.map((filter, index) => (
-            <Chip
-              key={filter.label}
-              selected={filterIndex === index}
-              onClick={() => setFilterIndex(index)}
-            >
-              {filter.label}
-            </Chip>
+            <Chip key={filter.label} selected={filterIndex === index}
+              onClick={() => setFilterIndex(index)}>{filter.label}</Chip>
           ))}
-
-          <div className={styles.sortSlot}>
-            <SelectField
-              aria-label={t("Ordenar")}
-              options={[
-                { value: 'recent', label: t("Ordenar: más recientes") },
-                { value: 'oldest', label: t("Ordenar: más antiguos") },
-              ]}
-              value={sort}
-              onChange={(changeEvent) =>
-                setSort(changeEvent.target.value as SortOrder)
-              }
-            />
-          </div>
         </div>
-      )}
+        <SelectField label={t("Ordenar por fecha")}
+          options={[
+            { value: 'recent', label: t("Más recientes") },
+            { value: 'oldest', label: t("Más antiguos") },
+          ]}
+          value={sort}
+          onChange={event => setSort(event.target.value as SortOrder)} />
+      </FilterBar>
+      </div>
 
       {isLoading && (
         <Skeleton variant="table" count={3} label={t("Cargando reportes…")} />
@@ -192,17 +195,15 @@ export default function MyReportsPage() {
                 <Avatar name={report.user.name} />
                 <div>
                   <p className={styles.authorName}>{report.user.name}</p>
-                  <p className={styles.authorMeta}>
-                    {formatRelativeTime(report.createdAt)}
-                    {report.location !== null &&
-                      ` · ${report.location.latitude}, ${report.location.longitude}`}
-                  </p>
+                  <div className={`${styles.authorMeta} ${styles.cardMeta}`}>
+                    <span>{formatRelativeTime(report.createdAt)}</span>
+                    <StatusBadge tone={REPORT_STATUS_TONES[report.status]}>
+                      {REPORT_STATUS_LABELS[report.status]}
+                    </StatusBadge>
+                  </div>
                 </div>
               </div>
 
-              <StatusBadge tone={REPORT_STATUS_TONES[report.status]}>
-                {REPORT_STATUS_LABELS[report.status]}
-              </StatusBadge>
             </div>
 
             <p className={styles.text}>{report.title}</p>
@@ -218,12 +219,14 @@ export default function MyReportsPage() {
             )}
 
             <div className={styles.footer}>
-              <span>
-                {comments[report.id] ?? 0}{' '}
-                {(comments[report.id] ?? 0) === 1 ? 'respuesta' : 'respuestas'}
-              </span>
-              <Link to={`${reportsPath}/${report.id}`} className={styles.linkButton}>
-                {t("Ver detalle y responder")}</Link>
+              <Button variant="outline" size="sm"
+                aria-label={t((comments[report.id] ?? 0) === 1 ? 'Ver {0} respuesta' : 'Ver {0} respuestas', [comments[report.id] ?? 0])}
+                onClick={() => navigate(`${reportsPath}/${report.id}#comentarios`)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+                  <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" />
+                </svg>
+                {comments[report.id] ?? 0}
+              </Button>
             </div>
           </article>
         ))}

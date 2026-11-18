@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext } from '@/context/auth-context'
@@ -72,6 +72,23 @@ function renderDetail() {
 describe('SiteDetailPage', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
+  })
+
+  it('adds an attraction with a required visit date and persists it', async () => {
+    localStorage.clear()
+    localStorage.setItem('sm-xplore:itinerary', JSON.stringify({ name: 'Viaje', from: '2026-12-01', to: '2026-12-05', entries: [] }))
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => String(input).includes('/sites/') ? jsonResponse(SITE) : jsonResponse(page([]))))
+    renderDetail()
+    await screen.findByRole('heading', { name: 'Playa Blanca' })
+    const date = screen.getByLabelText('Fecha de visita') as HTMLInputElement
+    expect(date.required).toBe(true)
+    expect(date.min).toBe('2026-12-01')
+    expect(date.max).toBe('2026-12-05')
+    fireEvent.change(date, { target: { value: '2026-12-03' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar al itinerario' }))
+    expect(screen.getByRole('link', { name: 'Ver itinerario' })).toBeTruthy()
+    expect(JSON.parse(localStorage.getItem('sm-xplore:itinerary')!).entries[0]).toMatchObject({ type: 'SITE', startsAt: '2026-12-03T12:00:00', price: 0 })
+    localStorage.clear()
   })
 
   it('muestra la ubicación real del atractivo con un mapa de solo lectura', async () => {

@@ -4,9 +4,9 @@ import { useLocalStorage } from './useLocalStorage'
 import type { ReservationItemType } from '@/types'
 
 export interface ItineraryEntry {
-  /** Id del ítem reservable (actividad, servicio o evento). */
+  /** Id del elemento del viaje (actividad, evento o atractivo). */
   itemId: string
-  type: ReservationItemType
+  type: ReservationItemType | 'SITE'
   name: string
   /** Legacy stored presentation; retained for compatibility, never used for current labels. */
   meta?: string
@@ -14,7 +14,7 @@ export interface ItineraryEntry {
   durationMinutes?: number
   startsAt: string
   price: number
-  /** Guía o prestadora; define con quién se agrupa la reserva. */
+  /** Responsable de la actividad o evento, cuando está disponible. */
   providerId?: string
   /** Se completa cuando el elemento ya se reservó. */
   reservationId?: string
@@ -25,7 +25,7 @@ export function itineraryEntryMeta(entry: ItineraryEntry): string {
   const detail = entry.type === 'ACTIVITY' && entry.durationMinutes !== undefined
     ? formatDurationLong(entry.durationMinutes)
     : formatDate(entry.startsAt)
-  return t(entry.type === 'ACTIVITY' ? 'Actividad · {0}' : 'Evento · {0}', [detail])
+  return t(entry.type === 'SITE' ? 'Atractivo · {0}' : entry.type === 'ACTIVITY' ? 'Actividad · {0}' : 'Evento · {0}', [detail])
 }
 
 export interface Itinerary {
@@ -94,25 +94,7 @@ export function useItinerary() {
   }
 }
 
-/**
- * Agrupa los elementos pendientes para reservar: el dominio exige que una
- * reserva tenga ítems del mismo tipo y de la misma prestadora.
- */
-export function groupPendingEntries(
-  entries: ItineraryEntry[],
-): ItineraryEntry[][] {
-  const groups = new Map<string, ItineraryEntry[]>()
-
-  for (const entry of entries) {
-    const key = `${entry.type}:${entry.providerId ?? 'sin-proveedor'}`
-    const group = groups.get(key)
-
-    if (group === undefined) {
-      groups.set(key, [entry])
-    } else {
-      group.push(entry)
-    }
-  }
-
-  return [...groups.values()]
+/** Solo estos elementos pueden enviarse al endpoint de reservas. */
+export function isReservableEntry(entry: ItineraryEntry): entry is ItineraryEntry & { type: ReservationItemType } {
+  return entry.type === 'ACTIVITY' || entry.type === 'EVENT'
 }

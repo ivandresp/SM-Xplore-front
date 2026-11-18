@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -28,7 +30,7 @@ export default function CategoriesPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [reload, setReload] = useState(0)
-  const [listError, setListError] = useMessageState<string | null>(null)
+  const [listError, setListError, listErrorCause, setListErrorFromApi] = useApiErrorState()
   const [saveError, setSaveError] = useMessageState<string | null>(null)
   const [success, setSuccess] = useMessageState<string | null>(null)
   const submitting = useRef(false)
@@ -53,14 +55,14 @@ export default function CategoriesPage() {
         const data = await categoriesApi.listPage({ scope: filter || undefined, page, size: PAGE_SIZE })
         if (!cancelled) setResult(data)
       } catch (cause) {
-        if (!cancelled) setListError(() => describeApiError(cause))
+        if (!cancelled) setListErrorFromApi(cause)
       } finally {
         if (!cancelled) setLoading(false)
       }
     }
     void load()
     return () => { cancelled = true }
-  }, [filter, page, reload, setListError])
+  }, [filter, page, reload, setListError, setListErrorFromApi])
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -114,7 +116,7 @@ export default function CategoriesPage() {
             onChange={(event) => { setFilter(ALL_SCOPES.find((value) => value === event.target.value) ?? ''); setPage(0) }} />
           {loading ? <p role="status">{t('Cargando categorías…')}</p> : listError !== null ? (
             <StateMessage title={t('No se pudieron cargar las categorías')} description={listError} tone="error"
-              action={<Button onClick={() => setReload((value) => value + 1)}>{t('Reintentar')}</Button>} />
+              action={<ApiErrorAction error={listErrorCause} onRetry={() => setReload((value) => value + 1)} />} />
           ) : result !== null && result.content.length > 0 ? (
             <>
               <ul className={styles.list} aria-label={t('Categorías registradas')}>

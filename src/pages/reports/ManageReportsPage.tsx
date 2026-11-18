@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
@@ -35,7 +36,7 @@ export default function ManageReportsPage() {
   const [reports, setReports] = useState<SecurityReportResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [reloadToken, setReloadToken] = useState(0)
@@ -88,7 +89,7 @@ export default function ManageReportsPage() {
         )
         setError(null)
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setError(() => cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -135,7 +136,7 @@ export default function ManageReportsPage() {
       )
       setFeedback(() => t("Reporte cerrado y marcado como reportado."))
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setError(() => cause)
     } finally {
       setIsWorking(false)
     }
@@ -162,7 +163,7 @@ export default function ManageReportsPage() {
       )
       setFeedback(() => t("Reporte marcado como resuelto."))
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setError(() => cause)
     } finally {
       setIsWorking(false)
     }
@@ -179,9 +180,9 @@ export default function ManageReportsPage() {
       {error !== null && (
         <StateMessage
           title={t("No se pudieron cargar los reportes")}
-          description={error}
+          description={describeApiError(error)}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={error} onRetry={retry} />}
         />
       )}
       {feedback !== null && (
