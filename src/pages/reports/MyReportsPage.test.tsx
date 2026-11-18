@@ -93,7 +93,7 @@ describe('MyReportsPage', () => {
     expect(await screen.findByText('Robo en la playa')).toBeTruthy()
     const card = screen.getByText('Robo en la playa').closest('article')
     expect(within(card as HTMLElement).getByText('En curso')).toBeTruthy()
-    expect(screen.getByText('1 reporte')).toBeTruthy()
+    expect(within(screen.getByRole('heading', { level: 1 }).parentElement!).getByText('1 reporte')).toBeTruthy()
   })
 
   it('offers a message button linked to comments, without coordinates or duplicate count', async () => {
@@ -112,6 +112,24 @@ describe('MyReportsPage', () => {
     expect(badge.parentElement?.textContent).not.toBe('En curso')
     await user.click(button)
     expect(await screen.findByText('Detalle#comentarios')).toBeTruthy()
+  })
+
+  it('filters by status inside the collapsible panel and clears the selection', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).includes('/comments')) return jsonResponse(cursorPage([]))
+      return jsonResponse(cursorPage([REPORT, { ...REPORT, id: 'r-2', title: 'Incidente resuelto', status: 'SOLVED' }]))
+    }))
+    const user = userEvent.setup()
+    renderReports()
+    await screen.findByText('Incidente resuelto')
+    await user.click(screen.getByRole('button', { name: 'Filtros' }))
+    await user.click(screen.getByRole('button', { name: 'Resueltos' }))
+    expect(screen.queryByText('Robo en la playa')).toBeNull()
+    expect(screen.getByText('Incidente resuelto')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
+    expect(screen.getByText('Robo en la playa')).toBeTruthy()
+    await user.click(screen.getByRole('button', { name: 'Filtros' }))
+    expect(screen.queryByRole('combobox', { name: 'Ordenar por fecha' })).toBeNull()
   })
 
   it('muestra el error y reintenta la carga', async () => {
@@ -144,14 +162,19 @@ describe('MyReportsPage', () => {
     await screen.findByText('Robo en la playa')
     expect(document.querySelector('select')).toBeNull()
 
-    const sort = screen.getByRole('combobox', { name: 'Ordenar' })
+    expect(screen.queryByRole('combobox', { name: 'Ordenar por fecha' })).toBeNull()
+    const filters = screen.getByRole('button', { name: 'Filtros' })
+    expect(filters.getAttribute('aria-expanded')).toBe('false')
+    await user.click(filters)
+    expect(filters.getAttribute('aria-expanded')).toBe('true')
+    const sort = screen.getByRole('combobox', { name: 'Ordenar por fecha' })
     await user.click(sort)
     await user.click(
-      screen.getByRole('option', { name: 'Ordenar: más antiguos' }),
+      screen.getByRole('option', { name: 'Más antiguos' }),
     )
 
     await waitFor(() =>
-      expect(sort.textContent).toContain('más antiguos'),
+      expect(sort.textContent).toContain('Más antiguos'),
     )
   })
 })

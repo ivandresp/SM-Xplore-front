@@ -94,7 +94,7 @@ describe('ReportDetailPage', () => {
     try {
       renderDetail(report(), '/reportes/r-1#comentarios')
       const section = await screen.findByRole('article', { name: 'Comentarios (0)' })
-      expect(document.activeElement).toBe(section)
+      await waitFor(() => expect(document.activeElement).toBe(section))
       expect(scroll).toHaveBeenCalledWith({ block: 'start' })
     } finally {
       HTMLElement.prototype.scrollIntoView = original

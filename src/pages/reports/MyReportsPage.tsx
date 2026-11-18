@@ -7,6 +7,7 @@ import { useReportsPath } from '@/hooks/useReportsPath'
 import { Avatar } from '@/components/Avatar/Avatar'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
+import { FilterBar } from '@/components/FilterBar'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
@@ -23,7 +24,7 @@ import styles from './reports.module.css'
 type SortOrder = 'recent' | 'oldest'
 
 const FILTERS: Array<{ label: string; status?: SecurityReportStatus }> = [
-  { get label() { return t("Todos") } },
+  { get label() { return t("Ver todos") } },
   { get label() { return t("En curso") }, status: 'ONGOING' },
   { get label() { return t("Reportados") }, status: 'REPORTED' },
   { get label() { return t("Resueltos") }, status: 'SOLVED' },
@@ -115,11 +116,6 @@ export default function MyReportsPage() {
         title={t("Mis reportes de seguridad")}
         meta={`${filtered.length} ${filtered.length === 1 ? 'reporte' : 'reportes'}`}
         description={t("Lo que has reportado a las autoridades de destino.")}
-        actions={
-          <Link to={`${reportsPath}/nuevo`}>
-            <Button variant="accent">{t("Nuevo reporte")}</Button>
-          </Link>
-        }
       />
 
       {error !== null && (
@@ -131,33 +127,39 @@ export default function MyReportsPage() {
         />
       )}
 
-      {reports.length > 0 && (
-        <div className={styles.filters}>
+      <div className={styles.reportFilters}>
+      <FilterBar
+        actions={
+          <Button variant="accent" className={styles.newReportButton}
+            aria-label={t("Nuevo reporte")} title={t("Nuevo reporte")}
+            onClick={() => navigate(`${reportsPath}/nuevo`)}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true" focusable="false">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+          </Button>
+        }
+        activeFilters={[
+          ...(filterIndex === 0 ? [] : [{ key: 'status', label: t("Estado"), value: FILTERS[filterIndex].label }]),
+          ...(sort === 'recent' ? [] : [{ key: 'sort', label: t("Ordenar por fecha"), value: t("Más antiguos") }]),
+        ]}
+        onRemoveFilter={key => key === 'status' ? setFilterIndex(0) : setSort('recent')}
+        onClearFilters={() => { setFilterIndex(0); setSort('recent') }}
+        resultSummary={isLoading ? t("Cargando reportes…") : `${filtered.length} ${filtered.length === 1 ? t("reporte") : t("reportes")}`}>
+        <div className={styles.reportStatusFilters} role="group" aria-label={t("Estado")}>
           {FILTERS.map((filter, index) => (
-            <Chip
-              key={filter.label}
-              selected={filterIndex === index}
-              onClick={() => setFilterIndex(index)}
-            >
-              {filter.label}
-            </Chip>
+            <Chip key={filter.label} selected={filterIndex === index}
+              onClick={() => setFilterIndex(index)}>{filter.label}</Chip>
           ))}
-
-          <div className={styles.sortSlot}>
-            <SelectField
-              aria-label={t("Ordenar")}
-              options={[
-                { value: 'recent', label: t("Ordenar: más recientes") },
-                { value: 'oldest', label: t("Ordenar: más antiguos") },
-              ]}
-              value={sort}
-              onChange={(changeEvent) =>
-                setSort(changeEvent.target.value as SortOrder)
-              }
-            />
-          </div>
         </div>
-      )}
+        <SelectField label={t("Ordenar por fecha")}
+          options={[
+            { value: 'recent', label: t("Más recientes") },
+            { value: 'oldest', label: t("Más antiguos") },
+          ]}
+          value={sort}
+          onChange={event => setSort(event.target.value as SortOrder)} />
+      </FilterBar>
+      </div>
 
       {isLoading && (
         <Skeleton variant="table" count={3} label={t("Cargando reportes…")} />

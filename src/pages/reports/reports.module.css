@@ -595,3 +595,20 @@
   .reportDetailLayout > .column > .commentsSection { order: 1; }
   .reportDetailLayout > .column > .reportSheet { order: 2; }
 }
+
+.reportStatusFilters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.reportFilters { margin-bottom: 0.75rem; }
+.newReportButton.newReportButton {
+  width: var(--control-h-md);
+  min-width: var(--control-h-md);
+  height: var(--control-h-md);
+  border-radius: 50%;
+  padding: 0;
+  flex-shrink: 0;
+}

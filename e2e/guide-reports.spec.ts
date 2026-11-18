@@ -75,7 +75,7 @@ for (const width of [1280, 1920]) {
       await expect(page.getByRole('button', { name: /Marcar como|Mark as/ })).toHaveCount(0)
       await page.getByRole('link', { name: es ? /Volver a mis reportes/ : /Back to my reports/ }).click()
       await expect(page).toHaveURL(/\/app\/reportes$/)
-      const create = page.getByRole('link', { name: es ? 'Nuevo reporte' : 'New report', exact: true })
+      const create = page.getByRole('button', { name: es ? 'Nuevo reporte' : 'New report', exact: true })
       await create.click()
       await expect(page).toHaveURL(/\/app\/reportes\/nuevo$/)
       await expect(sidebar).toBeVisible()
