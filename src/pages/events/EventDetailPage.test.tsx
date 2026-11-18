@@ -106,6 +106,8 @@ describe('EventDetailPage', () => {
       screen.getByRole('link', { name: /© OpenStreetMap contributors/ }),
     ).toBeTruthy()
     expect(screen.queryByText('Sin fotos disponibles')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Acercar mapa' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Alejar mapa' })).toBeTruthy()
     const location = screen.getByRole('region', { name: 'Ubicación' })
     const cover = screen.getByRole('img', { name: 'Foto de portada' })
     expect(cover.getAttribute('src')).toBe(EVENT.portraitUrl)

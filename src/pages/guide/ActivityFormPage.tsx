@@ -339,12 +339,6 @@ export default function ActivityFormPage() {
               />
               {t("Publicar al guardar")}</label>
           </article>
-
-          <article className={styles.card}>
-            <h2 className={styles.cardTitle}>{t("Fotos de la actividad")}</h2>
-            <p className={styles.muted}>
-              {t("Las actividades no admiten fotos por ahora.")}</p>
-          </article>
         </div>
       </div>
     </section>

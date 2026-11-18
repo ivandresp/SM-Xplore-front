@@ -64,7 +64,7 @@ function ServiceLocationMap({ service }: { service: ServiceResponse }) {
   return (
     <div ref={container} className={serviceStyles.mapSlot}>
       <div className={serviceStyles.mapContent}>
-        <MapPreview label={service.name} latitude={service.latitude} longitude={service.longitude} width={dimensions.width} height={dimensions.height} />
+        <MapPreview label={service.name} latitude={service.latitude} longitude={service.longitude} width={dimensions.width} height={dimensions.height} zoomControls />
       </div>
     </div>
   )
@@ -149,6 +149,8 @@ export default function ServiceDetailPage() {
 
   return (
     <div className={styles.page}>
+      <BackButton to="/servicios" />
+
       <PageHeader
         serif
         breadcrumb={[

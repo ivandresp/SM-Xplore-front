@@ -109,6 +109,9 @@ describe('SiteDetailPage', () => {
       screen.getByRole('img', { name: /Mapa de Playa Blanca en 11\.26000, -74\.19000/ }),
     ).toBeTruthy()
     const directions = screen.getByRole('heading', { name: '¿Cómo llegar?' }).closest('article')!
+    expect(screen.getByRole('button', { name: 'Volver' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Acercar mapa' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Alejar mapa' })).toBeTruthy()
     expect(within(directions).getByText('Latitud')).toBeTruthy()
     expect(within(directions).getByText('11.26000')).toBeTruthy()
     expect(within(directions).getByText('Longitud')).toBeTruthy()

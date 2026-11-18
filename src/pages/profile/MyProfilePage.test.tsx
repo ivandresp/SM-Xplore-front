@@ -195,6 +195,31 @@ describe('MyProfilePage · preferencias', () => {
     expect(calls.some((url) => url.endsWith('/preferences/c1'))).toBe(true)
   })
 
+  it('resuelve preferencias de páginas posteriores y permite quitar las que tienen nombre no disponible', async () => {
+    const fetchMock = stubApi((url) => {
+      if (url.endsWith('/preferences/c-missing')) return jsonResponse(undefined, 204)
+      if (url.endsWith('/preferences')) {
+        return jsonResponse(['c4', 'c-missing'].map(categoryId => ({
+          touristId: 'u-1', categoryId, weight: 1, source: 'EXPLICIT',
+          updatedAt: '2026-11-12T05:04:27Z',
+        })))
+      }
+      if (url.includes('page=1')) {
+        return jsonResponse({ ...CATEGORIES, content: [CATEGORIES.content[3]], page: 1, totalPages: 2 })
+      }
+      return jsonResponse({ ...CATEGORIES, content: CATEGORIES.content.slice(0, 3), totalPages: 2 })
+    })
+
+    renderProfile('TOURIST')
+
+    expect(await screen.findByRole('button', { name: 'Quitar Miradores' })).toBeTruthy()
+    const unavailable = screen.getByRole('button', { name: 'Quitar Categoría no disponible' })
+    expect(screen.queryByRole('button', { name: 'Quitar Categoría' })).toBeNull()
+    await userEvent.click(unavailable)
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Quitar Categoría no disponible' })).toBeNull())
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/preferences/c-missing', expect.objectContaining({ method: 'DELETE' }))
+  })
+
   it('deja rastro en consola cuando falla el guardado del perfil', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 

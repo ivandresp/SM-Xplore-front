@@ -50,7 +50,7 @@ function SiteLocationMap({ site }: { site: Site }) {
     return () => observer.disconnect()
   }, [])
 
-  return <div ref={container}><MapPreview label={site.name} latitude={site.latitude} longitude={site.longitude} size={size} /></div>
+  return <div ref={container}><MapPreview label={site.name} latitude={site.latitude} longitude={site.longitude} size={size} zoomControls /></div>
 }
 
 /** Ficha pública de un atractivo con sus actividades y eventos. Sin mockup: patrón de actividad. */
@@ -162,6 +162,8 @@ export default function SiteDetailPage() {
 
   return (
     <div className={styles.page}>
+      <BackButton to="/atractivos" />
+
       <PageHeader
         serif
         breadcrumb={[

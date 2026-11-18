@@ -7,7 +7,8 @@ import { useMessageState } from '@/hooks/useMessageState'
 import { getLocale, translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
-import { MapPreview } from '@/components/MapPreview'
+import { ResponsiveMapPreview } from '@/components/MapPreview'
+import { Media } from '@/components/Media'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
@@ -45,6 +46,8 @@ function formatTime(value: string): string {
   }).format(new Date(value))
 }
 
+const DESKTOP_LAYOUT = '(min-width: 1000px)'
+
 export default function ActivityDetailPage() {
   useLanguage()
   const paymentOptions = Object.entries(PAYMENT_METHOD_LABELS).map(
@@ -56,6 +59,20 @@ export default function ActivityDetailPage() {
   const { itinerary, addEntry, removeEntry } = useItinerary()
   const navigate = useNavigate()
   const location = useLocation()
+
+  const [isDesktop, setIsDesktop] = useState(() => window.matchMedia?.(DESKTOP_LAYOUT).matches ?? false)
+
+  useEffect(() => {
+    const media = window.matchMedia?.(DESKTOP_LAYOUT)
+    if (media === undefined) return
+
+    function update(event: MediaQueryListEvent) {
+      setIsDesktop(event.matches)
+    }
+
+    media.addEventListener('change', update)
+    return () => media.removeEventListener('change', update)
+  }, [])
 
   const [activity, setActivity] = useState<ActivityResponse | null>(null)
   const [site, setSite] = useState<Site | null>(null)
@@ -225,8 +242,44 @@ export default function ActivityDetailPage() {
     }
   }
 
+  const activityLocation = (
+    <section>
+      <h2 className={styles.sectionTitle}>
+        {t("Ubicación y punto de encuentro")}</h2>
+      {site !== null ? (
+        <>
+          <p className={styles.paragraph}>
+            <strong>{site.name}</strong>
+            {zone !== null ? ` · ${zone.name}` : ''}
+          </p>
+          <ResponsiveMapPreview
+            label={site.name}
+            latitude={site.latitude}
+            longitude={site.longitude}
+          />
+        </>
+      ) : (
+        <p className={styles.paragraphMuted}>
+          {siteProblem === 'unavailable'
+            ? t("No pudimos cargar la ubicación del atractivo. Vuelve a intentarlo en un momento.")
+            : t("Esta actividad no tiene un atractivo publicado asociado.")}
+        </p>
+      )}
+    </section>
+  )
+
+  const reviews = (
+    <article className={styles.booking}>
+      <h2 className={styles.sectionTitle}>{t("Reseñas")}</h2>
+      <p className={styles.paragraphMuted}>
+        {t("Todavía no hay reseñas de esta actividad.")}</p>
+    </article>
+  )
+
   return (
     <div className={styles.page}>
+      <BackButton to="/explorar" />
+
       <PageHeader
         serif
         breadcrumb={[
@@ -245,8 +298,12 @@ export default function ActivityDetailPage() {
       />
 
       <div className={styles.detailLayout}>
-        <div className={styles.column}>
-          <div className={styles.hero}>{t("Sin fotos disponibles")}</div>
+        <div className={`${styles.column} ${styles.activityColumn}`}>
+          {activity.portraitUrl ? (
+            <Media photo={activity.portraitUrl} alt={t("Foto de portada")} className={styles.activityPortrait} />
+          ) : (
+            <div className={styles.hero}>{t("Sin fotos disponibles")}</div>
+          )}
 
           <section className={styles.activityDescription}>
             <h2 className={styles.sectionTitle}>{t("Descripción")}</h2>
@@ -282,32 +339,10 @@ export default function ActivityDetailPage() {
             </div>
           </div>
 
-          <section>
-            <h2 className={styles.sectionTitle}>
-              {t("Ubicación y punto de encuentro")}</h2>
-            {site !== null ? (
-              <>
-                <p className={styles.paragraph}>
-                  <strong>{site.name}</strong>
-                  {zone !== null ? ` · ${zone.name}` : ''}
-                </p>
-                <MapPreview
-                  label={site.name}
-                  latitude={site.latitude}
-                  longitude={site.longitude}
-                />
-              </>
-            ) : (
-              <p className={styles.paragraphMuted}>
-                {siteProblem === 'unavailable'
-                  ? t("No pudimos cargar la ubicación del atractivo. Vuelve a intentarlo en un momento.")
-                  : t("Esta actividad no tiene un atractivo publicado asociado.")}
-              </p>
-            )}
-          </section>
+          {isDesktop ? reviews : activityLocation}
         </div>
 
-        <div className={styles.column}>
+        <div className={`${styles.column} ${styles.activityColumn}`}>
           <article className={styles.booking}>
             {confirmation !== null ? (
               <>
@@ -440,11 +475,7 @@ export default function ActivityDetailPage() {
             )}
           </article>
 
-          <article className={styles.booking}>
-            <h2 className={styles.sectionTitle}>{t("Reseñas")}</h2>
-            <p className={styles.paragraphMuted}>
-              {t("Todavía no hay reseñas de esta actividad.")}</p>
-          </article>
+          {isDesktop ? activityLocation : reviews}
         </div>
       </div>
     </div>

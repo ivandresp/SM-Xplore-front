@@ -295,7 +295,7 @@ export default function MyProfilePage() {
                   <ul className={styles.prefsList}>
                     {preferences.map((preference) => {
                       const name =
-                        categoryNames.get(preference.categoryId) ?? t("Categoría")
+                        categoryNames.get(preference.categoryId) ?? t("Categoría no disponible")
 
                       return (
                         <li key={preference.categoryId}>

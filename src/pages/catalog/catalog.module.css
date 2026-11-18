@@ -110,6 +110,7 @@
 /* Detalle de la actividad */
 .detailLayout {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1.5rem;
 }
 
@@ -131,6 +132,16 @@
 .column {
   display: grid;
   gap: 1.25rem;
+}
+
+.activityColumn {
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.activityColumn > .activityPortrait {
+  height: auto;
+  aspect-ratio: 16 / 9;
 }
 
 .hero {

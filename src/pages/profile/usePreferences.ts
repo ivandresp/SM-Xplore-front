@@ -4,6 +4,7 @@ import { translate as t } from '@/i18n/language'
 import { categoriesApi } from '@/services/categoriesApi'
 import { recommendationsApi } from '@/services/recommendationsApi'
 import { describeApiError, logApiError } from '@/utils/errors'
+import { MAX_PAGE_SIZE } from '@/types/common'
 import type { CategoryResponse, PreferenceResponse } from '@/types'
 
 export interface UsePreferencesOptions {
@@ -43,11 +44,22 @@ export function usePreferences({
     }
 
     let cancelled = false
+    const loadedCategories: CategoryResponse[] = []
+
+    async function loadCategories() {
+      const first = await categoriesApi.listPage({ page: 0, size: MAX_PAGE_SIZE })
+      loadedCategories.push(...first.content)
+
+      for (let page = 1; page < first.totalPages && !cancelled; page++) {
+        const next = await categoriesApi.listPage({ page, size: MAX_PAGE_SIZE })
+        loadedCategories.push(...next.content)
+      }
+    }
 
     // Una preferencia que falla no debe tumbar las recomendaciones ni al revés.
     void Promise.allSettled([
       recommendationsApi.listPreferences(),
-      categoriesApi.list(),
+      loadCategories(),
     ])
       .then(([prefs, cats]) => {
         if (cancelled) {
@@ -57,9 +69,7 @@ export function usePreferences({
         if (prefs.status === 'fulfilled') {
           setPreferences(prefs.value)
         }
-        if (cats.status === 'fulfilled') {
-          setCategories(cats.value)
-        }
+        setCategories(loadedCategories)
 
         const failure =
           prefs.status === 'rejected'

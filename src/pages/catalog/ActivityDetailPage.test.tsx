@@ -18,6 +18,7 @@ const ACTIVITY = {
   startsAt: '2026-12-01T08:00:00Z',
   endsAt: '2026-12-01T11:00:00Z',
   description: 'Arrecifes frente a Taganga.',
+  portraitUrl: 'https://example.com/snorkel.jpg',
 }
 
 const SITE = {
@@ -109,6 +110,7 @@ describe('ActivityDetailPage', () => {
     expect(
       await screen.findByRole('heading', { name: 'Snorkel en Taganga' }),
     ).toBeTruthy()
+    expect(screen.getByRole('img', { name: 'Foto de portada' }).getAttribute('src')).toBe(ACTIVITY.portraitUrl)
     expect(screen.getByText('Arrecifes frente a Taganga.')).toBeTruthy()
     expect(screen.getByText('COP / persona')).toBeTruthy()
     expect(
@@ -137,6 +139,9 @@ describe('ActivityDetailPage', () => {
         name: /Mapa de Playa Blanca en 11\.26000, -74\.19000/,
       }),
     ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Volver' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Acercar mapa' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Alejar mapa' })).toBeTruthy()
     expect(
       screen.getByRole('link', { name: /© OpenStreetMap contributors/ }),
     ).toBeTruthy()
