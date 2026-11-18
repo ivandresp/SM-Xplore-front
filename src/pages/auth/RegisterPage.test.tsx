@@ -81,6 +81,10 @@ function renderRegister() {
 
 type User = ReturnType<typeof userEvent.setup>
 
+async function showSpecific(user: User) {
+  await user.click(screen.getByRole('tab', { name: 'Información Específica' }))
+}
+
 async function fillTouristForm(
   user: User,
   overrides: Partial<Record<'phone' | 'password' | 'email', string>> = {},
@@ -98,6 +102,7 @@ async function fillTouristForm(
     screen.getByLabelText('Contraseña'),
     overrides.password ?? 'ContraseñaSegura1!',
   )
+  await showSpecific(user)
   await user.type(screen.getByLabelText('Número de documento'), '1020304050')
 }
 
@@ -112,6 +117,38 @@ describe('RegisterPage', () => {
     mapState.value = 'ready'
     window.sessionStorage.clear()
     vi.unstubAllGlobals()
+  })
+
+  it('empieza en información general y conserva los datos de cada pestaña', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    renderRegister()
+
+    const general = screen.getByRole('tab', { name: 'Información General' })
+    const specific = screen.getByRole('tab', { name: 'Información Específica' })
+    expect(general.getAttribute('aria-selected')).toBe('true')
+    expect(screen.queryByLabelText('Número de documento')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Crear cuenta' })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Inicia sesión' })).toBeTruthy()
+
+    await user.type(screen.getByLabelText('Nombre completo'), 'Laura Mora{Enter}')
+    expect(fetchMock).not.toHaveBeenCalled()
+    general.focus()
+    await user.keyboard('{ArrowRight}')
+    expect(document.activeElement).toBe(specific)
+    expect(specific.getAttribute('aria-selected')).toBe('true')
+    const inactivePanel = document.getElementById(general.getAttribute('aria-controls') ?? '')
+    expect(inactivePanel?.hasAttribute('inert')).toBe(true)
+    expect(screen.queryByRole('tabpanel', { name: 'Información General' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'Crear cuenta' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Inicia sesión' })).toBeTruthy()
+
+    await user.type(screen.getByLabelText('Número de documento'), '1020304050')
+    await user.click(general)
+    expect(screen.getByLabelText<HTMLInputElement>('Nombre completo').value).toBe('Laura Mora')
+    await user.click(specific)
+    expect(screen.getByLabelText<HTMLInputElement>('Número de documento').value).toBe('1020304050')
   })
 
   it('muestra el checklist con los mínimos del backend y no envía con la contraseña incompleta', async () => {
@@ -149,7 +186,7 @@ describe('RegisterPage', () => {
     renderRegister()
 
     await fillTouristForm(user, { phone: '300 12' })
-    await user.tab()
+    await user.click(screen.getByRole('tab', { name: 'Información General' }))
 
     // El error del blur se pinta en la tarea siguiente (ver RegisterPage).
     await screen.findByText(/7 y 20/i)
@@ -164,10 +201,11 @@ describe('RegisterPage', () => {
       .join(' ')
     expect(described).toMatch(/7 y 20/i)
 
+    await showSpecific(user)
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 
     expect(fetchMock).not.toHaveBeenCalled()
-    expect(document.activeElement).toBe(phone)
+    expect(document.activeElement).toBe(screen.getByLabelText('Teléfono'))
     const blockedAlerts = screen
       .getAllByRole('alert')
       .map((node) => node.textContent ?? '')
@@ -332,10 +370,11 @@ describe('RegisterPage', () => {
     await user.click(
       screen.getByRole('option', { name: 'Prestadora de servicios' }),
     )
-    await user.type(screen.getByLabelText('Nombre completo'), 'Hotel Tayrona')
+    await user.type(screen.getByLabelText('Razón social'), 'Hotel Tayrona')
     await user.type(screen.getByLabelText('Correo electrónico'), 'hotel@correo.com')
     await user.type(screen.getByLabelText('Teléfono'), '3001234567')
     await user.type(screen.getByLabelText('Contraseña'), 'ContraseñaSegura1!')
+    await showSpecific(user)
     await user.type(screen.getByLabelText('NIT'), '900123456-7')
     const business = screen.getByRole('combobox', { name: 'Tipo de negocio' })
     expect(screen.queryByText('Alojamiento, transporte, alimentación…')).toBeNull()
@@ -399,9 +438,11 @@ describe('RegisterPage', () => {
     await user.click(screen.getByRole('combobox', { name: 'Tipo de cuenta' }))
     await user.click(screen.getByRole('option', { name: 'Prestadora de servicios' }))
     for (const [label, value] of [
-      ['Nombre completo', 'Hotel Tayrona'], ['Correo electrónico', 'hotel@correo.com'],
-      ['Teléfono', '3001234567'], ['Contraseña', 'ContraseñaSegura1!'], ['NIT', '900123456-7'],
+      ['Razón social', 'Hotel Tayrona'], ['Correo electrónico', 'hotel@correo.com'],
+      ['Teléfono', '3001234567'], ['Contraseña', 'ContraseñaSegura1!'],
     ]) await user.type(screen.getByLabelText(label), value)
+    await showSpecific(user)
+    await user.type(screen.getByLabelText('NIT'), '900123456-7')
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
     const picker = screen.getByRole('button', { name: 'Elegir punto en el mapa' })
     await waitFor(() => expect(document.activeElement).toBe(picker))
@@ -483,6 +524,7 @@ describe('RegisterPage', () => {
     const user = userEvent.setup()
     renderRegister()
 
+    await showSpecific(user)
     screen.getByRole('button', { name: 'Crear cuenta' }).focus()
     await user.keyboard('{Enter}')
 
@@ -514,8 +556,9 @@ describe('RegisterPage', () => {
     await user.keyboard('{ArrowDown}{ArrowDown}{ArrowDown}')
     await user.keyboard('{Enter}')
 
-    expect(await screen.findByLabelText('NIT')).toBeTruthy()
     expect(kind.textContent).toContain('Prestadora de servicios')
+    await showSpecific(user)
+    expect(screen.getByLabelText('NIT')).toBeTruthy()
   })
 
   it('enfoca el combobox y anuncia su error en polite si el backend lo rechaza', async () => {
@@ -578,42 +621,15 @@ describe('RegisterPage', () => {
     expect(screen.queryByText(/Revisa los datos/i)).toBeNull()
   })
 
-  it('al pulsar el enlace llega a /registro/guia con el formulario de guía', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
-
+  it('permite elegir guía desde el tipo de cuenta sin mostrar el enlace alternativo', async () => {
     const user = userEvent.setup()
-    render(
-      <AuthProvider>
-        <MemoryRouter initialEntries={['/registro']}>
-          <Routes>
-            <Route path="/registro" element={<RegisterPage />} />
-            <Route
-              path="/registro/guia"
-              element={<RegisterPage initialKind="GUIDE" />}
-            />
-          </Routes>
-        </MemoryRouter>
-      </AuthProvider>,
-    )
-
-    await user.click(
-      screen.getByRole('link', { name: 'Registra tu solicitud como guía' }),
-    )
-
-    const kind = await screen.findByRole('combobox', { name: 'Tipo de cuenta' })
-    expect(kind.textContent).toContain('Guía turístico')
-    expect(screen.getByLabelText('Licencia de guía')).toBeTruthy()
-  })
-
-  it('enlaza desde /registro al alta de guía', () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(TOURIST_USER, 201)))
-
     renderRegister()
 
-    const link = screen.getByRole('link', {
-      name: 'Registra tu solicitud como guía',
-    })
-    expect(link.getAttribute('href')).toBe('/registro/guia')
+    expect(screen.queryByRole('link', { name: 'Registra tu solicitud como guía' })).toBeNull()
+    await user.click(screen.getByRole('combobox', { name: 'Tipo de cuenta' }))
+    await user.click(screen.getByRole('option', { name: 'Guía turístico' }))
+    await showSpecific(user)
+    expect(screen.getByLabelText('Licencia de guía')).toBeTruthy()
   })
 
   it('entra a /registro/guia con el formulario de guía ya elegido', () => {
@@ -634,6 +650,7 @@ describe('RegisterPage', () => {
 
     const kind = screen.getByRole('combobox', { name: 'Tipo de cuenta' })
     expect(kind.textContent).toContain('Guía turístico')
+    fireEvent.click(screen.getByRole('tab', { name: 'Información Específica' }))
     expect(screen.getByLabelText('Licencia de guía')).toBeTruthy()
     expect(screen.queryByLabelText('NIT')).toBeNull()
   })
@@ -660,6 +677,7 @@ describe('RegisterPage', () => {
     await user.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com')
     await user.type(screen.getByLabelText('Teléfono'), '3001112233')
     await user.type(screen.getByLabelText('Contraseña'), 'ContraseñaSegura1!')
+    await showSpecific(user)
     await user.type(screen.getByLabelText('Número de documento'), '1020304050')
     await user.type(screen.getByLabelText('Licencia de guía'), 'LIC-B8A-001')
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
@@ -699,6 +717,7 @@ describe('RegisterPage', () => {
     await user.type(screen.getByLabelText('Correo electrónico'), 'ana@correo.com')
     await user.type(screen.getByLabelText('Teléfono'), '3001112233')
     await user.type(screen.getByLabelText('Contraseña'), 'ContraseñaSegura1!')
+    await showSpecific(user)
     await user.type(screen.getByLabelText('Número de documento'), '1020304050')
     await user.click(screen.getByRole('button', { name: 'Crear cuenta' }))
 

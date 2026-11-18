@@ -30,8 +30,9 @@ test.describe('flujos de la ola 3', () => {
     await page.getByLabel('Correo electrónico').fill(email)
     await page.getByLabel('Teléfono').fill(uniquePhone())
     await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD)
+    await page.getByRole('tab', { name: 'Información Específica' }).click()
     await page.getByLabel('Número de documento').fill(uniqueDni())
-    await page.getByLabel('Nacionalidad').fill('Colombiana')
+    await page.getByLabel('Pais de Origen').fill('Colombiana')
     await page.getByLabel('Fecha de nacimiento').fill('1990-05-20')
     await page
       .locator('form')
@@ -74,6 +75,7 @@ test.describe('flujos de la ola 3', () => {
     await page.getByLabel('Correo electrónico').fill(email)
     await page.getByLabel('Teléfono').fill(uniquePhone())
     await page.getByLabel('Contraseña', { exact: true }).fill(PASSWORD)
+    await page.getByRole('tab', { name: 'Información Específica' }).click()
     await page.getByLabel('Número de documento').fill(uniqueDni())
     await page
       .locator('form')
