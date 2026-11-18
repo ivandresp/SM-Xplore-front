@@ -35,9 +35,9 @@ export interface CommentResponse {
   createdAt: string
 }
 
-/** ms-02 pagina por cursor: `status` es obligatorio en el listado general. */
+/** ms-02 pagina por cursor: `status` es opcional en el listado general. */
 export interface SecurityReportListFilters {
-  status: SecurityReportStatus
+  status?: SecurityReportStatus
   cursor?: string
   size?: number
 }

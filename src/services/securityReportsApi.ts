@@ -102,7 +102,7 @@ export const securityReportsApi = {
     )
   },
 
-  /** `GET /security-reports?status=&cursor=&size=` — `status` obligatorio, paginado por cursor. */
+  /** `GET /security-reports?status=&cursor=&size=` — `status` opcional, paginado por cursor. */
   list: async ({ status, cursor, size = 20 }: SecurityReportListFilters) => {
     const data = await httpClient.get<unknown>('/security-reports', {
       query: { status, cursor, size },
@@ -195,7 +195,7 @@ export const securityReportsApi = {
     )
   },
 
-  /** `GET /security-reports/{id}/comments?cursor=&size=` — solo autor o staff. */
+  /** `GET /security-reports/{id}/comments?cursor=&size=`. */
   listComments: async (reportId: string, cursor?: string) => {
     const data = await httpClient.get<unknown>(
       `/security-reports/${reportId}/comments`,

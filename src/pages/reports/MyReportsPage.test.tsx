@@ -78,7 +78,7 @@ describe('MyReportsPage', () => {
     vi.unstubAllGlobals()
   })
 
-  it('lista los reportes propios con el título y el estado en español', async () => {
+  it('lista los reportes con su estado en español', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
@@ -93,7 +93,44 @@ describe('MyReportsPage', () => {
     expect(await screen.findByText('Robo en la playa')).toBeTruthy()
     const card = screen.getByText('Robo en la playa').closest('article')
     expect(within(card as HTMLElement).getByText('En curso')).toBeTruthy()
-    expect(within(screen.getByRole('heading', { level: 1 }).parentElement!).getByText('1 reporte')).toBeTruthy()
+    expect(screen.getByText('1 reporte')).toBeTruthy()
+  })
+
+  it('muestra reportes propios y ajenos por defecto, pagina y permite filtrar los propios', async () => {
+    const other = { ...REPORT, id: 'r-2', user: { id: 'u-2', name: 'Luis' }, title: 'Aviso de otro turista' }
+    const older = { ...other, id: 'r-3', title: 'Aviso de la siguiente página' }
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/comments')) return jsonResponse(cursorPage([]))
+      if (url.includes('/by-user/u-1')) return jsonResponse(cursorPage([REPORT]))
+      if (url.includes('cursor=next')) return jsonResponse(cursorPage([older]))
+      return jsonResponse({ content: [REPORT, other], nextCursor: 'next', hasNext: true })
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const user = userEvent.setup()
+    renderReports()
+
+    expect(await screen.findByText(other.title)).toBeTruthy()
+    expect(screen.getByText(REPORT.title)).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: 'Mis reportes de seguridad' })).toBeNull()
+    expect(screen.queryByText('Lo que has reportado a las autoridades de destino.')).toBeNull()
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/\/security-reports\?size=20$/)
+
+    await user.click(screen.getByRole('button', { name: 'Ver más reportes' }))
+    expect(await screen.findByText(older.title)).toBeTruthy()
+    expect(screen.getByText(other.title)).toBeTruthy()
+
+    await user.click(screen.getByRole('button', { name: 'Filtros' }))
+    expect(screen.getByRole('button', { name: 'Ver todos' }).getAttribute('aria-pressed')).toBe('true')
+    await user.click(screen.getByRole('button', { name: 'Ver mis reportes' }))
+    expect(await screen.findByText(REPORT.title)).toBeTruthy()
+    expect(screen.queryByText(other.title)).toBeNull()
+    expect(screen.queryByText(older.title)).toBeNull()
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/by-user/u-1?size=20'))).toBe(true)
+
+    await user.click(screen.getByRole('button', { name: 'Ver todos' }))
+    expect(await screen.findByText(other.title)).toBeTruthy()
+    expect(screen.queryByText(older.title)).toBeNull()
   })
 
   it('offers a message button linked to comments, without coordinates or duplicate count', async () => {
@@ -125,9 +162,9 @@ describe('MyReportsPage', () => {
     await user.click(screen.getByRole('button', { name: 'Filtros' }))
     await user.click(screen.getByRole('button', { name: 'Resueltos' }))
     expect(screen.queryByText('Robo en la playa')).toBeNull()
-    expect(screen.getByText('Incidente resuelto')).toBeTruthy()
+    expect(await screen.findByText('Incidente resuelto')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
-    expect(screen.getByText('Robo en la playa')).toBeTruthy()
+    expect(await screen.findByText('Robo en la playa')).toBeTruthy()
     await user.click(screen.getByRole('button', { name: 'Filtros' }))
     expect(screen.queryByRole('combobox', { name: 'Ordenar por fecha' })).toBeNull()
   })
@@ -147,7 +184,7 @@ describe('MyReportsPage', () => {
     renderReports()
 
     expect(
-      await screen.findByText('No se pudieron cargar tus reportes'),
+      await screen.findByText('No se pudieron cargar los reportes'),
     ).toBeTruthy()
 
     const callsBefore = fetchMock.mock.calls.length
