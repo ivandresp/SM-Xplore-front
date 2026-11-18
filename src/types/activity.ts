@@ -30,6 +30,7 @@ export interface ActivityRequest {
   startsAt: string
   endsAt: string
   description?: string
+  portraitUrl?: string
 }
 
 export interface UpdateActivityRequest {

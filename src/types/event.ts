@@ -12,6 +12,7 @@ export interface EventResponse {
   startsAt: string
   endsAt: string
   description: string | null
+  portraitUrl?: string | null
   expectedAttendance: number
 }
 
@@ -25,6 +26,7 @@ export interface EventRequest {
   startsAt: string
   endsAt: string
   description?: string
+  portraitUrl?: string
 }
 
 export interface ChangeEventStatusRequest {

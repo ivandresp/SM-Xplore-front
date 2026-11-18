@@ -18,6 +18,7 @@ const EVENT = {
   endsAt: '2026-12-01T22:00:00Z',
   description: 'Música en la playa.',
   expectedAttendance: 150,
+  portraitUrl: 'https://example.com/festival.jpg',
 }
 
 const SITE = {
@@ -106,7 +107,10 @@ describe('EventDetailPage', () => {
     ).toBeTruthy()
     expect(screen.queryByText('Sin fotos disponibles')).toBeNull()
     const location = screen.getByRole('region', { name: 'Ubicación' })
-    expect(location.parentElement?.firstElementChild).toBe(location)
+    const cover = screen.getByRole('img', { name: 'Foto de portada' })
+    expect(cover.getAttribute('src')).toBe(EVENT.portraitUrl)
+    const booking = screen.getByRole('button', { name: 'Agregar al itinerario' }).closest('article')
+    expect(booking?.nextElementSibling).toBe(location)
     expect(screen.getAllByRole('heading', { name: 'Ubicación' })).toHaveLength(1)
   })
   it('distingue un lugar que ya no existe de una petición que falló', async () => {
@@ -114,7 +118,7 @@ describe('EventDetailPage', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input)
-        if (url.includes('/events/')) return jsonResponse(EVENT)
+        if (url.includes('/events/')) return jsonResponse({ ...EVENT, portraitUrl: null })
         if (url.includes('/sites/')) {
           return jsonResponse({ detail: 'Not found', code: 'SITE_NOT_FOUND' }, 404)
         }
@@ -128,6 +132,7 @@ describe('EventDetailPage', () => {
       await screen.findByText('Este evento no tiene un lugar publicado asociado.'),
     ).toBeTruthy()
     expect(screen.queryByRole('img', { name: /Mapa de/ })).toBeNull()
+    expect(screen.queryByRole('img', { name: 'Foto de portada' })).toBeNull()
   })
 
   it('si la consulta del lugar falla, lo dice en vez de inventar que no tiene lugar', async () => {

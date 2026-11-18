@@ -1,28 +1,21 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
+const portraitUrl = 'https://example.com/festival.png'
+const image = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGMwK+4EAAIVATPVKxUsAAAAAElFTkSuQmCC', 'base64')
 const DATE = '2026-11-17T12:00:00Z'
 const event = { id: 'e-1', siteId: 's-1', siteName: 'Lugar de prueba', name: 'Evento de prueba', category: 'Cultura', status: 'PUBLISHED',
-  price: 10000, maxCapacity: 200, startsAt: '2026-12-01T18:00:00Z', endsAt: '2026-12-01T22:00:00Z', description: 'Descripción de prueba.', expectedAttendance: 150 }
+  price: 10000, maxCapacity: 200, startsAt: '2026-12-01T18:00:00Z', endsAt: '2026-12-01T22:00:00Z', description: 'Descripción de prueba.', portraitUrl, expectedAttendance: 150 }
 const site = { siteId: 's-1', managerId: null, name: 'Lugar de prueba', description: null, categoryId: null, categoryName: null,
   zoneId: 'z-1', zoneName: 'Zona de prueba', zoneStatus: 'ACTIVE', latitude: 11.2404, longitude: -74.199, photosUrls: [], status: 'PUBLISHED',
   maxCapacity: 100, availability: null, createdAt: DATE, updatedAt: DATE }
-const tileBodies = new Map<string, Buffer>()
 
 async function setup(page: Page, language: string, siteStatus = 200, offline = false) {
   await page.addInitScript((language) => localStorage.setItem('sm-xplore:language', language), language)
-  await page.route('https://tile.openstreetmap.org/**', async (route) => {
-    if (offline) { await route.abort(); return }
-    const url = route.request().url()
-    try {
-      if (!tileBodies.has(url)) {
-        const response = await route.fetch({ timeout: 6000 })
-        if (!response.ok()) throw new Error('No tile')
-        tileBodies.set(url, await response.body())
-      }
-      await route.fulfill({ body: tileBodies.get(url), contentType: 'image/png' })
-    } catch { await route.abort() }
-  })
+  await page.route(portraitUrl, route => route.fulfill({ body: image, contentType: 'image/png' }))
+  await page.route('https://tile.openstreetmap.org/**', route =>
+    offline ? route.abort() : route.fulfill({ body: image, contentType: 'image/png' }),
+  )
   await page.route('**/api/**', async (route) => {
     const path = new URL(route.request().url()).pathname
     if (path.endsWith('/events/e-1')) await route.fulfill({ json: event })
@@ -33,7 +26,7 @@ async function setup(page: Page, language: string, siteStatus = 200, offline = f
 
 for (const width of [375, 768, 1280, 1920]) {
   for (const language of ['es', 'en']) {
-    test(`event map fills cover at ${width}px ${language}`, async ({ page }) => {
+    test(`event cover takes priority over the map at ${width}px ${language}`, async ({ page }, testInfo) => {
       const es = language === 'es'
       await page.setViewportSize({ width, height: 950 })
       await page.emulateMedia({ colorScheme: width === 768 ? 'dark' : 'light' })
@@ -41,22 +34,25 @@ for (const width of [375, 768, 1280, 1920]) {
       await page.goto('/eventos/e-1')
       await expect(page.getByRole('heading', { level: 1, name: event.name })).toBeVisible()
       const location = page.getByRole('region', { name: es ? 'Ubicación' : 'Location', exact: true })
+      const cover = page.getByRole('img', { name: es ? 'Foto de portada' : 'Cover photo', exact: true })
+      await expect(cover).toHaveAttribute('src', portraitUrl)
+      await expect(cover).toBeVisible()
+      await expect.poll(() => cover.evaluate(image => (image as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
       const map = location.getByRole('img')
       await expect(map).toBeVisible()
-      await expect.poll(async () => (await map.boundingBox())?.width ?? 0).toBeGreaterThan(300)
+      await expect.poll(async () => (await map.boundingBox())?.width ?? 0).toBeGreaterThan(250)
       const box = await map.boundingBox()
       const column = await location.evaluate((element) => element.parentElement!.getBoundingClientRect().width)
       expect(Math.abs(box!.width - Math.min(1024, column))).toBeLessThan(2)
       expect(Math.abs(box!.height - Math.max(220, Math.min(512, Math.round(box!.width * 9 / 16))))).toBeLessThan(2)
-      const description = page.getByRole('heading', { name: es ? 'Descripción' : 'Description', exact: true })
-      expect((await description.boundingBox())!.y).toBeGreaterThan(box!.y + box!.height)
+      const booking = page.getByRole('button', { name: es ? 'Inicia sesión para reservar' : 'Sign in to book', exact: true }).locator('..')
+      const bookingBox = await booking.boundingBox()
+      const coverBox = await cover.boundingBox()
+      expect(box!.y).toBeGreaterThan(bookingBox!.y + bookingBox!.height)
+      expect(coverBox!.height).toBeGreaterThan(box!.height)
       if (width >= 1000) {
-        const descriptionCard = await description.locator('..').boundingBox()
-        const informationCard = await page.getByRole('heading', { name: es ? 'Información del evento' : 'Event information', exact: true }).locator('..').boundingBox()
-        expect(Math.abs(descriptionCard!.width - box!.width)).toBeLessThan(2)
-        expect(Math.abs(informationCard!.width - box!.width)).toBeLessThan(2)
-        const booking = await page.getByRole('button', { name: es ? 'Inicia sesión para reservar' : 'Sign in to book', exact: true }).locator('..').boundingBox()
-        expect(booking!.width).toBeGreaterThan(width * 0.4)
+        expect(coverBox!.width).toBeGreaterThan(box!.width)
+        expect(Math.abs(coverBox!.y - bookingBox!.y)).toBeLessThan(2)
       }
       await expect(page.getByRole('heading', { name: es ? 'Ubicación' : 'Location', exact: true })).toHaveCount(1)
       await expect(page.getByText(es ? 'Sin fotos disponibles' : 'No photos available', { exact: true })).toHaveCount(0)
@@ -64,7 +60,7 @@ for (const width of [375, 768, 1280, 1920]) {
       await expect(page.getByRole('button', { name: es ? 'Inicia sesión para reservar' : 'Sign in to book', exact: true })).toBeEnabled()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
       await page.evaluate(() => window.scrollTo(0, 0))
-      if (es) await page.screenshot({ path: `docs/diseno/030-event-map-${width}.png`, fullPage: true })
+      if (es) await page.screenshot({ path: testInfo.outputPath(`event-cover-${width}.png`), fullPage: true })
       if (es && width === 1280) {
         await page.setViewportSize({ width: 375, height: 950 })
         await expect.poll(async () => (await map.boundingBox())?.width ?? 999).toBeLessThan(350)

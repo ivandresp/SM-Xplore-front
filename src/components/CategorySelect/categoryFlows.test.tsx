@@ -27,7 +27,11 @@ beforeEach(() => {
   vi.spyOn(zonesApi, 'list').mockResolvedValue([])
   vi.spyOn(sitesApi, 'list').mockResolvedValue({ ...emptyPage, content: [{ id: 's-1', zoneId: 'z-1', name: 'Lugar', latitude: 11, longitude: -74, photoUrls: [], categoryId: null, maxCapacity: 10, status: 'PUBLISHED' }] })
 })
-afterEach(() => vi.restoreAllMocks())
+afterEach(() => {
+  vi.restoreAllMocks()
+  vi.unstubAllEnvs()
+  vi.unstubAllGlobals()
+})
 
 async function choose(label: string, option: string) {
   const user = userEvent.setup()
@@ -56,9 +60,11 @@ describe('categorías en filtros y creación', () => {
   it.each([
     ['ACTIVITY', ActivityFormPage],
     ['EVENT', EventFormPage],
-  ] as const)('%s exige seleccionar categoría y envía su nombre al crear', async (scope, Page) => {
+  ] as const)('%s exige una categoría y envía su nombre y la URL de portada al crear', async (scope, Page) => {
     const createActivity = vi.spyOn(activitiesApi, 'create').mockResolvedValue(activity)
     const createEvent = vi.spyOn(eventsApi, 'create').mockResolvedValue({ ...activity, siteName: 'Lugar', expectedAttendance: 0 })
+    vi.stubEnv('VITE_CLOUDINARY_CLOUD_NAME', 'demo')
+    vi.stubEnv('VITE_CLOUDINARY_UPLOAD_PRESET', 'unsigned')
     const { container } = render(<MemoryRouter><Page /></MemoryRouter>)
     await choose(scope === 'ACTIVITY' ? 'Atractivo asociado' : 'Lugar / atractivo', 'Lugar')
     fireEvent.submit(container.querySelector('form')!)
@@ -68,9 +74,25 @@ describe('categorías en filtros y creación', () => {
     await choose('Categoría', 'Específica')
     fireEvent.change(screen.getByLabelText(scope === 'ACTIVITY' ? 'Nombre de la actividad' : 'Nombre del evento'), { target: { value: 'Experiencia' } })
     fireEvent.change(screen.getByLabelText(scope === 'ACTIVITY' ? 'Fecha' : 'Fecha del evento'), { target: { value: '2026-12-01' } })
-    fireEvent.submit(container.querySelector('form')!)
     const request = scope === 'ACTIVITY' ? createActivity : createEvent
-    await waitFor(() => expect(request).toHaveBeenCalledWith(expect.objectContaining({ category: 'Específica' })))
+    const portraitUrl = 'https://res.cloudinary.com/demo/image/upload/portada.jpg'
+    let finishUpload!: (response: Response) => void
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((resolve) => {
+      finishUpload = resolve
+    })))
+
+    await userEvent.setup().upload(screen.getByLabelText('Subir foto de portada'),
+      new File(['imagen'], 'portada.jpg', { type: 'image/jpeg' }))
+    fireEvent.submit(container.querySelector('form')!)
+    expect(request).not.toHaveBeenCalled()
+
+    finishUpload(new Response(JSON.stringify({ secure_url: portraitUrl, public_id: 'portada', width: 1200, height: 800 })))
+    expect((await screen.findByAltText('Foto 1 de 1')).getAttribute('src')).toBe(portraitUrl)
+    fireEvent.submit(container.querySelector('form')!)
+    await waitFor(() => expect(request).toHaveBeenCalledWith(expect.objectContaining({
+      category: 'Específica',
+      portraitUrl,
+    })))
     expect(categoriesApi.listPage).toHaveBeenCalledWith({ scope, page: 0, size: 100 })
   })
   it.each([

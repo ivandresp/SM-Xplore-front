@@ -10,6 +10,7 @@ import { Button } from '@/components/Button'
 import { DefList } from '@/components/DefList/DefList'
 import type { DefItem } from '@/components/DefList/DefList'
 import { MapPreview } from '@/components/MapPreview'
+import { Media } from '@/components/Media'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
@@ -42,7 +43,7 @@ function formatTime(value: string): string {
   }).format(new Date(value))
 }
 
-/** Mapa de portada con dimensiones reales, sin estirar los tiles. */
+/** Mapa de ubicación con dimensiones reales, sin estirar los tiles. */
 function EventLocationMap({ site }: { site: Site }) {
   const container = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState({ width: 256, height: 220 })
@@ -277,18 +278,9 @@ export default function EventDetailPage() {
 
       <div className={`${styles.detailLayout} ${styles.publicDetailLayout}`}>
         <div className={`${styles.column} ${styles.eventDetailColumn}`}>
-          <section className={styles.eventMap} aria-label={t("Ubicación")}>
-            <h2 className={styles.cardTitle}>{t("Ubicación")}</h2>
-            {site === null ? (
-              <p className={styles.meta}>
-                {siteProblem === 'unavailable'
-                  ? t("No pudimos cargar la ubicación del evento. Vuelve a intentarlo en un momento.")
-                  : t("Este evento no tiene un lugar publicado asociado.")}
-              </p>
-            ) : (
-              <EventLocationMap site={site} />
-            )}
-          </section>
+          {event.portraitUrl && (
+            <Media photo={event.portraitUrl} alt={t("Foto de portada")} className={styles.eventCover} />
+          )}
 
           <article className={`${styles.card} ${styles.eventInformation}`}>
             <h2 className={styles.cardTitle}>{t("Descripción")}</h2>
@@ -421,6 +413,19 @@ export default function EventDetailPage() {
               </>
             )}
           </article>
+
+          <section className={styles.eventMap} aria-label={t("Ubicación")}>
+            <h2 className={styles.cardTitle}>{t("Ubicación")}</h2>
+            {site === null ? (
+              <p className={styles.meta}>
+                {siteProblem === 'unavailable'
+                  ? t("No pudimos cargar la ubicación del evento. Vuelve a intentarlo en un momento.")
+                  : t("Este evento no tiene un lugar publicado asociado.")}
+              </p>
+            ) : (
+              <EventLocationMap site={site} />
+            )}
+          </section>
         </div>
       </div>
     </div>

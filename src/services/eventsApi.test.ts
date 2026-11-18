@@ -31,7 +31,7 @@ describe('eventsApi', () => {
   it('desenvuelve la página de eventos', async () => {
     const fetchStub = vi.fn(async (_url: string, _init?: RequestInit) =>
       jsonResponse({
-        content: [event],
+        content: [{ ...event, portraitUrl: 'https://example.com/evento.jpg' }],
         page: 0,
         size: 100,
         total: 1,
@@ -44,6 +44,7 @@ describe('eventsApi', () => {
 
     expect(result.content).toHaveLength(1)
     expect(result.content[0].siteName).toBe('Playa El Rodadero')
+    expect(result.content[0].portraitUrl).toBe('https://example.com/evento.jpg')
     expect(result.total).toBe(1)
 
     const url = fetchStub.mock.calls[0][0]
