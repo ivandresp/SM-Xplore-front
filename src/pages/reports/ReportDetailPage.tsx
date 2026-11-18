@@ -284,7 +284,7 @@ export default function ReportDetailPage() {
 
       <div className={`${styles.layout} ${styles.reportDetailLayout}`}>
         <div className={styles.column}>
-          <article className={styles.card}>
+          <article className={`${styles.card} ${styles.reportSheet}`}>
             <h2 className={styles.cardTitle}>{t("Ficha del reporte")}</h2>
             <dl className={styles.details}>
               <div className={styles.detailRow}>
@@ -323,7 +323,7 @@ export default function ReportDetailPage() {
           </article>
 
           {current.photosUrls.length > 0 && (
-            <article className={styles.card}>
+            <article className={`${styles.card} ${styles.reportPhotos}`}>
               <h2 className={styles.cardTitle}>
                 {t("Fotos (")}{current.photosUrls.length})
               </h2>
