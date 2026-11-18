@@ -8,6 +8,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { CategorySelect } from '@/components/CategorySelect'
 import { Field } from '@/components/FormField'
+import { ImageUploader } from '@/components/ImageUploader'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
 import { useAuth } from '@/hooks/useAuth'
@@ -28,6 +29,8 @@ export default function ActivityFormPage() {
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
+  const [portraitUrls, setPortraitUrls] = useState<string[]>([])
+  const [isUploadingPortrait, setIsUploadingPortrait] = useState(false)
   const [siteId, setSiteId] = useState('')
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
@@ -108,6 +111,7 @@ export default function ActivityFormPage() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (isSaving || isUploadingPortrait) return
 
     if (user === null) {
       return
@@ -137,6 +141,7 @@ export default function ActivityFormPage() {
         guideId: user.id,
         name: name.trim(),
         category: category.trim(),
+        portraitUrl: portraitUrls[0],
         description: description.trim() === '' ? undefined : description.trim(),
         price: Number(price),
         maxCapacity: Number(maxCapacity),
@@ -204,6 +209,17 @@ export default function ActivityFormPage() {
                 onChange={(event) => setDescription(event.target.value)}
               />
             </label>
+
+            <ImageUploader
+              className={styles.full}
+              label={t("Foto de portada")}
+              folder="sm-xplore/activities"
+              value={portraitUrls}
+              onChange={setPortraitUrls}
+              onUploadingChange={setIsUploadingPortrait}
+              maxFiles={1}
+              disabled={isSaving}
+            />
 
             <div className={styles.full}>
               <SelectField
@@ -286,7 +302,7 @@ export default function ActivityFormPage() {
           </div>
 
           <div className={styles.actions}>
-            <Button variant="accent" size="lg" type="submit" disabled={isSaving}>
+            <Button variant="accent" size="lg" type="submit" disabled={isSaving || isUploadingPortrait}>
               {isSaving
                 ? t("Guardando…")
                 : publish
@@ -322,12 +338,6 @@ export default function ActivityFormPage() {
                 onChange={() => setPublish(true)}
               />
               {t("Publicar al guardar")}</label>
-          </article>
-
-          <article className={styles.card}>
-            <h2 className={styles.cardTitle}>{t("Fotos de la actividad")}</h2>
-            <p className={styles.muted}>
-              {t("Las actividades no admiten fotos por ahora.")}</p>
           </article>
         </div>
       </div>

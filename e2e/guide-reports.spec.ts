@@ -127,9 +127,12 @@ for (const role of ['ADMIN', 'DESTINATION_MANAGER']) {
 
 for (const role of ['TOURIST']) {
   test(`${role} keeps public report screen and cannot enter guide reports`, async ({ page }) => {
-    await setup(page, role)
+    const api = await setup(page, role)
     await page.goto('/reportes')
-    await expect(page.getByRole('heading', { level: 1, name: 'Mis reportes de seguridad' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Nuevo reporte' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Mis reportes de seguridad' })).toHaveCount(0)
+    await expect.poll(() => api.globalRequests.length).toBeGreaterThan(0)
+    expect(api.ownRequests).toHaveLength(0)
     await expect(page).toHaveURL(/\/reportes$/)
     await page.goto('/app/reportes')
     await expect(page).toHaveURL(/\/reportes$/)

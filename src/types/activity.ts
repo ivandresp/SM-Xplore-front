@@ -17,6 +17,7 @@ export interface ActivityResponse {
   startsAt: string
   endsAt: string
   description: string | null
+  portraitUrl?: string | null
 }
 
 export interface ActivityRequest {
@@ -30,6 +31,7 @@ export interface ActivityRequest {
   startsAt: string
   endsAt: string
   description?: string
+  portraitUrl?: string
 }
 
 export interface UpdateActivityRequest {

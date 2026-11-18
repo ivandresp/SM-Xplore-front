@@ -30,7 +30,7 @@ const FILTERS: Array<{ label: string; status?: SecurityReportStatus }> = [
   { get label() { return t("Resueltos") }, status: 'SOLVED' },
 ]
 
-/** Reportes del propio usuario. El feed comunitario es solo para gestoras y admins. */
+const OWN_REPORTS_FILTER: (typeof FILTERS)[number] = { get label() { return t("Ver mis reportes") } }
 export default function MyReportsPage() {
   useLanguage()
   const reportsPath = useReportsPath()
@@ -45,39 +45,49 @@ export default function MyReportsPage() {
   const [sort, setSort] = useState<SortOrder>('recent')
   const [reloadToken, setReloadToken] = useState(0)
 
+  const [cursor, setCursor] = useState<string>()
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
   const userId = user?.id
+  const isTourist = user?.role === 'TOURIST'
+  const filters = isTourist ? [...FILTERS, OWN_REPORTS_FILTER] : FILTERS
+  const selectedFilter = filters[filterIndex]
+  const ownReports = !isTourist || selectedFilter === OWN_REPORTS_FILTER
+  const requestStatus = isTourist ? selectedFilter?.status : undefined
 
   useEffect(() => {
     if (userId === undefined) {
       return
     }
 
+    const id = userId
     let cancelled = false
 
     async function run() {
       try {
-        const page = await securityReportsApi.listByUser(userId as string)
+        const page = ownReports
+          ? await securityReportsApi.listByUser(id, { cursor })
+          : await securityReportsApi.list({ status: requestStatus, cursor })
         if (cancelled) return
 
-        const mine = page.content
-        setReports(mine)
+        const incoming = page.content
+        setReports(previous => cursor ? [...previous, ...incoming] : incoming)
+        setNextCursor(page.hasNext ? page.nextCursor : null)
         setError(null)
 
         const counts = await Promise.allSettled(
-          mine.map((report) => securityReportsApi.listComments(report.id)),
+          incoming.map((report) => securityReportsApi.listComments(report.id)),
         )
 
         if (!cancelled) {
           const map: Record<string, number> = {}
           counts.forEach((result, index) => {
-            map[mine[index].id] =
+            map[incoming[index].id] =
               result.status === 'fulfilled' ? result.value.content.length : 0
           })
-          setComments(map)
+          setComments(previous => cursor ? { ...previous, ...map } : map)
         }
       } catch (cause) {
         if (!cancelled) {
-          setReports([])
           setError(() => cause)
         }
       } finally {
@@ -90,12 +100,25 @@ export default function MyReportsPage() {
     return () => {
       cancelled = true
     }
-  }, [userId, reloadToken, setError])
+  }, [userId, ownReports, requestStatus, cursor, reloadToken])
 
   function retry() {
     setIsLoading(true)
     setError(null)
     setReloadToken((value) => value + 1)
+  }
+
+  function selectFilter(index: number) {
+    if (index === filterIndex) return
+    if (isTourist) {
+      setIsLoading(true)
+      setReports([])
+      setComments({})
+      setError(null)
+      setCursor(undefined)
+      setNextCursor(null)
+    }
+    setFilterIndex(index)
   }
 
   const filtered = useMemo(() => {
@@ -112,15 +135,21 @@ export default function MyReportsPage() {
 
   return (
     <div className={styles.page}>
-      <PageHeader
-        title={t("Mis reportes de seguridad")}
-        meta={`${filtered.length} ${filtered.length === 1 ? 'reporte' : 'reportes'}`}
-        description={t("Lo que has reportado a las autoridades de destino.")}
-      />
+      {isTourist ? (
+        <div className={styles.touristReportHeading}>
+          <PageHeader title={t("Reportes de Seguridad")} />
+        </div>
+      ) : (
+        <PageHeader
+          title={t("Mis reportes de seguridad")}
+          meta={`${filtered.length} ${filtered.length === 1 ? 'reporte' : 'reportes'}`}
+          description={t("Lo que has reportado a las autoridades de destino.")}
+        />
+      )}
 
       {error !== null && (
         <StateMessage
-          title={t("No se pudieron cargar tus reportes")}
+          title={t(ownReports ? "No se pudieron cargar tus reportes" : "No se pudieron cargar los reportes")}
           description={describeApiError(error)}
           tone="error"
           action={<ApiErrorAction error={error} onRetry={retry} />}
@@ -139,16 +168,16 @@ export default function MyReportsPage() {
           </Button>
         }
         activeFilters={[
-          ...(filterIndex === 0 ? [] : [{ key: 'status', label: t("Estado"), value: FILTERS[filterIndex].label }]),
+          ...(filterIndex === 0 ? [] : [{ key: 'status', label: t(isTourist ? "Reportes" : "Estado"), value: selectedFilter.label }]),
           ...(sort === 'recent' ? [] : [{ key: 'sort', label: t("Ordenar por fecha"), value: t("Más antiguos") }]),
         ]}
-        onRemoveFilter={key => key === 'status' ? setFilterIndex(0) : setSort('recent')}
-        onClearFilters={() => { setFilterIndex(0); setSort('recent') }}
+        onRemoveFilter={key => key === 'status' ? selectFilter(0) : setSort('recent')}
+        onClearFilters={() => { selectFilter(0); setSort('recent') }}
         resultSummary={isLoading ? t("Cargando reportes…") : `${filtered.length} ${filtered.length === 1 ? t("reporte") : t("reportes")}`}>
-        <div className={styles.reportStatusFilters} role="group" aria-label={t("Estado")}>
-          {FILTERS.map((filter, index) => (
+        <div className={styles.reportStatusFilters} role="group" aria-label={t(isTourist ? "Reportes" : "Estado")}>
+          {filters.map((filter, index) => (
             <Chip key={filter.label} selected={filterIndex === index}
-              onClick={() => setFilterIndex(index)}>{filter.label}</Chip>
+              onClick={() => selectFilter(index)}>{filter.label}</Chip>
           ))}
         </div>
         <SelectField label={t("Ordenar por fecha")}
@@ -167,13 +196,13 @@ export default function MyReportsPage() {
 
       {!isLoading && reports.length === 0 && error === null && (
         <StateMessage
-          title={t("Todavía no has reportado nada")}
-          description={t("Cuéntanos qué pasó y dónde; las gestoras de destino recibirán el aviso.")}
-          action={
+          title={ownReports ? t("Todavía no has reportado nada") : t(requestStatus ? "No hay reportes en este estado." : "No hay reportes")}
+          description={ownReports ? t("Cuéntanos qué pasó y dónde; las gestoras de destino recibirán el aviso.") : undefined}
+          action={ownReports ? (
             <Link to={`${reportsPath}/nuevo`}>
               <Button variant="accent">{t("Crear el primer reporte")}</Button>
             </Link>
-          }
+          ) : undefined}
         />
       )}
 
@@ -181,7 +210,7 @@ export default function MyReportsPage() {
         <StateMessage
           title={t("No tienes reportes en este estado.")}
           action={
-            <Button variant="outline" onClick={() => setFilterIndex(0)}>
+            <Button variant="outline" onClick={() => selectFilter(0)}>
               {t("Ver todos")}</Button>
           }
         />
@@ -231,6 +260,14 @@ export default function MyReportsPage() {
           </article>
         ))}
       </div>
+      {isTourist && nextCursor !== null && error === null && (
+        <Button variant="outline" disabled={isLoading} onClick={() => {
+          setIsLoading(true)
+          setCursor(nextCursor)
+        }}>
+          {t("Ver más reportes")}
+        </Button>
+      )}
     </div>
   )
 }

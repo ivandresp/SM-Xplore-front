@@ -332,15 +332,25 @@
   color: var(--color-link-hover);
 }
 
-/* Portada de la ficha pública: mapa sin recorte de su proyección. */
 .eventDetailColumn,
 .eventMap {
   min-width: 0;
 }
 
+.eventDetailColumn > .eventCover {
+  height: auto;
+  aspect-ratio: 4 / 3;
+  min-height: 15rem;
+  max-height: 38rem;
+}
+
+.eventCover img {
+  object-fit: contain;
+}
+
 @media (min-width: 1000px) {
   .publicDetailLayout {
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   }
 
   .eventInformation {

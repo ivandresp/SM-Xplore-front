@@ -10,6 +10,7 @@ import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
 import { CategorySelect } from '@/components/CategorySelect'
 import { Field } from '@/components/FormField'
+import { ImageUploader } from '@/components/ImageUploader'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { SelectField } from '@/components/SelectField'
 import { Skeleton } from '@/components/Skeleton'
@@ -29,6 +30,8 @@ export default function EventFormPage() {
   const [name, setName] = useState('')
   const [category, setCategory] = useState('')
   const [description, setDescription] = useState('')
+  const [portraitUrls, setPortraitUrls] = useState<string[]>([])
+  const [isUploadingPortrait, setIsUploadingPortrait] = useState(false)
   const [siteId, setSiteId] = useState('')
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
@@ -121,6 +124,7 @@ export default function EventFormPage() {
 
   async function handleSubmit(formEvent: FormEvent<HTMLFormElement>) {
     formEvent.preventDefault()
+    if (isSaving || isUploadingPortrait) return
 
     if (siteId.trim() === '') {
       setError(() => t("Selecciona el atractivo donde se realizará el evento."))
@@ -145,6 +149,7 @@ export default function EventFormPage() {
         siteId: siteId.trim(),
         name: name.trim(),
         category: category.trim(),
+        portraitUrl: portraitUrls[0],
         description: description.trim() === '' ? undefined : description.trim(),
         price: Number(price),
         maxCapacity: Number(maxCapacity),
@@ -236,6 +241,17 @@ export default function EventFormPage() {
               />
             </label>
 
+            <ImageUploader
+              className={styles.full}
+              label={t("Foto de portada")}
+              folder="sm-xplore/events"
+              value={portraitUrls}
+              onChange={setPortraitUrls}
+              onUploadingChange={setIsUploadingPortrait}
+              maxFiles={1}
+              disabled={isSaving}
+            />
+
             <div className={styles.full}>
               <SelectField
                 label={t("Lugar / atractivo")}
@@ -310,7 +326,7 @@ export default function EventFormPage() {
           </div>
 
           <div className={styles.actions}>
-            <Button variant="accent" size="lg" type="submit" disabled={isSaving}>
+            <Button variant="accent" size="lg" type="submit" disabled={isSaving || isUploadingPortrait}>
               {isSaving
                 ? t("Guardando…")
                 : publish

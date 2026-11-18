@@ -14,6 +14,7 @@ const activity = {
   startsAt: '2026-11-10T13:00:00Z',
   endsAt: '2026-11-10T15:00:00Z',
   description: null,
+  portraitUrl: 'https://example.com/senderismo.jpg',
 }
 
 function jsonResponse(body: unknown, status = 200) {

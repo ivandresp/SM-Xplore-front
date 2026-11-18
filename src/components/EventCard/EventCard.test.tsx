@@ -25,6 +25,12 @@ describe('EventCard', () => {
     expect(card.querySelectorAll('a')).toHaveLength(0)
   })
 
+  it('muestra la portada guardada', () => {
+    const portraitUrl = 'https://example.com/evento.jpg'
+    render(<MemoryRouter><EventCard event={{ ...event, portraitUrl }} /></MemoryRouter>)
+    expect(screen.getByRole('link', { name: event.name }).querySelector('img')?.getAttribute('src')).toBe(portraitUrl)
+  })
+
   it('muestra Gratis para precio cero', () => {
     render(<MemoryRouter><EventCard event={{ ...event, price: 0 }} /></MemoryRouter>)
     expect(screen.getByText('Gratis')).toBeTruthy()

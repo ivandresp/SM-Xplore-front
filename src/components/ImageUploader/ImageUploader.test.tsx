@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ImageUploader } from './ImageUploader'
@@ -17,9 +17,11 @@ function imageFile(name = 'playa.jpg') {
 
 function Harness({
   initial = [],
+  maxFiles,
   onUploadingChange,
 }: {
   initial?: string[]
+  maxFiles?: number
   onUploadingChange?: (uploading: boolean) => void
 }) {
   const [urls, setUrls] = useState(initial)
@@ -29,6 +31,7 @@ function Harness({
       <ImageUploader
         label="Fotos del sitio"
         folder="sm-xplore/sites"
+        maxFiles={maxFiles}
         value={urls}
         onChange={setUrls}
         onUploadingChange={onUploadingChange}
@@ -80,6 +83,19 @@ describe('ImageUploader', () => {
       expect(onUploadingChange).toHaveBeenLastCalledWith(false)
     })
     expect(onUploadingChange).toHaveBeenCalledWith(true)
+  })
+
+  it('rechaza una selección múltiple cuando solo admite una imagen', () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    render(<Harness maxFiles={1} />)
+
+    const input = screen.getByLabelText<HTMLInputElement>('Subir fotos del sitio')
+    expect(input.multiple).toBe(false)
+    fireEvent.change(input, { target: { files: [imageFile(), imageFile('otra.jpg')] } })
+
+    expect(screen.getByRole('alert').textContent).toContain('Puedes añadir 1 foto más.')
+    expect(fetchMock).not.toHaveBeenCalled()
   })
 
   it('muestra el error si Cloudinary rechaza la carga', async () => {

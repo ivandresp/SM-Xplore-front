@@ -202,7 +202,7 @@ export function ImageUploader({
             className={styles.input}
             type="file"
             accept={CLOUDINARY_ACCEPTED_TYPES.join(',')}
-            multiple
+            multiple={maxFiles > 1}
             disabled={!canAdd}
             aria-label={t("Subir {0}", [label.toLowerCase()])}
             aria-describedby={
@@ -213,7 +213,7 @@ export function ImageUploader({
           <span className={styles.dropzoneTitle}>
             {isUploading
               ? t("Subiendo imágenes…")
-              : t("Haz clic para elegir imágenes")}
+              : t(maxFiles === 1 ? "Haz clic para elegir una imagen" : "Haz clic para elegir imágenes")}
           </span>
           <span className={styles.dropzoneHint}>
             {value.length >= maxFiles

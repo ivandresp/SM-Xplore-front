@@ -64,6 +64,25 @@ test('public routes keep translated navigation without horizontal overflow', asy
       await expect(page.locator('html')).toHaveAttribute('lang', 'en')
       await noOverflow(page)
       await expect(page.getByRole('link', { name: 'SM-Xplore, go to home page' })).toBeVisible()
+      if (path === '/registro' || path === '/registro/guia') {
+        const general = page.getByRole('tab', { name: 'General Information' })
+        await expect(general).toHaveAttribute('aria-selected', 'true')
+        const submit = page.locator('form').getByRole('button', { name: 'Create account', exact: true })
+        await expect(submit).toHaveCount(0)
+        const generalPanel = page.getByRole('tabpanel', { name: 'General Information' })
+        await generalPanel.getByLabel('Password', { exact: true }).fill('ContraseñaSegura1!')
+        const generalHeight = (await generalPanel.boundingBox())!.height
+        const details = page.getByRole('tab', { name: 'Account Details' })
+        await details.click()
+        await expect(details).toHaveAttribute('aria-selected', 'true')
+        await expect(submit).toBeVisible()
+        const detailsPanel = page.getByRole('tabpanel', { name: 'Account Details' })
+        const panelBox = (await detailsPanel.boundingBox())!
+        const submitBox = (await submit.boundingBox())!
+        expect(panelBox.height).toBeGreaterThanOrEqual(generalHeight)
+        expect(Math.abs(panelBox.y + panelBox.height - submitBox.y - submitBox.height)).toBeLessThan(1)
+        await noOverflow(page)
+      }
     }
   }
 })

@@ -10,7 +10,6 @@ export interface EventCardProps {
   event: EventResponse
 }
 
-/** El evento no publica poster: conserva el fallback de Media en esta release. */
 export function EventCard({ event }: EventCardProps) {
   useLanguage()
   const date = new Date(event.startsAt)
@@ -21,7 +20,7 @@ export function EventCard({ event }: EventCardProps) {
 
   return (
     <Link className={styles.card} to={`/eventos/${event.id}`} aria-label={event.name}>
-      <Media />
+      <Media photo={event.portraitUrl ?? undefined} />
       <h2 className={styles.name}>{event.name}</h2>
       <div className={styles.footer}>
         <p className={styles.category}>{event.category}</p>

@@ -16,6 +16,7 @@ test('el primer clic en Crear cuenta bloquea y enfoca el campo con error', async
   await page.locator('[name="email"]').fill('b3-e2e@example.com')
   await page.locator('[name="phone"]').fill('6061234')
   await page.locator('[name="password"]').fill('ContraseñaSegura1!')
+  await page.getByRole('tab', { name: 'Información Específica' }).click()
   await page.locator('[name="dniNumber"]').fill('1020304050')
 
   // El foco se queda en Nacionalidad con un valor inválido: al pulsar el botón,

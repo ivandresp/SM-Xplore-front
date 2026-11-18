@@ -28,6 +28,7 @@ const activitySchema = z.object({
   startsAt: z.string(),
   endsAt: z.string(),
   description: z.string().nullable(),
+  portraitUrl: z.string().nullish(),
 })
 
 const activityPageSchema = pageSchema(activitySchema)

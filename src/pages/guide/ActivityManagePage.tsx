@@ -312,10 +312,6 @@ export default function ActivityManagePage() {
           </article>
         </div>
       </div>
-
-      <div className={styles.actions}>
-        <BackButton to="/app/mis-actividades" />
-      </div>
     </section>
   )
 }

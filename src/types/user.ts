@@ -110,6 +110,7 @@ export interface PublicProviderDetails {
   nit: string | null
   businessType: string | null
   websiteUrl: string | null
+  phone: string | null
   latitude: number | null
   longitude: number | null
   startOperationDate: string | null

@@ -15,7 +15,7 @@ export function ActivityCard({ activity }: ActivityCardProps) {
   useLanguage()
   return (
     <Link className={styles.card} to={`/actividades/${activity.id}`} aria-label={activity.name}>
-      <Media />
+      <Media photo={activity.portraitUrl ?? undefined} />
       <h3 className={styles.name}>{activity.name}</h3>
       <p className={styles.meta}>{activity.category}</p>
       <div className={styles.footer}>

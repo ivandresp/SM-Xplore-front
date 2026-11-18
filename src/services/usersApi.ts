@@ -53,6 +53,7 @@ const publicProviderDetailsSchema = z.object({
   nit: z.string().nullish().transform((value) => value ?? null),
   businessType: z.string().nullish().transform((value) => value ?? null),
   websiteUrl: z.string().nullish().transform((value) => value ?? null),
+  phone: z.string().nullish().transform((value) => value ?? null),
   latitude: z.number().nullish().transform((value) => value ?? null),
   longitude: z.number().nullish().transform((value) => value ?? null),
   startOperationDate: z.string().nullish().transform((value) => value ?? null),

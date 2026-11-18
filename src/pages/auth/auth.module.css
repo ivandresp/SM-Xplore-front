@@ -34,6 +34,64 @@
   gap: 1rem;
 }
 
+.registerTabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.registerTab {
+  min-height: var(--control-h-md);
+  padding: var(--space-2);
+  border: 0;
+  border-block-end: 3px solid transparent;
+  background: transparent;
+  color: var(--color-muted-strong);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.registerTab:hover:not(:disabled),
+.registerTab:active:not(:disabled),
+.registerTab[aria-selected="true"] {
+  color: var(--color-link);
+}
+
+.registerTab[aria-selected="true"] {
+  border-block-end-color: var(--color-link);
+}
+
+.registerTab:disabled {
+  cursor: default;
+}
+
+.registerTab:focus-visible {
+  outline: 2px solid var(--color-link);
+  outline-offset: -2px;
+}
+
+.registerPanels {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.registerPanel:not([hidden]) {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.registerPanel[inert] {
+  visibility: hidden;
+}
+
+.specificRegisterPanel {
+  justify-content: space-between;
+}
+
 .grid {
   display: grid;
   gap: 1rem;
@@ -64,6 +122,7 @@
 }
 
 .row {
+  margin-block-start: var(--space-2);
   display: flex;
   flex-wrap: wrap;
   align-items: center;

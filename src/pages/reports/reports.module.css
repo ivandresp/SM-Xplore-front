@@ -3,6 +3,12 @@
   padding: 2rem 1.5rem 3rem;
 }
 
+@media (min-width: 900px) {
+  .touristReportHeading {
+    display: none;
+  }
+}
+
 .feed {
   display: grid;
   gap: 1px;

@@ -20,7 +20,7 @@ async function setup(page: Page, language = 'es', authenticated = true) {
     else if (path.endsWith('/auth/login')) await route.fulfill({ json: { accessToken: 'new-token', tokenType: 'Bearer', expiresInSeconds: 3600, expiresAt: '2100-01-01T00:00:00Z', mfaRequired: false, mfaChallengeToken: null } })
     else if (path.endsWith('/recommendations')) await route.fulfill({ json: { touristId: USER.id, generatedAt: '2026-01-01T00:00:00Z', source: 'FALLBACK', items: [] } })
     else if (path.endsWith('/preferences') || path.includes('/reservations/tourists/')) await route.fulfill({ json: [] })
-    else if (path.includes('/security-reports/by-user/')) await route.fulfill({ json: { content: [], nextCursor: null, hasNext: false } })
+    else if (path.endsWith('/security-reports') || path.includes('/security-reports/by-user/')) await route.fulfill({ json: { content: [], nextCursor: null, hasNext: false } })
     else {
       if (path.endsWith('/activities')) activityReads += 1
       await route.fulfill({ json: PAGE })
@@ -223,13 +223,18 @@ for (const width of [375, 768, 1280]) {
     const report = { id: 'r-1', user: { id: USER.id, name: USER.fullName }, title: 'Reporte de prueba',
       description: 'Descripción del incidente. '.repeat(45), location: { latitude: 11.24, longitude: -74.19 },
       photosUrls: [], status: 'ONGOING', createdAt: '2026-11-17T12:00:00Z', updatedAt: null }
-    await page.route('**/api/**/security-reports/**', async route => {
-      const path = new URL(route.request().url()).pathname
+    await page.route(url => url.pathname.includes('/api/') && /\/security-reports(?:\/|$)/.test(url.pathname), async route => {
+      const { pathname: path, searchParams } = new URL(route.request().url())
       const comments = [1, 2].map(id => ({ id: `c-${id}`, reportId: report.id, user: report.user, content: `Respuesta ${id}`, createdAt: report.createdAt }))
       await route.fulfill({ json: path.endsWith('/comments') ? { content: comments, nextCursor: null, hasNext: false }
-        : path.includes('/by-user/') ? { content: [report], nextCursor: null, hasNext: false } : report })
+        : path.endsWith('/security-reports') || path.includes('/by-user/')
+          ? { content: searchParams.get('status') === 'SOLVED' ? [] : [report], nextCursor: null, hasNext: false }
+          : report })
     })
     await page.goto('/reportes')
+    const title = page.getByRole('heading', { level: 1, name: 'Reportes de Seguridad', exact: true })
+    if (width < 900) await expect(title).toBeVisible()
+    else await expect(title).toHaveCount(0)
     const button = page.getByRole('button', { name: 'Ver 2 respuestas', exact: true })
     await expect(button).toBeVisible()
     await expect(button).toHaveText('2')
@@ -264,6 +269,9 @@ for (const width of [375, 768, 1280]) {
     await expect(button).toHaveCount(0)
     await page.getByRole('button', { name: 'Ver todos', exact: true }).first().click()
     await expect(button).toBeVisible()
+    await page.getByRole('button', { name: 'Ver mis reportes', exact: true }).click()
+    await expect(button).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Ver mis reportes', exact: true })).toHaveAttribute('aria-pressed', 'true')
     const sort = page.getByRole('combobox', { name: 'Ordenar por fecha' })
     await sort.click()
     await page.getByRole('option', { name: 'Más antiguos', exact: true }).click()
@@ -377,7 +385,7 @@ for (const width of [375, 1280]) {
           await route.fulfill({ json: { touristId: USER.id, generatedAt: '2099-01-01T12:00:00Z', source: 'AFFINITY', items: Array.from({ length: 20 }, (_, i) => ({ itemType: 'ACTIVITY', itemId: `item${i}`, name: `Plan ${i}`, categoryId: 'c1', siteId: 's1', score: 0.8, reason: 'Por tus intereses', signals: { affinity: 0.5, quality: 0.8, distanceKm: null, novelty: 0.4 } })) } })
           return
         }
-        if ((target === 'reports' && path.includes('/security-reports/by-user/')) || (target === 'catalog' && path.endsWith('/activities'))) {
+        if ((target === 'reports' && path.endsWith('/security-reports')) || (target === 'catalog' && path.endsWith('/activities'))) {
           failures++; await route.fulfill({ status: 401, json: { status: 401 } }); return
         }
         await route.fallback()

@@ -87,7 +87,7 @@ export default function ProviderProfilePage() {
   if (provider === null) {
     return (
       <section className={styles.page}>
-        <BackButton to="/explorar" />
+        <BackButton to="/servicios" />
         <StateMessage
           title={t("No se pudo cargar el perfil")}
           description={error ?? t("No se encontró la prestadora.")}
@@ -104,6 +104,7 @@ export default function ProviderProfilePage() {
     { label: 'NIT', value: profile?.nit ?? '—' },
     { label: t("Tipo de negocio"), value: profile?.businessType ?? '—' },
     { label: t("Sitio web"), value: profile?.websiteUrl ?? '—' },
+    { label: t("Teléfono"), value: profile?.phone?.trim() || t("No publicado") },
     {
       label: t("Ubicación"),
       value:
@@ -122,6 +123,8 @@ export default function ProviderProfilePage() {
 
   return (
     <section className={styles.page}>
+      <BackButton to="/servicios" />
+
       <PageHeader
         breadcrumb={[
           { label: t("Inicio"), to: '/explorar' },
@@ -185,8 +188,6 @@ export default function ProviderProfilePage() {
           <article className={styles.card}>
             <h2 className={styles.cardTitle}>{t("Ficha de la prestadora")}</h2>
             <DefList items={details} columns={1} />
-            <p className={styles.notice}>
-              {t("El contacto se coordina al confirmar una reserva.")}</p>
           </article>
 
           <article className={styles.card}>

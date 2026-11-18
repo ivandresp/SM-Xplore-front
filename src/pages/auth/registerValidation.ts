@@ -218,7 +218,9 @@ export function validateRegisterForm(
 
   const fullName = values.fullName.trim()
   if (fullName === '') {
-    errors.fullName = t("Escribe tu nombre completo.")
+    errors.fullName = kind === 'SERVICE_PROVIDER'
+      ? t("Escribe la razón social.")
+      : t("Escribe tu nombre completo.")
   } else if (fullName.length > 150) {
     errors.fullName = t("El nombre no puede superar los 150 caracteres.")
   }

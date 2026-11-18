@@ -25,6 +25,7 @@ const eventSchema = z.object({
   startsAt: z.string(),
   endsAt: z.string(),
   description: z.string().nullish(),
+  portraitUrl: z.string().nullish(),
   expectedAttendance: z.number(),
 })
 
@@ -45,6 +46,7 @@ function toEvent(response: EventWire): EventResponse {
     startsAt: response.startsAt,
     endsAt: response.endsAt,
     description: response.description ?? null,
+    portraitUrl: response.portraitUrl ?? null,
     expectedAttendance: response.expectedAttendance,
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
@@ -78,6 +78,10 @@ const LANGUAGE_OPTIONS = [
   { value: 'fr', get label() { return t("Francés") } },
 ]
 
+const GENERAL_FIELDS: readonly RegisterFieldKey[] = ['fullName', 'email', 'phone', 'password']
+const REGISTER_TABS = ['general', 'specific'] as const
+type RegisterTab = (typeof REGISTER_TABS)[number]
+
 const PASSWORD_CHECKLIST_ID = 'password-requirements'
 
 function buildTouristPayload(values: RegisterFormValues): RegisterTouristRequest {
@@ -133,10 +137,12 @@ function buildProviderPayload(
 }
 
 /** Resumen del formulario: nombra los campos, sin inventar el detalle de cada uno. */
-function summaryMessage(errors: FieldErrors): string {
+function summaryMessage(kind: AccountKind, errors: FieldErrors): string {
   const labels = FIELD_ORDER.filter(
     (field) => errors[field] !== undefined,
-  ).map(fieldLabel)
+  ).map((field) => kind === 'SERVICE_PROVIDER' && field === 'fullName'
+    ? t("razón social")
+    : fieldLabel(field))
   return t("Revisa los datos: {0}.", [labels.join(', ')])
 }
 
@@ -152,6 +158,8 @@ export default function RegisterPage({
   const { registerTourist, registerProvider, registerGuide } = useAuth()
   const navigate = useNavigate()
   const formRef = useRef<HTMLFormElement>(null)
+  const tabsId = useId()
+  const [activeTab, setActiveTab] = useState<RegisterTab>('general')
 
   const [kind, setKind] = useState<AccountKind>(initialKind)
   /**
@@ -163,6 +171,7 @@ export default function RegisterPage({
   if (kindSource !== initialKind) {
     setKindSource(initialKind)
     setKind(initialKind)
+    setActiveTab('general')
   }
   const [values, setValues] = useState<RegisterFormValues>(INITIAL_FORM)
   const [touched, setTouched] = useState<
@@ -241,6 +250,7 @@ export default function RegisterPage({
   }, [focusRequest])
 
   function requestFocus(key: RegisterFieldKey) {
+    setActiveTab(GENERAL_FIELDS.includes(key) ? 'general' : 'specific')
     focusToken.current += 1
     setFocusRequest({ key, token: focusToken.current })
   }
@@ -262,7 +272,7 @@ export default function RegisterPage({
       )
       if (mapped.length > 0) {
         setServerErrors(() => mapServerFieldErrors(cause.fieldErrors).fields)
-        setFormError(() => summaryMessage(mapServerFieldErrors(cause.fieldErrors).fields))
+        setFormError(() => summaryMessage(kind, mapServerFieldErrors(cause.fieldErrors).fields))
         requestFocus(mapped[0])
         return
       }
@@ -273,11 +283,12 @@ export default function RegisterPage({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (activeTab !== 'specific' || isSubmitting) return
 
     const blocked = firstInvalidField(kind, values)
     if (blocked !== null) {
       setSubmitAttempted(true)
-      setFormError(() => summaryMessage(validateRegisterForm(kind, values)))
+      setFormError(() => summaryMessage(kind, validateRegisterForm(kind, values)))
       requestFocus(blocked)
       return
     }
@@ -344,6 +355,40 @@ export default function RegisterPage({
         </p>
       }
     >
+      <div className={styles.registerTabs} role="tablist" aria-label={t("Datos de registro")}>
+        {REGISTER_TABS.map((tab) => (
+          <button
+            key={tab}
+            id={`${tabsId}-${tab}-tab`}
+            type="button"
+            role="tab"
+            disabled={isSubmitting}
+            aria-selected={activeTab === tab}
+            aria-controls={`${tabsId}-${tab}-panel`}
+            tabIndex={activeTab === tab ? 0 : -1}
+            className={styles.registerTab}
+            onClick={() => setActiveTab(tab)}
+            onKeyDown={(event) => {
+              const otherTab = tab === 'general' ? 'specific' : 'general'
+              const shortcuts: Partial<Record<string, RegisterTab>> = {
+                ArrowLeft: otherTab,
+                ArrowRight: otherTab,
+                Home: 'general',
+                End: 'specific',
+              }
+              const target = shortcuts[event.key]
+              if (target === undefined) return
+
+              event.preventDefault()
+              setActiveTab(target)
+              document.getElementById(`${tabsId}-${target}-tab`)?.focus()
+            }}
+          >
+            {tab === 'general' ? t("Información General") : t("Información Específica")}
+          </button>
+        ))}
+      </div>
+
       <form
         className={styles.form}
         onSubmit={handleSubmit}
@@ -356,309 +401,325 @@ export default function RegisterPage({
           </p>
         )}
 
-        <SelectField
-          label={t("Tipo de cuenta")}
-          name="kind"
-          options={ACCOUNT_OPTIONS}
-          value={kind}
-          onChange={(event) => {
-            setKind(event.target.value as AccountKind)
-            setTouched({})
-            setSubmitAttempted(false)
-            setServerErrors({})
-            setFormError(null)
-          }}
-        />
+        <div className={styles.registerPanels}>
+          <div
+            id={`${tabsId}-general-panel`}
+            role="tabpanel"
+            aria-labelledby={`${tabsId}-general-tab`}
+            inert={activeTab !== 'general'}
+            aria-hidden={activeTab !== 'general'}
+            className={styles.registerPanel}
+          >
+            <SelectField
+              label={t("Tipo de cuenta")}
+              name="kind"
+              options={ACCOUNT_OPTIONS}
+              value={kind}
+              onChange={(event) => {
+                setKind(event.target.value as AccountKind)
+                setTouched({})
+                setSubmitAttempted(false)
+                setServerErrors({})
+                setFormError(null)
+              }}
+            />
 
-        <Field
-          label={t("Nombre completo")}
-          name="fullName"
-          autoComplete="name"
-          required
-          value={values.fullName}
-          error={errorFor('fullName')}
-          onChange={(event) => update('fullName', event.target.value)}
-          onBlur={() => markTouched('fullName')}
-        />
+            <Field
+              label={kind === 'SERVICE_PROVIDER' ? t("Razón social") : t("Nombre completo")}
+              name="fullName"
+              autoComplete={kind === 'SERVICE_PROVIDER' ? 'organization' : 'name'}
+              required
+              value={values.fullName}
+              error={errorFor('fullName')}
+              onChange={(event) => update('fullName', event.target.value)}
+              onBlur={() => markTouched('fullName')}
+            />
 
-        <div className={styles.grid}>
-          <Field
-            label={t("Correo electrónico")}
-            type="email"
-            name="email"
-            autoComplete="email"
-            spellCheck={false}
-            required
-            value={values.email}
-            error={errorFor('email')}
-            onChange={(event) => update('email', event.target.value)}
-            onBlur={() => markTouched('email')}
-          />
-          <Field
-            label={t("Teléfono")}
-            type="tel"
-            inputMode="tel"
-            name="phone"
-            autoComplete="tel"
-            required
-            hint={t("Móvil colombiano: +57 300 123 4567. También aceptamos fijos e internacionales.")}
-            value={values.phone}
-            error={errorFor('phone')}
-            onChange={(event) => update('phone', event.target.value)}
-            onBlur={() => markTouched('phone')}
-          />
-        </div>
-
-        <div className={styles.fieldGroup}>
-          <Field
-            label={t("Contraseña")}
-            type="password"
-            name="password"
-            autoComplete="new-password"
-            spellCheck={false}
-            required
-            hint={t("Mínimo 12 caracteres; combina al menos 3 tipos.")}
-            aria-describedby={
-              values.password === '' ? undefined : PASSWORD_CHECKLIST_ID
-            }
-            value={values.password}
-            error={errorFor('password')}
-            onChange={(event) => update('password', event.target.value)}
-            onBlur={() => markTouched('password')}
-          />
-          {values.password !== '' && (
-            <ul
-              className={styles.checklist}
-              id={PASSWORD_CHECKLIST_ID}
-              aria-label={t("Requisitos de la contraseña")}
-              aria-live="polite"
-            >
-              {checks.map((check) => (
-                <li
-                  key={check.id}
-                  className={classNames(
-                    styles.checklistItem,
-                    check.state === 'met' && styles.checklistMet,
-                    check.state === 'pending' && styles.checklistPending,
-                    check.state === 'empty' && styles.checklistNeutral,
-                  )}
-                >
-                  <span aria-hidden="true">
-                    {check.state === 'met'
-                      ? '✓'
-                      : check.state === 'empty'
-                        ? '·'
-                        : '•'}
-                  </span>
-                  <span>{check.label}</span>
-                  <span className={styles.checkStatus}>
-                    {check.state === 'met'
-                      ? t("Cumple")
-                      : check.state === 'empty'
-                        ? t("Pendiente")
-                        : t("Falta")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {isTourist ? (
-          <>
-            <p className={styles.groupTitle}>{t("Documento")}</p>
             <div className={styles.grid}>
-              <SelectField
-                label={t("Tipo de documento")}
-                name="dniType"
+              <Field
+                label={t("Correo electrónico")}
+                type="email"
+                name="email"
+                autoComplete="email"
+                spellCheck={false}
                 required
-                options={DNI_TYPE_OPTIONS}
-                value={values.dniType}
-                error={errorFor('dniType')}
-                onChange={(event) => update('dniType', event.target.value)}
-                onBlur={() => markTouched('dniType')}
+                value={values.email}
+                error={errorFor('email')}
+                onChange={(event) => update('email', event.target.value)}
+                onBlur={() => markTouched('email')}
               />
               <Field
-                label={t("Número de documento")}
-                name="dniNumber"
+                label={t("Teléfono")}
+                type="tel"
+                inputMode="tel"
+                name="phone"
+                autoComplete="tel"
                 required
-                value={values.dniNumber}
-                error={errorFor('dniNumber')}
-                onChange={(event) => update('dniNumber', event.target.value)}
-                onBlur={() => markTouched('dniNumber')}
+                hint={t("Móvil colombiano: +57 300 123 4567. También aceptamos fijos e internacionales.")}
+                value={values.phone}
+                error={errorFor('phone')}
+                onChange={(event) => update('phone', event.target.value)}
+                onBlur={() => markTouched('phone')}
               />
             </div>
 
-            <div className={styles.grid}>
+            <div className={styles.fieldGroup}>
               <Field
-                label={t("Pais de Origen")}
-                name="nationality"
-                value={values.nationality}
-                error={errorFor('nationality')}
-                onChange={(event) => update('nationality', event.target.value)}
-                onBlur={() => markTouched('nationality')}
-              />
-              <SelectField
-                label={t("Idioma preferido")}
-                name="preferredLanguage"
-                options={[
-                  { value: '', label: t("Sin especificar") },
-                  ...LANGUAGE_OPTIONS,
-                ]}
-                value={values.preferredLanguage}
-                error={errorFor('preferredLanguage')}
-                onChange={(event) =>
-                  update('preferredLanguage', event.target.value)
+                label={t("Contraseña")}
+                type="password"
+                name="password"
+                autoComplete="new-password"
+                spellCheck={false}
+                required
+                hint={t("Mínimo 12 caracteres; combina al menos 3 tipos.")}
+                aria-describedby={
+                  values.password === '' ? undefined : PASSWORD_CHECKLIST_ID
                 }
-                onBlur={() => markTouched('preferredLanguage')}
+                value={values.password}
+                error={errorFor('password')}
+                onChange={(event) => update('password', event.target.value)}
+                onBlur={() => markTouched('password')}
               />
+              {values.password !== '' && (
+                <ul
+                  className={styles.checklist}
+                  id={PASSWORD_CHECKLIST_ID}
+                  aria-label={t("Requisitos de la contraseña")}
+                  aria-live="polite"
+                >
+                  {checks.map((check) => (
+                    <li
+                      key={check.id}
+                      className={classNames(
+                        styles.checklistItem,
+                        check.state === 'met' && styles.checklistMet,
+                        check.state === 'pending' && styles.checklistPending,
+                        check.state === 'empty' && styles.checklistNeutral,
+                      )}
+                    >
+                      <span aria-hidden="true">
+                        {check.state === 'met'
+                          ? '✓'
+                          : check.state === 'empty'
+                            ? '·'
+                            : '•'}
+                      </span>
+                      <span>{check.label}</span>
+                      <span className={styles.checkStatus}>
+                        {check.state === 'met'
+                          ? t("Cumple")
+                          : check.state === 'empty'
+                            ? t("Pendiente")
+                            : t("Falta")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
+          </div>
 
-            <Field
-              label={t("Fecha de nacimiento")}
-              type="date"
-              name="birthDate"
-              value={values.birthDate}
-              error={errorFor('birthDate')}
-              onChange={(event) => update('birthDate', event.target.value)}
-              onBlur={() => markTouched('birthDate')}
-            />
-          </>
-        ) : null}
+          <div
+            id={`${tabsId}-specific-panel`}
+            role="tabpanel"
+            aria-labelledby={`${tabsId}-specific-tab`}
+            hidden={activeTab !== 'specific'}
+            className={`${styles.registerPanel} ${styles.specificRegisterPanel}`}
+          >
+            {activeTab === 'specific' && (
+              <>
+                {isTourist ? (
+                  <>
+                    <p className={styles.groupTitle}>{t("Documento")}</p>
+                    <div className={styles.grid}>
+                      <SelectField
+                        label={t("Tipo de documento")}
+                        name="dniType"
+                        required
+                        options={DNI_TYPE_OPTIONS}
+                        value={values.dniType}
+                        error={errorFor('dniType')}
+                        onChange={(event) => update('dniType', event.target.value)}
+                        onBlur={() => markTouched('dniType')}
+                      />
+                      <Field
+                        label={t("Número de documento")}
+                        name="dniNumber"
+                        required
+                        value={values.dniNumber}
+                        error={errorFor('dniNumber')}
+                        onChange={(event) => update('dniNumber', event.target.value)}
+                        onBlur={() => markTouched('dniNumber')}
+                      />
+                    </div>
 
-        {kind === 'GUIDE' && (
-          <>
-            <p className={styles.groupTitle}>{t("Documento y licencia")}</p>
-            <div className={styles.grid}>
-              <SelectField
-                label={t("Tipo de documento")}
-                name="dniType"
-                required
-                options={DNI_TYPE_OPTIONS}
-                value={values.dniType}
-                error={errorFor('dniType')}
-                onChange={(event) => update('dniType', event.target.value)}
-                onBlur={() => markTouched('dniType')}
-              />
-              <Field
-                label={t("Número de documento")}
-                name="dniNumber"
-                required
-                value={values.dniNumber}
-                error={errorFor('dniNumber')}
-                onChange={(event) => update('dniNumber', event.target.value)}
-                onBlur={() => markTouched('dniNumber')}
-              />
-            </div>
+                    <div className={styles.grid}>
+                      <Field
+                        label={t("Pais de Origen")}
+                        name="nationality"
+                        value={values.nationality}
+                        error={errorFor('nationality')}
+                        onChange={(event) => update('nationality', event.target.value)}
+                        onBlur={() => markTouched('nationality')}
+                      />
+                      <SelectField
+                        label={t("Idioma preferido")}
+                        name="preferredLanguage"
+                        options={[
+                          { value: '', label: t("Sin especificar") },
+                          ...LANGUAGE_OPTIONS,
+                        ]}
+                        value={values.preferredLanguage}
+                        error={errorFor('preferredLanguage')}
+                        onChange={(event) =>
+                          update('preferredLanguage', event.target.value)
+                        }
+                        onBlur={() => markTouched('preferredLanguage')}
+                      />
+                    </div>
 
-            <Field
-              label={t("Licencia de guía")}
-              name="license"
-              autoComplete="off"
-              required
-              hint={t("Número de la licencia de guía turístico (máximo 50 caracteres).")}
-              value={values.license}
-              error={errorFor('license')}
-              onChange={(event) => update('license', event.target.value)}
-              onBlur={() => markTouched('license')}
-            />
+                    <Field
+                      label={t("Fecha de nacimiento")}
+                      type="date"
+                      name="birthDate"
+                      value={values.birthDate}
+                      error={errorFor('birthDate')}
+                      onChange={(event) => update('birthDate', event.target.value)}
+                      onBlur={() => markTouched('birthDate')}
+                    />
+                  </>
+                ) : null}
 
-            <Field
-              label={t("Fecha de inicio de operación")}
-              type="date"
-              name="startOperationDate"
-              hint={t("Opcional: cuándo empezaste a operar como guía.")}
-              value={values.startOperationDate}
-              error={errorFor('startOperationDate')}
-              onChange={(event) =>
-                update('startOperationDate', event.target.value)
-              }
-              onBlur={() => markTouched('startOperationDate')}
-            />
+                {kind === 'GUIDE' && (
+                  <>
+                    <p className={styles.groupTitle}>{t("Documento y licencia")}</p>
+                    <div className={styles.grid}>
+                      <SelectField
+                        label={t("Tipo de documento")}
+                        name="dniType"
+                        required
+                        options={DNI_TYPE_OPTIONS}
+                        value={values.dniType}
+                        error={errorFor('dniType')}
+                        onChange={(event) => update('dniType', event.target.value)}
+                        onBlur={() => markTouched('dniType')}
+                      />
+                      <Field
+                        label={t("Número de documento")}
+                        name="dniNumber"
+                        required
+                        value={values.dniNumber}
+                        error={errorFor('dniNumber')}
+                        onChange={(event) => update('dniNumber', event.target.value)}
+                        onBlur={() => markTouched('dniNumber')}
+                      />
+                    </div>
 
-            <p className={styles.notice}>
-              {t("Tu solicitud queda en revisión: una gestora la aprueba o la rechaza y te avisamos por correo. Hasta entonces no podrás iniciar sesión.")}</p>
-          </>
-        )}
+                    <Field
+                      label={t("Licencia de guía")}
+                      name="license"
+                      autoComplete="off"
+                      required
+                      hint={t("Número de la licencia de guía turístico (máximo 50 caracteres).")}
+                      value={values.license}
+                      error={errorFor('license')}
+                      onChange={(event) => update('license', event.target.value)}
+                      onBlur={() => markTouched('license')}
+                    />
 
-        {kind === 'SERVICE_PROVIDER' && (
-          <>
-            <p className={styles.groupTitle}>{t("Empresa")}</p>
-            <Field
-              label="NIT"
-              name="nit"
-              required
-              hint={t("Solo números y guiones, entre 6 y 30 caracteres.")}
-              value={values.nit}
-              error={errorFor('nit')}
-              onChange={(event) => update('nit', event.target.value)}
-              onBlur={() => markTouched('nit')}
-            />
-            <div className={styles.grid}>
-              <SelectField
-                label={t("Tipo de negocio")}
-                name="businessType"
-                placeholder={t("Sin especificar")}
-                options={BUSINESS_TYPE_OPTIONS}
-                value={values.businessType}
-                error={errorFor('businessType')}
-                onChange={(event) => update('businessType', event.target.value)}
-                onBlur={() => markTouched('businessType')}
-              />
-              <Field
-                label={t("Fecha de inicio de operación")}
-                type="date"
-                name="startOperationDate"
-                value={values.startOperationDate}
-                error={errorFor('startOperationDate')}
-                onChange={(event) => update('startOperationDate', event.target.value)}
-                onBlur={() => markTouched('startOperationDate')}
-              />
-            </div>
-            <div data-provider-location>
-              <LocationPicker
-                label={t("Ubicación del negocio")}
-                value={values.latitude !== '' && values.longitude !== ''
-                  ? { latitude: Number(values.latitude), longitude: Number(values.longitude) }
-                  : null}
-                onChange={(point) => {
-                  update('latitude', point === null ? '' : String(point.latitude))
-                  update('longitude', point === null ? '' : String(point.longitude))
-                }}
-                disabled={isSubmitting}
-                error={errorFor('latitude') ?? errorFor('longitude')}
-              />
-            </div>
-            <Field
-              label={t("Sitio web")}
-              type="url"
-              name="websiteUrl"
-              value={values.websiteUrl}
-              error={errorFor('websiteUrl')}
-              onChange={(event) => update('websiteUrl', event.target.value)}
-              onBlur={() => markTouched('websiteUrl')}
-            />
-          </>
-        )}
+                    <Field
+                      label={t("Fecha de inicio de operación")}
+                      type="date"
+                      name="startOperationDate"
+                      hint={t("Opcional: cuándo empezaste a operar como guía.")}
+                      value={values.startOperationDate}
+                      error={errorFor('startOperationDate')}
+                      onChange={(event) =>
+                        update('startOperationDate', event.target.value)
+                      }
+                      onBlur={() => markTouched('startOperationDate')}
+                    />
 
-        {kind !== 'GUIDE' && (
-          <p className={styles.footer}>
-            {t("¿Eres guía turístico?")}{' '}
-            <Link to="/registro/guia">{t("Registra tu solicitud como guía")}</Link>
-          </p>
-        )}
+                    <p className={styles.notice}>
+                      {t("Tu solicitud queda en revisión: una gestora la aprueba o la rechaza y te avisamos por correo. Hasta entonces no podrás iniciar sesión.")}</p>
+                  </>
+                )}
 
-        <Button
-          className={styles.submit}
-          type="submit"
-          disabled={isSubmitting}
-          // Evita que el botón se lleve el foco al pulsar: si el campo con
-          // error pierde el foco, el mensaje refluye y el mouseup cae fuera
-          // (el primer clic se perdía). El teclado sigue enfocando por Tab.
-          onMouseDown={(event) => event.preventDefault()}
-        >
-          {isSubmitting ? t("Creando cuenta…") : t("Crear cuenta")}
-        </Button>
+                {kind === 'SERVICE_PROVIDER' && (
+                  <>
+                    <p className={styles.groupTitle}>{t("Empresa")}</p>
+                    <Field
+                      label="NIT"
+                      name="nit"
+                      required
+                      hint={t("Solo números y guiones, entre 6 y 30 caracteres.")}
+                      value={values.nit}
+                      error={errorFor('nit')}
+                      onChange={(event) => update('nit', event.target.value)}
+                      onBlur={() => markTouched('nit')}
+                    />
+                    <div className={styles.grid}>
+                      <SelectField
+                        label={t("Tipo de negocio")}
+                        name="businessType"
+                        placeholder={t("Sin especificar")}
+                        options={BUSINESS_TYPE_OPTIONS}
+                        value={values.businessType}
+                        error={errorFor('businessType')}
+                        onChange={(event) => update('businessType', event.target.value)}
+                        onBlur={() => markTouched('businessType')}
+                      />
+                      <Field
+                        label={t("Fecha de inicio de operación")}
+                        type="date"
+                        name="startOperationDate"
+                        value={values.startOperationDate}
+                        error={errorFor('startOperationDate')}
+                        onChange={(event) => update('startOperationDate', event.target.value)}
+                        onBlur={() => markTouched('startOperationDate')}
+                      />
+                    </div>
+                    <div data-provider-location>
+                      <LocationPicker
+                        label={t("Ubicación del negocio")}
+                        value={values.latitude !== '' && values.longitude !== ''
+                          ? { latitude: Number(values.latitude), longitude: Number(values.longitude) }
+                          : null}
+                        onChange={(point) => {
+                          update('latitude', point === null ? '' : String(point.latitude))
+                          update('longitude', point === null ? '' : String(point.longitude))
+                        }}
+                        disabled={isSubmitting}
+                        error={errorFor('latitude') ?? errorFor('longitude')}
+                      />
+                    </div>
+                    <Field
+                      label={t("Sitio web")}
+                      type="url"
+                      name="websiteUrl"
+                      value={values.websiteUrl}
+                      error={errorFor('websiteUrl')}
+                      onChange={(event) => update('websiteUrl', event.target.value)}
+                      onBlur={() => markTouched('websiteUrl')}
+                    />
+                  </>
+                )}
+
+                <Button
+                  className={styles.submit}
+                  type="submit"
+                  disabled={isSubmitting}
+                  // Evita que el botón se lleve el foco al pulsar: si el campo con
+                  // error pierde el foco, el mensaje refluye y el mouseup cae fuera
+                  // (el primer clic se perdía). El teclado sigue enfocando por Tab.
+                  onMouseDown={(event) => event.preventDefault()}
+                >
+                  {isSubmitting ? t("Creando cuenta…") : t("Crear cuenta")}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
       </form>
     </AuthShell>
   )

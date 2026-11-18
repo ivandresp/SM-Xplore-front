@@ -93,6 +93,9 @@ describe('ServiceDetailPage', () => {
     expect(
       screen.getByRole('img', { name: /Mapa de Habitación doble en 11\.24040, -74\.19900/ }),
     ).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Volver' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Acercar mapa' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Alejar mapa' })).toBeTruthy()
     expect(
       screen.getByRole('link', { name: /© OpenStreetMap contributors/ }),
     ).toBeTruthy()

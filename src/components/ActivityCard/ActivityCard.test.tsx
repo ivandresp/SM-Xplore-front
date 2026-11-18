@@ -39,6 +39,12 @@ describe('ActivityCard', () => {
     expect(screen.getByRole('heading', { name: 'Detalle de actividad' })).toBeTruthy()
   })
 
+  it('muestra la portada guardada', () => {
+    const portraitUrl = 'https://example.com/snorkel.jpg'
+    renderCard({ ...activity, portraitUrl })
+    expect(screen.getByRole('link', { name: activity.name }).querySelector('img')?.getAttribute('src')).toBe(portraitUrl)
+  })
+
   it('permite abrir el detalle con teclado', async () => {
     const user = userEvent.setup()
     renderCard()
