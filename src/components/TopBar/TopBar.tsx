@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import type { KeyboardEvent, ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Logo } from '@/components/Logo'
@@ -57,7 +58,7 @@ const SEARCH_GROUPS: Array<{ key: GlobalSearchGroup; label: string }> = [
 /** Buscador global: panel con los resultados agrupados por tipo. */
 function GlobalSearch() {
   useLanguage()
-  const { term, setTerm, isLoading, results, error, failed, retry } =
+  const { term, setTerm, isLoading, results, error, errorCause, failed, retry } =
     useGlobalSearch()
   const [open, setOpen] = useState(false)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -188,8 +189,7 @@ function GlobalSearch() {
           ) : error !== null ? (
             <div className={styles.panelBody} role="alert">
               <p className={styles.panelText}>{error}</p>
-              <button type="button" className={styles.retry} onClick={retry}>
-                {t("Reintentar")}</button>
+              <ApiErrorAction error={errorCause} onRetry={retry} variant="outline" size="sm" />
             </div>
           ) : (
             <div className={styles.panelBody}>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { getLocale, translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
@@ -18,7 +19,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { itemLabel, loadCatalogLookup } from '@/services/catalogLookup'
 import type { CatalogEntry } from '@/services/catalogLookup'
 import { itemOf, reservationsApi } from '@/services/reservationsApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency } from '@/utils/format'
 import type { ReservationStatus, ReservationSummaryResponse } from '@/types'
 import styles from './reservations.module.css'
@@ -56,7 +56,7 @@ export default function MyReservationsPage() {
   >([])
   const [lookup, setLookup] = useState<Map<string, CatalogEntry>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [filterIndex, setFilterIndex] = useState(0)
   const [page, setPage] = useState(1)
   const [reloadToken, setReloadToken] = useState(0)
@@ -90,7 +90,7 @@ export default function MyReservationsPage() {
       } catch (cause) {
         if (!cancelled) {
           setReservations([])
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) {
@@ -104,7 +104,7 @@ export default function MyReservationsPage() {
     return () => {
       cancelled = true
     }
-  }, [touristId, reloadToken, setError])
+  }, [touristId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -138,7 +138,7 @@ export default function MyReservationsPage() {
           title={t("No se pudieron cargar tus reservas")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       )}
 

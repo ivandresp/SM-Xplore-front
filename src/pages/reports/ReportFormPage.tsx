@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -151,8 +152,7 @@ export default function ReportFormPage() {
 
   return (
     <div className={styles.page}>
-      <Link to={reportsPath} className={styles.back}>
-        {t("← Volver a mis reportes")}</Link>
+      <BackButton to={reportsPath} />
 
       <PageHeader
         title={t("Nuevo reporte de seguridad")}

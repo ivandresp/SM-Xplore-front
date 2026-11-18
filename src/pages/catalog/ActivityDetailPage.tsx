@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { getLocale, translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -62,7 +65,7 @@ export default function ActivityDetailPage() {
     'missing' | 'unavailable' | null
   >(null)
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   /** Cambia de valor para forzar una recarga (botón "Reintentar"). */
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -120,7 +123,7 @@ export default function ActivityDetailPage() {
         }
       } catch (cause) {
         if (!cancelled) {
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) {
@@ -134,7 +137,7 @@ export default function ActivityDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [activityId, reloadToken, setError])
+  }, [activityId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -153,15 +156,13 @@ export default function ActivityDetailPage() {
   if (activity === null) {
     return (
       <div className={styles.page}>
-        <Link to="/explorar" className={styles.state}>
-          {t("← Volver al catálogo")}</Link>
+        <BackButton to="/explorar" />
         <StateMessage
           tone="error"
           title={t("No pudimos cargar la actividad")}
           description={error ?? t("No se encontró la actividad.")}
           action={
-            <Button variant="accent" onClick={retry}>
-              {t("Reintentar")}</Button>
+            <ApiErrorAction error={errorCause} variant="accent" onRetry={retry} />
           }
         />
       </div>

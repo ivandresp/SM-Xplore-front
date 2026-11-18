@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
 import { Button } from '@/components/Button'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { Skeleton } from '@/components/Skeleton'
@@ -53,9 +54,9 @@ export default function RecommendationsPage() {
   const [data, setData] = useState<RecommendationResponse | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isLoadingMore, setIsLoadingMore] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   // Fallo de una recarga o de «ver más» con tarjetas ya en pantalla: no borra la lista.
-  const [inlineError, setInlineError] = useMessageState<string | null>(null)
+  const [inlineError, setInlineError] = useState<unknown>(null)
   // Corte con el que llegó `data`: es el que se puede volver a pedir sin fallar.
   const [loadedLimit, setLoadedLimit] = useState(RECOMMENDATION_INITIAL_LIMIT)
   const [statusMessage, setStatusMessage] = useMessageState('')
@@ -94,10 +95,10 @@ export default function RecommendationsPage() {
         logApiError(cause, 'recomendaciones')
 
         if (dataRef.current === null) {
-          setError(() => describeApiError(cause))
+          setError(() => cause)
         } else {
           // Había tarjetas en pantalla: se quedan y el aviso es inline.
-          setInlineError(() => describeApiError(cause))
+          setInlineError(() => cause)
         }
       } finally {
         if (!cancelled) {
@@ -178,7 +179,7 @@ export default function RecommendationsPage() {
 
       // La lista que ya estaba en pantalla se queda; solo se avisa y no se sube el corte.
       logApiError(cause, t("recomendaciones: ver más"))
-      setInlineError(() => describeApiError(cause))
+      setInlineError(() => cause)
     } finally {
       setIsLoadingMore(false)
     }
@@ -201,17 +202,15 @@ export default function RecommendationsPage() {
       {error !== null && (
         <div className={styles.state} role="alert">
           <p className={styles.stateTitle}>{t("No pudimos cargar tus recomendaciones")}</p>
-          <p>{error}</p>
-          <Button variant="accent" onClick={retry}>
-            {t("Reintentar")}</Button>
+          <p>{describeApiError(error)}</p>
+          <ApiErrorAction error={error} onRetry={retry} variant="accent" />
         </div>
       )}
 
       {!isLoading && error === null && data !== null && inlineError !== null && (
         <div className={styles.inlineError} role="alert">
-          <p className={styles.inlineErrorText}>{inlineError}</p>
-          <Button variant="outline" size="sm" onClick={retryInline}>
-            {t("Reintentar")}</Button>
+          <p className={styles.inlineErrorText}>{describeApiError(inlineError)}</p>
+          <ApiErrorAction error={inlineError} onRetry={retryInline} variant="outline" size="sm" />
         </div>
       )}
 

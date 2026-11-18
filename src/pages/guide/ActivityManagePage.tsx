@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -14,7 +17,6 @@ import {
   ACTIVITY_STATUS_TONES,
 } from '@/config/roles'
 import { activitiesApi } from '@/services/activitiesApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDurationLong } from '@/utils/format'
 import type { ActivityResponse, ActivityStatus } from '@/types'
 import styles from './guide.module.css'
@@ -22,7 +24,6 @@ import styles from './guide.module.css'
 export default function ActivityManagePage() {
   useLanguage()
   const { activityId } = useParams<{ activityId: string }>()
-  const navigate = useNavigate()
 
   const [activity, setActivity] = useState<ActivityResponse | null>(null)
   const [name, setName] = useState('')
@@ -32,7 +33,7 @@ export default function ActivityManagePage() {
   const [status, setStatus] = useState<ActivityStatus>('DRAFT')
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -56,7 +57,7 @@ export default function ActivityManagePage() {
         setStatus(found.status)
         setError(null)
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -67,7 +68,7 @@ export default function ActivityManagePage() {
     return () => {
       cancelled = true
     }
-  }, [activityId, reloadToken, setError])
+  }, [activityId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -86,13 +87,12 @@ export default function ActivityManagePage() {
   if (activity === null) {
     return (
       <section>
-        <Link to="/app/mis-actividades" className={styles.back}>
-          {t("← Volver a mis actividades")}</Link>
+        <BackButton to="/app/mis-actividades" />
         <StateMessage
           title={t("No se pudo cargar la actividad")}
           description={error ?? t("No se encontró la actividad.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       </section>
     )
@@ -114,7 +114,7 @@ export default function ActivityManagePage() {
       setStatus(updated.status)
       setFeedback(message)
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -142,7 +142,7 @@ export default function ActivityManagePage() {
       setActivity(withStatus)
       setFeedback(() => t("Cambios guardados."))
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -150,8 +150,7 @@ export default function ActivityManagePage() {
 
   return (
     <section>
-      <Link to="/app/mis-actividades" className={styles.back}>
-        {t("← Volver a mis actividades")}</Link>
+      <BackButton to="/app/mis-actividades" />
 
       <PageHeader
         breadcrumb={[
@@ -315,11 +314,7 @@ export default function ActivityManagePage() {
       </div>
 
       <div className={styles.actions}>
-        <Button
-          variant="outline"
-          onClick={() => navigate('/app/mis-actividades')}
-        >
-          {t("Volver al listado")}</Button>
+        <BackButton to="/app/mis-actividades" />
       </div>
     </section>
   )

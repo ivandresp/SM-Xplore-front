@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -89,7 +90,7 @@ export default function ResetPasswordPage() {
         subtitle={t("Este enlace no trae el token de recuperación.")}
         footer={
           <p>
-            <Link to="/login">{t("Volver a iniciar sesión")}</Link>
+            <BackButton to="/login" />
           </p>
         }
       >
@@ -122,7 +123,7 @@ export default function ResetPasswordPage() {
       subtitle={t("Define la contraseña de tu cuenta de SM-Xplore.")}
       footer={
         <p>
-          <Link to="/login">{t("Volver a iniciar sesión")}</Link>
+          <BackButton to="/login" />
         </p>
       }
     >

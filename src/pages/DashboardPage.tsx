@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
-import { Button } from '@/components/Button'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
 import { Skeleton } from '@/components/Skeleton'
 import type { SkeletonVariant } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
@@ -48,6 +48,7 @@ interface LoadState<T> {
   data: T | null
   isLoading: boolean
   error: string | null
+  errorCause?: unknown
   retry: () => void
 }
 
@@ -62,6 +63,7 @@ function useLoad<T>(key: string, load: () => Promise<T>): LoadState<T> {
     key: string
     data: T | null
     error: string | null
+  errorCause?: unknown
   } | null>(null)
 
   useEffect(() => {
@@ -85,6 +87,7 @@ function useLoad<T>(key: string, load: () => Promise<T>): LoadState<T> {
             key: requestKey,
             data: null,
             get error() { return describeApiError(cause) },
+            errorCause: cause,
           })
         }
       },
@@ -101,6 +104,7 @@ function useLoad<T>(key: string, load: () => Promise<T>): LoadState<T> {
     data: current?.data ?? null,
     isLoading: current === null,
     error: current?.error ?? null,
+    errorCause: current?.errorCause,
     retry: () => setAttempt((value) => value + 1),
   }
 }
@@ -138,7 +142,7 @@ function Loadable<T>({
         tone="error"
         title={errorTitle}
         description={state.error}
-        action={<Button onClick={state.retry}>{t("Reintentar")}</Button>}
+        action={<ApiErrorAction error={state.errorCause} onRetry={state.retry} />}
       />
     )
   }

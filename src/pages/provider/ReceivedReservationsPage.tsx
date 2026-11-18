@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { DataTable } from '@/components/DataTable/DataTable'
@@ -19,7 +20,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { loadCatalogLookup } from '@/services/catalogLookup'
 import type { CatalogEntry } from '@/services/catalogLookup'
 import { itemOf, reservationsApi } from '@/services/reservationsApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
 import type { ReservationSummaryResponse, ReservationStatus } from '@/types'
 import tableStyles from '@/pages/admin/admin.module.css'
@@ -45,7 +45,7 @@ export default function ReceivedReservationsPage() {
 
   const [rows, setRows] = useState<Row[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [filterIndex, setFilterIndex] = useState(0)
   const [term, setTerm] = useState('')
 
@@ -89,7 +89,7 @@ export default function ReceivedReservationsPage() {
       )
     } catch (cause) {
       setRows([])
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsLoading(false)
     }
@@ -210,7 +210,7 @@ export default function ReceivedReservationsPage() {
               title={t("No se pudieron cargar las reservas recibidas")}
               description={error}
               tone="error"
-              action={<Button onClick={() => void load()}>{t("Reintentar")}</Button>}
+              action={<ApiErrorAction error={errorCause} onRetry={() => void load()} />}
             />
           ) : (
             <DataTable

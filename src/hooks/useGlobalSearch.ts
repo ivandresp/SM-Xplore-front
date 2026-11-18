@@ -146,6 +146,7 @@ interface SearchOutcome {
   results: GlobalSearchResults
   failed: GlobalSearchGroup[]
   resolveError: (() => string) | null
+  errorCause?: unknown
 }
 
 async function searchEverything(raw: string): Promise<SearchOutcome> {
@@ -193,6 +194,7 @@ async function searchEverything(raw: string): Promise<SearchOutcome> {
   return {
     results,
     failed,
+    errorCause: firstFailure?.reason,
     resolveError:
       failed.length === settled.length && firstFailure !== undefined
         ? () => describeApiError(firstFailure.reason)
@@ -207,6 +209,7 @@ export interface UseGlobalSearchResult {
   results: GlobalSearchResults
   /** Solo se llena si fallaron los cuatro servicios a la vez. */
   error: string | null
+  errorCause?: unknown
   /** Grupos que fallaron; el resto de resultados se muestra igual. */
   failed: GlobalSearchGroup[]
   retry: () => void
@@ -268,6 +271,7 @@ export function useGlobalSearch(): UseGlobalSearchResult {
     isLoading,
     results: current?.results ?? EMPTY_RESULTS,
     error: current?.resolveError?.() ?? null,
+    errorCause: current?.errorCause,
     failed: current?.failed ?? [],
     retry: () => {
       setState(null)

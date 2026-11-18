@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -19,7 +22,6 @@ import {
   serviceTypeLabel,
 } from '@/config/roles'
 import { servicesApi } from '@/services/servicesApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDateTime } from '@/utils/format'
 import type { ServiceResponse, UpdateServiceRequest } from '@/types'
 import styles from './provider.module.css'
@@ -52,7 +54,7 @@ export default function ServiceManagePage() {
   const [photosUploading, setPhotosUploading] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -75,7 +77,7 @@ export default function ServiceManagePage() {
           setError(null)
         }
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -86,7 +88,7 @@ export default function ServiceManagePage() {
     return () => {
       cancelled = true
     }
-  }, [serviceId, reloadToken, setError])
+  }, [serviceId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -101,13 +103,12 @@ export default function ServiceManagePage() {
   if (service === null) {
     return (
       <section>
-        <Link to="/app/mis-servicios" className={styles.back}>
-          {t("← Volver a mis servicios")}</Link>
+        <BackButton to="/app/mis-servicios" />
         <StateMessage
           title={t("No se pudo cargar el servicio")}
           description={error ?? t("No se encontró el servicio.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       </section>
     )
@@ -146,7 +147,7 @@ export default function ServiceManagePage() {
       setPrice(String(updated.price))
       setFeedback(message)
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -175,8 +176,7 @@ export default function ServiceManagePage() {
 
   return (
     <section>
-      <Link to="/app/mis-servicios" className={styles.back}>
-        {t("← Volver a mis servicios")}</Link>
+      <BackButton to="/app/mis-servicios" />
 
       <PageHeader
         breadcrumb={[

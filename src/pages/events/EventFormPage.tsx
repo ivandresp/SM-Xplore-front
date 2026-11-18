@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -29,7 +32,7 @@ export default function EventFormPage() {
   const [siteId, setSiteId] = useState('')
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
-  const [sitesError, setSitesError] = useMessageState<string | null>(null)
+  const [sitesError, setSitesError, sitesErrorCause, setSitesErrorFromApi] = useApiErrorState()
   const [price, setPrice] = useState('')
   const [maxCapacity, setMaxCapacity] = useState('')
   const [expectedAttendance, setExpectedAttendance] = useState('')
@@ -62,7 +65,7 @@ export default function EventFormPage() {
           setSites(sitesResult.value)
           setSitesError(null)
         } else {
-          setSitesError(() => describeApiError(sitesResult.reason))
+          setSitesErrorFromApi(sitesResult.reason)
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -74,7 +77,7 @@ export default function EventFormPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken, setSitesError])
+  }, [reloadToken, setSitesError, setSitesErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -174,13 +177,12 @@ export default function EventFormPage() {
   if (sitesError !== null) {
     return (
       <section>
-        <Link to="/app/eventos" className={styles.back}>
-          {t("← Volver a gestión de eventos")}</Link>
+        <BackButton to="/app/eventos" />
         <StateMessage
           title={t("No se pudieron cargar los atractivos")}
           description={sitesError}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={sitesErrorCause} onRetry={retry} />}
         />
       </section>
     )
@@ -188,8 +190,7 @@ export default function EventFormPage() {
 
   return (
     <section>
-      <Link to="/app/eventos" className={styles.back}>
-        {t("← Volver a gestión de eventos")}</Link>
+      <BackButton to="/app/eventos" />
 
       <PageHeader
         breadcrumb={[

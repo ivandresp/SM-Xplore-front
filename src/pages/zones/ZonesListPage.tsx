@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
@@ -11,7 +12,6 @@ import { SearchInput } from '@/components/SearchInput/SearchInput'
 import { StateMessage } from '@/components/StateMessage'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
-import { describeApiError } from '@/utils/errors'
 import type { Site, Zone } from '@/types'
 import styles from './zones.module.css'
 import tableStyles from '@/pages/admin/admin.module.css'
@@ -27,7 +27,7 @@ export default function ZonesListPage() {
   const [zones, setZones] = useState<Zone[]>([])
   const [sites, setSites] = useState<Site[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [term, setTerm] = useState('')
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -50,7 +50,7 @@ export default function ZonesListPage() {
           setError(null)
         }
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -61,7 +61,7 @@ export default function ZonesListPage() {
     return () => {
       cancelled = true
     }
-  }, [reloadToken, setError])
+  }, [reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -160,7 +160,7 @@ export default function ZonesListPage() {
           title={t("No se pudieron cargar las zonas")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       ) : (
         <DataTable

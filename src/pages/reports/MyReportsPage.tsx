@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { useReportsPath } from '@/hooks/useReportsPath'
 import { Avatar } from '@/components/Avatar/Avatar'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
 import { Button } from '@/components/Button'
 import { Chip } from '@/components/Chip'
 import { FilterBar } from '@/components/FilterBar'
@@ -40,7 +40,7 @@ export default function MyReportsPage() {
   const [reports, setReports] = useState<SecurityReportResponse[]>([])
   const [comments, setComments] = useState<Record<string, number>>({})
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [filterIndex, setFilterIndex] = useState(0)
   const [sort, setSort] = useState<SortOrder>('recent')
   const [reloadToken, setReloadToken] = useState(0)
@@ -78,7 +78,7 @@ export default function MyReportsPage() {
       } catch (cause) {
         if (!cancelled) {
           setReports([])
-          setError(() => describeApiError(cause))
+          setError(() => cause)
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -121,9 +121,9 @@ export default function MyReportsPage() {
       {error !== null && (
         <StateMessage
           title={t("No se pudieron cargar tus reportes")}
-          description={error}
+          description={describeApiError(error)}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={error} onRetry={retry} />}
         />
       )}
 

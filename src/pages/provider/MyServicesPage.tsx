@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
@@ -16,7 +17,6 @@ import {
 } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { servicesApi } from '@/services/servicesApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency } from '@/utils/format'
 import type { ServiceResponse } from '@/types'
 import styles from './provider.module.css'
@@ -27,7 +27,7 @@ export default function MyServicesPage() {
 
   const [services, setServices] = useState<ServiceResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [reloadToken, setReloadToken] = useState(0)
 
   const providerId = user?.id
@@ -54,7 +54,7 @@ export default function MyServicesPage() {
       } catch (cause) {
         if (!cancelled) {
           setServices([])
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -66,7 +66,7 @@ export default function MyServicesPage() {
     return () => {
       cancelled = true
     }
-  }, [providerId, reloadToken, setError])
+  }, [providerId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -147,7 +147,7 @@ export default function MyServicesPage() {
           title={t("No se pudieron cargar tus servicios")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       ) : (
         <DataTable

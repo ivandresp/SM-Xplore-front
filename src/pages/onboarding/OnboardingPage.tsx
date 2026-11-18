@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -47,11 +49,11 @@ export default function OnboardingPage() {
   const [entryStep, setEntryStep] = useState<OnboardingStep | null>(null)
 
   const [categories, setCategories] = useState<CategoryResponse[] | null>(null)
-  const [categoryError, setCategoryError] = useMessageState<string | null>(null)
+  const [categoryError, setCategoryError, categoryErrorCause, setCategoryErrorFromApi] = useApiErrorState()
   const [savedPreferences, setSavedPreferences] = useState<
     PreferenceResponse[] | null
   >(null)
-  const [preferencesError, setPreferencesError] = useMessageState<string | null>(null)
+  const [preferencesError, setPreferencesError, preferencesErrorCause, setPreferencesErrorFromApi] = useApiErrorState()
   const [reloadToken, setReloadToken] = useState(0)
 
   const [pendingCategoryId, setPendingCategoryId] = useState<string | null>(null)
@@ -96,20 +98,20 @@ export default function OnboardingPage() {
       if (cats.status === 'fulfilled') {
         setCategories(cats.value)
       } else {
-        setCategoryError(() => describeApiError(cats.reason))
+        setCategoryErrorFromApi(cats.reason)
       }
 
       if (prefs.status === 'fulfilled') {
         setSavedPreferences(prefs.value)
       } else {
-        setPreferencesError(() => describeApiError(prefs.reason))
+        setPreferencesErrorFromApi(prefs.reason)
       }
     })
 
     return () => {
       cancelled = true
     }
-  }, [reloadToken, setCategoryError, setPreferencesError])
+  }, [reloadToken, setCategoryError, setPreferencesError, setCategoryErrorFromApi, setPreferencesErrorFromApi])
 
   /**
    * El paso de entrada se decide una sola vez, cuando ya hay datos reales: paso
@@ -330,20 +332,18 @@ export default function OnboardingPage() {
               {categoryError !== null && (
                 <div className={styles.inlineError}>
                   <p role="alert">{categoryError}</p>
-                  <Button
+                  <ApiErrorAction error={categoryErrorCause}
                     variant="outline"
                     size="sm"
-                    onClick={retryLoad}
-                  >
-                    {t("Reintentar")}</Button>
+                    onRetry={retryLoad}
+                   />
                 </div>
               )}
 
               {preferencesError !== null && (
                 <div className={styles.inlineError}>
                   <p role="alert">{preferencesError}</p>
-                  <Button variant="outline" size="sm" onClick={retryLoad}>
-                    {t("Reintentar")}</Button>
+                  <ApiErrorAction error={preferencesErrorCause} variant="outline" size="sm" onRetry={retryLoad} />
                 </div>
               )}
 

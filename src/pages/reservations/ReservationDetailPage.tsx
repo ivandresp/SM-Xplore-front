@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { getLocale, translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -18,7 +21,6 @@ import {
 import { itemLabel, loadCatalogLookup } from '@/services/catalogLookup'
 import type { CatalogEntry } from '@/services/catalogLookup'
 import { itemOf, reservationsApi } from '@/services/reservationsApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
 import type { ReservationItemResponse, ReservationResponse } from '@/types'
 import styles from './reservations.module.css'
@@ -41,7 +43,7 @@ export default function ReservationDetailPage() {
   const [lookup, setLookup] = useState<Map<string, CatalogEntry>>(new Map())
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -69,7 +71,7 @@ export default function ReservationDetailPage() {
         setError(null)
       } catch (cause) {
         if (!cancelled) {
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) {
@@ -83,7 +85,7 @@ export default function ReservationDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [reservationId, reloadToken, setError])
+  }, [reservationId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -102,13 +104,12 @@ export default function ReservationDetailPage() {
   if (reservation === null) {
     return (
       <div className={styles.page}>
-        <Link to="/mis-reservas" className={styles.back}>
-          {t("← Volver a mis reservas")}</Link>
+        <BackButton to="/mis-reservas" />
         <StateMessage
           title={t("No se pudo cargar la reserva")}
           description={error ?? t("No se encontró la reserva.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       </div>
     )
@@ -142,7 +143,7 @@ export default function ReservationDetailPage() {
       setReservation(updated)
       setFeedback(() => t("Reserva cancelada."))
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -150,8 +151,7 @@ export default function ReservationDetailPage() {
 
   return (
     <div className={styles.page}>
-      <Link to="/mis-reservas" className={styles.back}>
-        {t("← Volver a mis reservas")}</Link>
+      <BackButton to="/mis-reservas" />
 
       <PageHeader
         breadcrumb={[

@@ -132,6 +132,13 @@ describe('MyReportsPage', () => {
     expect(screen.queryByRole('combobox', { name: 'Ordenar por fecha' })).toBeNull()
   })
 
+  it('replaces retry with session exit when the API requires login', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ status: 401 }, 401)))
+    renderReports()
+    expect(await screen.findByRole('button', { name: 'Cerrar sesión' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull()
+  })
+
   it('muestra el error y reintenta la carga', async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ code: 'ERROR' }, 500))
     vi.stubGlobal('fetch', fetchMock)

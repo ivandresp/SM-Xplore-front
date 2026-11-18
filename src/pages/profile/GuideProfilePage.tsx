@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Avatar } from '@/components/Avatar/Avatar'
@@ -13,7 +15,6 @@ import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { activitiesApi } from '@/services/activitiesApi'
 import { usersApi } from '@/services/usersApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDuration, formatMonthYear } from '@/utils/format'
 import type { ActivityResponse, PublicProfile } from '@/types'
 import styles from './profile.module.css'
@@ -25,7 +26,7 @@ export default function GuideProfilePage() {
   const [guide, setGuide] = useState<PublicProfile | null>(null)
   const [activities, setActivities] = useState<ActivityResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [reloadToken, setReloadToken] = useState(0)
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export default function GuideProfilePage() {
           if (!cancelled) setActivities([])
         }
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -69,7 +70,7 @@ export default function GuideProfilePage() {
     return () => {
       cancelled = true
     }
-  }, [guideId, reloadToken, setError])
+  }, [guideId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -88,13 +89,12 @@ export default function GuideProfilePage() {
   if (guide === null) {
     return (
       <section className={styles.page}>
-        <Link to="/explorar" className={styles.back}>
-          {t("← Volver al catálogo")}</Link>
+        <BackButton to="/explorar" />
         <StateMessage
           title={t("No se pudo cargar el perfil")}
           description={error ?? t("No se encontró el guía.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       </section>
     )

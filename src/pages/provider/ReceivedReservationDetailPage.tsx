@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { getLocale, translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -18,7 +21,6 @@ import {
 import { itemLabel, loadCatalogLookup } from '@/services/catalogLookup'
 import type { CatalogEntry } from '@/services/catalogLookup'
 import { itemOf, reservationsApi } from '@/services/reservationsApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate } from '@/utils/format'
 import type { ReservationItemResponse, ReservationResponse } from '@/types'
 import styles from '@/pages/reservations/reservations.module.css'
@@ -42,7 +44,7 @@ export default function ReceivedReservationDetailPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [hasStarted, setHasStarted] = useState(false)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -72,7 +74,7 @@ export default function ReceivedReservationDetailPage() {
         setHasStarted(new Date(found.bookedFor).getTime() <= Date.now())
         setError(null)
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -83,7 +85,7 @@ export default function ReceivedReservationDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [reservationId, reloadToken, setError])
+  }, [reservationId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -98,13 +100,12 @@ export default function ReceivedReservationDetailPage() {
   if (reservation === null) {
     return (
       <div>
-        <Link to="/app/reservas-recibidas" className={styles.back}>
-          {t("← Volver a reservas recibidas")}</Link>
+        <BackButton to="/app/reservas-recibidas" />
         <StateMessage
           title={t("No se pudo cargar la reserva")}
           description={error ?? t("No se encontró la reserva.")}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       </div>
     )
@@ -140,7 +141,7 @@ export default function ReceivedReservationDetailPage() {
       setReservation(updated)
       setFeedback(message)
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -152,8 +153,7 @@ export default function ReceivedReservationDetailPage() {
 
   return (
     <div>
-      <Link to="/app/reservas-recibidas" className={styles.back}>
-        {t("← Volver a reservas recibidas")}</Link>
+      <BackButton to="/app/reservas-recibidas" />
 
       <PageHeader
         breadcrumb={[

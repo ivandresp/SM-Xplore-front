@@ -281,6 +281,16 @@ for (const width of [375, 768, 1280]) {
     const section = page.locator('#comentarios')
     await expect(section).toBeFocused()
     await expect(page.getByRole('heading', { name: 'Comentarios (2)', exact: true })).toBeInViewport()
+    const back = page.getByRole('button', { name: 'Volver', exact: true })
+    await back.scrollIntoViewIfNeeded()
+    await expect(back.locator('svg')).toBeVisible()
+    expect((await back.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    expect(await back.evaluate(el => getComputedStyle(el).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.screenshot({ path: `/tmp/back-button-${width}.png`, fullPage: true })
+    await back.click()
+    await expect(page).toHaveURL(/\/reportes$/)
+
   })
 }
 
@@ -343,4 +353,57 @@ for (const width of [375, 768, 1280]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     await page.screenshot({ path: `/tmp/comments-panel-${width}.png`, fullPage: true })
   })
+}
+
+for (const width of [375, 1280]) {
+  for (const target of ['recommendations', 'reports', 'catalog']) {
+    test(`tourist expired session action ${target} ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 950 })
+      await page.clock.install({ time: new Date('2099-01-01T12:00:00Z') })
+      await setup(page)
+      let failures = 0
+      let logouts = 0
+      await page.route('**/api/**', async route => {
+        const path = new URL(route.request().url()).pathname
+        if (path.endsWith('/users/me/logout')) {
+          logouts++
+          await route.fulfill({ status: 401, json: { status: 401 } })
+          return
+        }
+        if (path.endsWith('/recommendations')) {
+          if (!route.request().headers()['authorization']) {
+            failures++; await route.fulfill({ status: 401, json: { status: 401 } }); return
+          }
+          await route.fulfill({ json: { touristId: USER.id, generatedAt: '2099-01-01T12:00:00Z', source: 'AFFINITY', items: Array.from({ length: 20 }, (_, i) => ({ itemType: 'ACTIVITY', itemId: `item${i}`, name: `Plan ${i}`, categoryId: 'c1', siteId: 's1', score: 0.8, reason: 'Por tus intereses', signals: { affinity: 0.5, quality: 0.8, distanceKm: null, novelty: 0.4 } })) } })
+          return
+        }
+        if ((target === 'reports' && path.includes('/security-reports/by-user/')) || (target === 'catalog' && path.endsWith('/activities'))) {
+          failures++; await route.fulfill({ status: 401, json: { status: 401 } }); return
+        }
+        await route.fallback()
+      })
+      await page.goto('/recomendaciones')
+      await expect(page.getByText('Plan 0', { exact: true })).toBeVisible()
+      await page.clock.setSystemTime(new Date('2101-01-01T12:00:00Z'))
+      if (target === 'recommendations') {
+        await page.getByRole('button', { name: 'Ver más sugerencias' }).click()
+        await expect(page.getByText('Plan 0', { exact: true })).toBeVisible()
+      } else {
+        if (width < 900) await page.getByRole('button', { name: 'Abrir menú', exact: true }).click()
+        const nav = page.getByRole('navigation', { name: width < 900 ? 'Menú principal' : 'Navegación principal' })
+        await nav.getByRole('link', { name: target === 'reports' ? 'Reportes de seguridad' : 'Explorar', exact: true }).click()
+      }
+      const exit = page.getByRole('button', { name: 'Cerrar sesión', exact: true })
+      await expect(exit).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Reintentar', exact: true })).toHaveCount(0)
+      expect(failures).toBe(1)
+      await page.screenshot({ path: `/tmp/session-expired-${target}-${width}.png`, fullPage: true })
+      await exit.click()
+      await expect(page).toHaveURL(/\/login$/)
+      await expect(page.getByRole('heading', { name: 'Iniciar sesión', exact: true })).toBeVisible()
+      expect(logouts).toBe(1)
+      expect(failures).toBe(1)
+      expect(await page.evaluate(() => sessionStorage.getItem('sm-xplore:session'))).toBeNull()
+    })
+  }
 }

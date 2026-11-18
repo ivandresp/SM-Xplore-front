@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button } from '@/components/Button'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
 import { SelectField } from '@/components/SelectField'
 import { useLanguage } from '@/hooks/useLanguage'
 import { translate as t } from '@/i18n/language'
@@ -35,6 +35,7 @@ export function CategorySelect({ scope, value, onChange, required = false, disab
   const [categories, setCategories] = useState<CategoryResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [failed, setFailed] = useState(false)
+  const [failureCause, setFailureCause] = useState<unknown>(null)
   const [attempt, setAttempt] = useState(0)
 
   useEffect(() => {
@@ -43,8 +44,8 @@ export function CategorySelect({ scope, value, onChange, required = false, disab
       .then(([general, specific]) => {
         if (!cancelled) setCategories([...general, ...specific])
       })
-      .catch(() => {
-        if (!cancelled) setFailed(true)
+      .catch(cause => {
+        if (!cancelled) { setFailureCause(() => cause); setFailed(true) }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -75,7 +76,7 @@ export function CategorySelect({ scope, value, onChange, required = false, disab
         })).filter((group) => group.options.length > 0)}
         onChange={(event) => onChange(event.target.value)}
       />
-      {failed && <Button variant="outline" size="sm" onClick={retry} disabled={disabled}>{t('Reintentar')}</Button>}
+      {failed && <ApiErrorAction error={failureCause} variant="outline" size="sm" onRetry={retry} disabled={disabled} />}
     </div>
   )
 }

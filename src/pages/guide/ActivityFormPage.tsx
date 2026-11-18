@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { BackButton } from '@/components/BackButton'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -158,8 +159,7 @@ export default function ActivityFormPage() {
 
   return (
     <section>
-      <Link to="/app/mis-actividades" className={styles.back}>
-        {t("← Volver a mis actividades")}</Link>
+      <BackButton to="/app/mis-actividades" />
 
       <PageHeader
         breadcrumb={[

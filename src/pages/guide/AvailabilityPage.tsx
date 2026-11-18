@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { useMessageState } from '@/hooks/useMessageState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
@@ -22,7 +24,6 @@ import {
   toDateInput,
   toTimeInput,
 } from '@/utils/datetime'
-import { describeApiError } from '@/utils/errors'
 import type { ActivityResponse, ReservationStatus } from '@/types'
 import styles from './guide.module.css'
 
@@ -47,7 +48,7 @@ export default function AvailabilityPage() {
   const [activeReservations, setActiveReservations] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [isWorking, setIsWorking] = useState(false)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [feedback, setFeedback] = useMessageState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
 
@@ -81,7 +82,7 @@ export default function AvailabilityPage() {
 
         setError(null)
       } catch (cause) {
-        if (!cancelled) setError(() => describeApiError(cause))
+        if (!cancelled) setErrorFromApi(cause)
       } finally {
         if (!cancelled) setIsLoading(false)
       }
@@ -93,7 +94,7 @@ export default function AvailabilityPage() {
       cancelled = true
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [guideId, reloadToken, setError])
+  }, [guideId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -170,7 +171,7 @@ export default function AvailabilityPage() {
       )
       setFeedback(message)
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -211,7 +212,7 @@ export default function AvailabilityPage() {
       )
       setFeedback(() => t("Fechas y cupos actualizados."))
     } catch (cause) {
-      setError(() => describeApiError(cause))
+      setErrorFromApi(cause)
     } finally {
       setIsWorking(false)
     }
@@ -250,7 +251,7 @@ export default function AvailabilityPage() {
           tone="error"
           action={
             activities.length === 0 ? (
-              <Button onClick={retry}>{t("Reintentar")}</Button>
+              <ApiErrorAction error={errorCause} onRetry={retry} />
             ) : undefined
           }
         />

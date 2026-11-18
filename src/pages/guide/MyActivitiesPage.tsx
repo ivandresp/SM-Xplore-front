@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useMessageState } from '@/hooks/useMessageState'
+import { ApiErrorAction } from '@/components/ApiErrorAction'
+import { useApiErrorState } from '@/hooks/useApiErrorState'
 import { translate as t } from '@/i18n/language'
 import { useLanguage } from '@/hooks/useLanguage'
 import { Button } from '@/components/Button'
@@ -15,7 +16,6 @@ import {
 } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 import { activitiesApi } from '@/services/activitiesApi'
-import { describeApiError } from '@/utils/errors'
 import { formatCurrency, formatDate, formatDuration } from '@/utils/format'
 import type { ActivityResponse } from '@/types'
 import styles from './guide.module.css'
@@ -26,7 +26,7 @@ export default function MyActivitiesPage() {
 
   const [activities, setActivities] = useState<ActivityResponse[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useMessageState<string | null>(null)
+  const [error, setError, errorCause, setErrorFromApi] = useApiErrorState()
   const [reloadToken, setReloadToken] = useState(0)
 
   const guideId = user?.id
@@ -55,7 +55,7 @@ export default function MyActivitiesPage() {
       } catch (cause) {
         if (!cancelled) {
           setActivities([])
-          setError(() => describeApiError(cause))
+          setErrorFromApi(cause)
         }
       } finally {
         if (!cancelled) {
@@ -69,7 +69,7 @@ export default function MyActivitiesPage() {
     return () => {
       cancelled = true
     }
-  }, [guideId, reloadToken, setError])
+  }, [guideId, reloadToken, setError, setErrorFromApi])
 
   function retry() {
     setIsLoading(true)
@@ -155,7 +155,7 @@ export default function MyActivitiesPage() {
           title={t("No se pudieron cargar tus actividades")}
           description={error}
           tone="error"
-          action={<Button onClick={retry}>{t("Reintentar")}</Button>}
+          action={<ApiErrorAction error={errorCause} onRetry={retry} />}
         />
       )}
 

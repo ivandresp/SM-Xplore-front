@@ -1,7 +1,10 @@
 import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { AuthContext } from '@/context/auth-context'
+import type { AuthContextValue } from '@/context/auth-context'
+import { ApiError } from '@/services/httpClient'
 import { clearCache } from '@/services/cache'
 import { recommendationsApi } from '@/services/recommendationsApi'
 import RecommendationsPage from './RecommendationsPage'
@@ -104,6 +107,22 @@ afterEach(() => {
 })
 
 describe('RecommendationsPage', () => {
+  it('offers closing the session instead of retrying a 401', async () => {
+    vi.spyOn(recommendationsApi, 'list').mockRejectedValue(new ApiError('unauthorized', 401))
+    const logout = vi.fn().mockResolvedValue(undefined)
+    render(<AuthContext.Provider value={{ logout } as unknown as AuthContextValue}>
+      <MemoryRouter initialEntries={['/recomendaciones']}><Routes>
+        <Route path="/recomendaciones" element={<RecommendationsPage />} />
+        <Route path="/login" element={<p>Login tras caducar</p>} />
+      </Routes></MemoryRouter>
+    </AuthContext.Provider>)
+    const close = await screen.findByRole('button', { name: 'Cerrar sesión' })
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).toBeNull()
+    await userEvent.click(close)
+    expect(await screen.findByText('Login tras caducar')).toBeTruthy()
+    expect(logout).toHaveBeenCalledTimes(1)
+  })
+
   it('no ofrece edición de preferencias ni consulta sus catálogos desde Para ti', async () => {
     const { fetchMock } = stubApi()
     renderPage()
