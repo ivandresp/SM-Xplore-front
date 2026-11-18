@@ -407,3 +407,68 @@ for (const width of [375, 1280]) {
     })
   }
 }
+
+for (const width of [320, 360, 375, 414, 768, 1280]) {
+  test(`tourist report map location ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 950 })
+    await setup(page)
+    await page.addInitScript(() => {
+      const testWindow = window as Window & { reportGpsCalls?: number }
+      testWindow.reportGpsCalls = 0
+      Object.defineProperty(navigator, 'geolocation', { configurable: true, value: { getCurrentPosition: () => { testWindow.reportGpsCalls!++ } } })
+    })
+    await page.route('**/tile.openstreetmap.org/**', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256"><rect width="256" height="256" fill="#d6e4d0"/></svg>' }))
+    const posts: Array<Record<string, unknown>> = []
+    await page.route('**/api/**/security-reports', async route => {
+      const body = route.request().postDataJSON() as Record<string, unknown>
+      posts.push(body)
+      if (width === 375 && posts.length === 1) {
+        await route.fulfill({ status: 500, json: { status: 500 } }); return
+      }
+      await route.fulfill({ status: 201, json: { ...body, id: 'r-new', user: { id: USER.id, name: USER.fullName }, status: 'ONGOING', createdAt: '2026-11-17T12:00:00Z', updatedAt: null, photosUrls: [] } })
+    })
+    await page.goto('/reportes/nuevo')
+    await expect(page.getByRole('heading', { name: 'Nuevo reporte de seguridad' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Elegir punto en el mapa' })).toHaveAttribute('aria-disabled', 'false')
+    await page.setViewportSize({ width, height: 950 })
+    const layout = await page.evaluate(() => ({
+      viewport: innerWidth, documentWidth: document.documentElement.scrollWidth,
+      offenders: Array.from(document.querySelectorAll('main, form, section, input, textarea, button, img')).flatMap(el => {
+        const r = el.getBoundingClientRect()
+        return r.width > 0 && (r.right > innerWidth + 1 || r.left < -1) ? [{ tag: el.tagName, class: el.className, left: r.left, right: r.right, width: r.width }] : []
+      }).slice(0, 12),
+    }))
+    expect(layout.documentWidth, JSON.stringify(layout)).toBeLessThanOrEqual(width)
+    await expect(page.getByRole('button', { name: 'Usar mi ubicación actual' })).toHaveCount(0)
+    const surface = page.getByRole('button', { name: 'Elegir punto en el mapa' })
+    await expect(surface).toHaveAttribute('aria-disabled', 'false')
+    await surface.press('Enter')
+    await expect(page.getByText('Punto seleccionado: 11.240400, -74.199000', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Quitar punto seleccionado' }).click()
+    await expect(page.getByText('Todavía no has elegido una ubicación.', { exact: true })).toBeVisible()
+    await surface.press('ArrowRight')
+    await expect(surface).toHaveAttribute('aria-disabled', 'false')
+    await surface.press('Enter')
+    await expect(page.getByText(/Punto seleccionado:/)).toBeVisible()
+    await page.setViewportSize({ width: 1024, height: 950 })
+    await page.setViewportSize({ width, height: 950 })
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
+    await expect(page.getByText(/Punto seleccionado:/)).toBeVisible()
+    await page.getByLabel('Título', { exact: true }).fill('Incidente con ubicación elegida')
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    await page.screenshot({ path: `/tmp/report-location-map-${width}.png`, fullPage: true })
+    const submit = page.getByRole('button', { name: 'Enviar reporte', exact: true })
+    await submit.click()
+    if (width === 375) {
+      await expect(page.getByRole('alert')).toBeVisible()
+      await expect(page.getByText(/Punto seleccionado:/)).toBeVisible()
+      await expect(page.getByLabel('Título', { exact: true })).toHaveValue('Incidente con ubicación elegida')
+      await submit.click()
+    }
+    await expect(page).toHaveURL(/\/reportes$/)
+    const point = posts.at(-1)!.location as { latitude: number; longitude: number }
+    expect(point.latitude).toBeCloseTo(11.2404, 5)
+    expect(point.longitude).toBeGreaterThan(-74.199)
+    expect(await page.evaluate(() => (window as Window & { reportGpsCalls?: number }).reportGpsCalls)).toBe(0)
+  })
+}

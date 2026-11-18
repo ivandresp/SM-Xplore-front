@@ -1265,5 +1265,8 @@
   "Más recientes": "Newest first",
   "Más antiguos": "Oldest first",
   "Volver": "Back",
-  "Cerrar sesión": "Sign out"
+  "Cerrar sesión": "Sign out",
+  "Ubicación del reporte": "Report location",
+  "Selecciona en el mapa dónde ocurrió el incidente. Puedes enviar el reporte sin ubicación.": "Select where the incident happened on the map. You can submit the report without a location.",
+  "El envío se habilita cuando terminen de subir las fotos.": "Submission becomes available when the photos finish uploading."
 }

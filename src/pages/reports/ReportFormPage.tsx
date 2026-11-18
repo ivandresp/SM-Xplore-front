@@ -9,63 +9,24 @@ import { useReportsPath } from '@/hooks/useReportsPath'
 import { Button } from '@/components/Button'
 import { Field } from '@/components/FormField'
 import { ImageUploader } from '@/components/ImageUploader'
+import { LocationPicker } from '@/components/LocationPicker'
+import type { MapPoint } from '@/components/MapPreview/mercator'
 import { PageHeader } from '@/components/PageHeader/PageHeader'
 import { StateMessage } from '@/components/StateMessage'
 import { useFormValidation } from '@/hooks/useFormValidation'
 import { securityReportsApi } from '@/services/securityReportsApi'
 import { describeApiError } from '@/utils/errors'
-import { useCurrentLocation } from './useCurrentLocation'
-import type { LocationStatus } from './useCurrentLocation'
 import styles from './reports.module.css'
 
 /** El contrato acepta como máximo 10 fotos por reporte (`@Size(max = 10)`). */
 const MAX_PHOTOS = 10
 
-/** Fallos de lectura cuando ya había una ubicación válida: se conserva. */
-const KEPT_LOCATION_MESSAGES: Record<'denied' | 'error' | 'unsupported', string> = {
-  get denied() { return t("No diste permiso de ubicación. Mantendremos la ubicación anterior.") },
-  get error() { return t("No pudimos actualizar la ubicación. Mantendremos la ubicación anterior.") },
-  get unsupported() { return t("Este navegador no expone la ubicación. Mantendremos la ubicación anterior.") },
-}
-
-/** Lo que se lee mientras no hay coordenadas. `idle` y `ready` tienen su propio texto. */
-const LOCATION_MESSAGES: Record<
-  Exclude<LocationStatus, 'idle' | 'ready'>,
-  { text: string; tone: 'info' | 'error' }
-> = {
-  locating: { get text() { return t("Consultando ubicación…") }, tone: 'info' },
-  denied: {
-    get text() { return t("No diste permiso de ubicación. Puedes enviar el reporte sin ella.") },
-    tone: 'error',
-  },
-  unsupported: {
-    get text() { return t("Este navegador no expone la ubicación. Puedes enviar el reporte sin ella.") },
-    tone: 'error',
-  },
-  error: {
-    get text() { return t("No pudimos obtener la ubicación. Puedes enviar el reporte sin ella o volver a intentarlo.") },
-    tone: 'error',
-  },
-}
-
-/**
- * Alta de un reporte de seguridad.
- *
- * La ubicación sale del navegador, nunca de campos escritos a mano: el contrato
- * (`SecurityReportRequest`) no la exige, así que un fallo de geolocalización no
- * bloquea el envío. Las fotos las sube `ImageUploader` a Cloudinary y solo sus
- * URLs viajan en `photosUrls`.
- */
+/** Alta de reporte con ubicación opcional elegida explícitamente en el mapa. */
 export default function ReportFormPage() {
   useLanguage()
   const reportsPath = useReportsPath()
   const navigate = useNavigate()
-  const {
-    status: locationStatus,
-    location,
-    request: requestLocation,
-    clear: clearLocation,
-  } = useCurrentLocation()
+  const [location, setLocation] = useState<MapPoint | null>(null)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -136,19 +97,6 @@ export default function ReportFormPage() {
     }
   }
 
-  const isLocating = locationStatus === 'locating'
-  const hasLocation = location !== null
-  const statusMessage =
-    locationStatus === 'idle' || locationStatus === 'ready'
-      ? null
-      : locationStatus === 'locating'
-        ? LOCATION_MESSAGES.locating
-        : hasLocation
-          ? {
-              text: KEPT_LOCATION_MESSAGES[locationStatus],
-              tone: 'error' as const,
-            }
-          : LOCATION_MESSAGES[locationStatus]
 
   return (
     <div className={styles.page}>
@@ -192,64 +140,12 @@ export default function ReportFormPage() {
             />
           </label>
 
-          <section className={styles.full} aria-labelledby="report-location-label">
-            <div className={styles.locationBox}>
-              <span className={styles.fieldLabel} id="report-location-label">
-                {t("Ubicación (opcional)")}</span>
-              <p className={styles.helper}>
-                {t("Se toma del navegador, no se escribe a mano. Puedes enviar el reporte sin ubicación.")}</p>
-
-              {location !== null && (
-                <p className={styles.locationCoords}>
-                  {location.latitude.toFixed(6)}, {location.longitude.toFixed(6)}
-                </p>
-              )}
-
-              <div className={styles.locationActions}>
-                {!hasLocation && (
-                  <Button
-                    variant="outline"
-                    disabled={isLocating}
-                    aria-busy={isLocating}
-                    onClick={requestLocation}
-                  >
-                    {isLocating
-                      ? t("Consultando…")
-                      : locationStatus === 'denied' || locationStatus === 'error'
-                        ? t("Reintentar")
-                        : t("Usar mi ubicación actual")}
-                  </Button>
-                )}
-
-                {location !== null && (
-                  <>
-                    <Button variant="outline" onClick={requestLocation}>
-                      {t("Volver a consultar")}</Button>
-                    <Button variant="outline" onClick={clearLocation}>
-                      {t("Quitar ubicación")}</Button>
-                  </>
-                )}
-              </div>
-
-              {statusMessage !== null && (
-                <p
-                  className={
-                    statusMessage.tone === 'error'
-                      ? `${styles.locationStatus} ${styles.locationStatusError}`
-                      : styles.locationStatus
-                  }
-                  role="status"
-                  aria-live="polite"
-                >
-                  {statusMessage.text}
-                </p>
-              )}
-
-              {hasLocation && locationStatus === 'ready' && (
-                <p className={styles.locationStatus} role="status">
-                  {t("Ubicación lista: se adjuntará al enviar el reporte.")}</p>
-              )}
-            </div>
+          <section className={styles.full} aria-label={t("Ubicación del reporte")}>
+            <LocationPicker label={t("Ubicación (opcional)")}
+              value={location} onChange={setLocation} disabled={isSaving} />
+            <p className={styles.helper}>
+              {t("Selecciona en el mapa dónde ocurrió el incidente. Puedes enviar el reporte sin ubicación.")}
+            </p>
           </section>
 
           <div className={styles.full}>
@@ -271,7 +167,7 @@ export default function ReportFormPage() {
             size="lg"
             type="submit"
             loading={isSaving}
-            disabled={isUploadingPhotos || isLocating}
+            disabled={isUploadingPhotos}
           >
             {t("Enviar reporte")}</Button>
           <Link to={reportsPath}>
@@ -280,9 +176,9 @@ export default function ReportFormPage() {
           </Link>
         </div>
 
-        {(isUploadingPhotos || isLocating) && (
+        {isUploadingPhotos && (
           <p className={styles.helper} role="status">
-            {t("El envío se habilita cuando terminen las fotos y la ubicación.")}</p>
+            {t("El envío se habilita cuando terminen de subir las fotos.")}</p>
         )}
       </form>
     </div>
