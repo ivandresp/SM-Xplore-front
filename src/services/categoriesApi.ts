@@ -49,3 +49,21 @@ export const categoriesApi = {
     )
   },
 }
+
+async function listScope(scope: CategoryScope) {
+  const categories: CategoryResponse[] = []
+  let page = 0
+  let totalPages = 1
+  do {
+    const result = await categoriesApi.listPage({ scope, page, size: MAX_PAGE_SIZE })
+    categories.push(...result.content.filter((category) => category.scope === scope))
+    totalPages = result.totalPages
+    page += 1
+  } while (page < totalPages)
+  return categories.sort((a, b) => a.name.localeCompare(b.name, 'es'))
+}
+
+export async function listCategoriesForScope(scope: Exclude<CategoryScope, 'GENERAL'>): Promise<CategoryResponse[]> {
+  const [general, specific] = await Promise.all([listScope('GENERAL'), listScope(scope)])
+  return [...general, ...specific]
+}

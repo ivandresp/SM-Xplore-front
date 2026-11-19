@@ -18,7 +18,7 @@ import { Skeleton } from '@/components/Skeleton'
 import { StateMessage } from '@/components/StateMessage'
 import { StatusBadge } from '@/components/StatusBadge/StatusBadge'
 import { CONTENT_STATUS_LABELS, CONTENT_STATUS_TONES } from '@/config/roles'
-import { categoriesApi } from '@/services/categoriesApi'
+import { listCategoriesForScope } from '@/services/categoriesApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
 import { describeApiError } from '@/utils/errors'
@@ -96,7 +96,7 @@ export default function ZoneFormPage() {
         const [found, foundSites, foundCategories] = await Promise.all([
           zonesApi.getById(zoneId as string),
           sitesApi.list({ zoneId: zoneId as string }).then((page) => page.content),
-          categoriesApi.list('SITE'),
+          listCategoriesForScope('SITE'),
         ])
 
         if (!cancelled) {

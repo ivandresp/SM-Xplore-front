@@ -93,6 +93,30 @@ describe('SiteListPage', () => {
     expect(document.querySelector('section[aria-busy="true"]')).toBeNull()
   })
 
+  it('ofrece categorías generales y de sitios y filtra por el ID seleccionado', async () => {
+    const general = { ...CATEGORY, categoryId: 'c-general', name: 'Naturaleza', scope: 'GENERAL' }
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input)
+      if (url.includes('/categories?')) {
+        return jsonResponse(page(url.includes('scope=GENERAL') ? [general] : [CATEGORY]))
+      }
+      return jsonResponse(page([]))
+    })
+    vi.stubGlobal('fetch', fetchMock)
+
+    const user = userEvent.setup()
+    renderSites()
+    const category = screen.getByRole('combobox', { name: 'Categoría' })
+    await waitFor(() => expect((category as HTMLButtonElement).disabled).toBe(false))
+    await user.click(category)
+
+    expect(screen.getByRole('option', { name: 'Playa' })).toBeTruthy()
+    await user.click(screen.getByRole('option', { name: 'Naturaleza' }))
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('categoryId=c-general'), expect.anything(),
+    ))
+  })
+
   it('al recargar mantiene la lista anterior sin esqueleto y marca aria-busy', async () => {
     let release: ((response: Response) => void) | null = null
     vi.stubGlobal(
