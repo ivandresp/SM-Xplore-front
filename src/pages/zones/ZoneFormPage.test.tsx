@@ -9,7 +9,6 @@ import { zonesApi } from '@/services/zonesApi'
 import type { CategoryResponse, PageResponse, Site } from '@/types'
 import ZoneFormPage from './ZoneFormPage'
 
-vi.mock('@/services/categoriesApi', () => ({ categoriesApi: { list: vi.fn() } }))
 vi.mock('@/services/zonesApi', () => ({ zonesApi: { getById: vi.fn() } }))
 vi.mock('@/services/sitesApi', () => ({
   sitesApi: { list: vi.fn(), create: vi.fn(), update: vi.fn(), changeStatus: vi.fn() },
@@ -79,11 +78,11 @@ async function addForm() {
   return within(submit.closest('form') as HTMLFormElement)
 }
 
-async function completeSiteDraft(user: ReturnType<typeof userEvent.setup>) {
+async function completeSiteDraft(user: ReturnType<typeof userEvent.setup>, category = 'Patrimonio') {
   const form = await addForm()
   await user.type(form.getByLabelText('Nombre del sitio o atractivo'), '  Museo del Oro  ')
   await user.click(form.getByRole('combobox', { name: /Categoría/ }))
-  await user.click(form.getByRole('option', { name: 'Patrimonio' }))
+  await user.click(form.getByRole('option', { name: category }))
   const capacity = form.getByLabelText('Capacidad máxima')
   await user.clear(capacity)
   await user.type(capacity, '40')
@@ -95,7 +94,12 @@ describe('ZoneFormPage: ubicación controlada del sitio', () => {
     setLanguage('es')
     vi.clearAllMocks()
     vi.mocked(zonesApi.getById).mockResolvedValue({ id: 'z-1', name: 'Centro' })
-    vi.mocked(categoriesApi.list).mockResolvedValue([CATEGORY])
+    vi.spyOn(categoriesApi, 'listPage').mockImplementation(async ({ scope }) => {
+      const content = scope === 'GENERAL'
+        ? [{ ...CATEGORY, id: 'c-general', name: 'Naturaleza', scope }]
+        : [CATEGORY]
+      return { content, page: 0, size: 100, total: content.length, totalPages: 1 }
+    })
     vi.mocked(sitesApi.list).mockResolvedValue(page([]))
     vi.mocked(sitesApi.create).mockImplementation(async (input) => ({
       ...SITE, ...input, id: 's-new', photoUrls: input.photoUrls ?? [],
@@ -105,7 +109,10 @@ describe('ZoneFormPage: ubicación controlada del sitio', () => {
     }))
   })
 
-  afterEach(() => setLanguage('es'))
+  afterEach(() => {
+    vi.restoreAllMocks()
+    setLanguage('es')
+  })
 
   it('no usa el centro de la vista como selección y bloquea el alta sin punto', async () => {
     vi.mocked(sitesApi.list).mockResolvedValue(page([SITE]))
@@ -127,12 +134,12 @@ describe('ZoneFormPage: ubicación controlada del sitio', () => {
   it('envía el punto numérico y conserva el resto del alta; limpia el punto solo tras éxito', async () => {
     const user = userEvent.setup()
     renderZone()
-    const form = await completeSiteDraft(user)
+    const form = await completeSiteDraft(user, 'Naturaleza')
     await user.click(form.getByRole('button', { name: 'Elegir punto de prueba' }))
     await user.click(form.getByRole('button', { name: 'Añadir foto de prueba' }))
     await user.click(form.getByRole('button', { name: '+ Añadir sitio' }))
     await waitFor(() => expect(sitesApi.create).toHaveBeenCalledExactlyOnceWith({
-      zoneId: 'z-1', name: 'Museo del Oro', categoryId: 'c-1',
+      zoneId: 'z-1', name: 'Museo del Oro', categoryId: 'c-general',
       latitude: 11.25, longitude: -74.2, maxCapacity: 40,
       photoUrls: ['https://example.com/nueva.jpg'],
     }))

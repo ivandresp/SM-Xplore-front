@@ -18,7 +18,7 @@ import { isSearchReady } from '@/config/search'
 import { CATALOG_SKELETON_COUNT } from '@/config/catalog'
 import { useFilterParam, useSearchParamTerm } from '@/hooks/useFilterParam'
 import { useDelayedLoading } from '@/hooks/useDelayedLoading'
-import { categoriesApi } from '@/services/categoriesApi'
+import { listCategoriesForScope } from '@/services/categoriesApi'
 import { sitesApi } from '@/services/sitesApi'
 import { zonesApi } from '@/services/zonesApi'
 import type {
@@ -63,7 +63,7 @@ export default function SiteListPage() {
 
     Promise.allSettled([
       zonesApi.list(),
-      categoriesApi.list('SITE'),
+      listCategoriesForScope('SITE'),
     ]).then(([zonesResult, categoriesResult]) => {
       if (cancelled) return
       if (zonesResult.status === 'fulfilled') setZones(zonesResult.value)
